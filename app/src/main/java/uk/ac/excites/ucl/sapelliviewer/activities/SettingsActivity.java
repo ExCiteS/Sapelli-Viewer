@@ -9,19 +9,14 @@ import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
 import android.view.WindowManager;
-import android.widget.AdapterView;
-import android.widget.ListView;
 import android.widget.Toast;
 
-
-import org.reactivestreams.Subscriber;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import io.reactivex.Single;
+import io.reactivex.Scheduler;
 import io.reactivex.SingleObserver;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
@@ -34,6 +29,7 @@ import uk.ac.excites.ucl.sapelliviewer.R;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Project;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.ProjectInfo;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.UserInfo;
+import uk.ac.excites.ucl.sapelliviewer.db.AppDatabase;
 import uk.ac.excites.ucl.sapelliviewer.service.GeoKeyClient;
 import uk.ac.excites.ucl.sapelliviewer.service.RetrofitBuilder;
 import uk.ac.excites.ucl.sapelliviewer.ui.GeoKeyProjectAdapter;
@@ -45,13 +41,11 @@ public class SettingsActivity extends AppCompatActivity {
     public static String PROJECT_ID = "project_id";
 
     private RecyclerView recyclerView;
-    private GeoKeyProjectAdapter adapter;
-    private List<ProjectInfo> adminProjects;
+    private Toolbar toolbar;
+    private TokenManager tokenManager;
     private GeoKeyClient clientWithAuth;
     private CompositeDisposable disposables;
-
-    private TokenManager tokenManager;
-    private Toolbar toolbar;
+    private AppDatabase db;
 
 
     @Override
@@ -60,6 +54,7 @@ public class SettingsActivity extends AppCompatActivity {
         tokenManager = TokenManager.getInstance();
         disposables = new CompositeDisposable();
         clientWithAuth = RetrofitBuilder.createServiceWithAuth(GeoKeyClient.class, tokenManager);
+        db = AppDatabase.getAppDatabase(getApplicationContext());
         setContentView(R.layout.activity_settings);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         toolbar = (Toolbar) findViewById(R.id.custom_toolbar);
@@ -89,7 +84,7 @@ public class SettingsActivity extends AppCompatActivity {
         if (tokenManager.getToken().getAccess_token() != null) {
             clientWithAuth.getUserInfo()
                     .subscribeOn(Schedulers.io())
-                    .observeOn(AndroidSchedulers.mainThread())
+                    .observeOn(Schedulers.io())
                     .subscribe(new SingleObserver<UserInfo>() {
                         @Override
                         public void onSubscribe(Disposable d) {
@@ -114,7 +109,7 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     private void displayProjects(List<ProjectInfo> projects) {
-        adminProjects = new ArrayList<ProjectInfo>();
+        ArrayList<ProjectInfo> adminProjects = new ArrayList<ProjectInfo>();
         for (ProjectInfo project : projects) {
             if (project.getUser_info().is_admin())
                 adminProjects.add(project);
@@ -148,8 +143,9 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     public void logIn(UserInfo user) {
-        MenuItem item = toolbar.getMenu().getItem(0);
-        item.setTitle(user.getDisplay_name());
+        db.userDao().insertUserInfo(user);
+//        MenuItem item = toolbar.getMenu().getItem(0);
+//        item.setTitle(user.getDisplay_name());
     }
 
     public void openMap(int projectId) {
