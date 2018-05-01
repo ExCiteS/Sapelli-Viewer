@@ -11,12 +11,27 @@ import android.widget.EditText;
 import android.widget.TextView;
 
 import java.io.IOException;
+import java.net.UnknownHostException;
+import java.util.List;
+
+import io.reactivex.Observer;
+import io.reactivex.Scheduler;
+import io.reactivex.SingleObserver;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.observers.DisposableSingleObserver;
+import io.reactivex.schedulers.Schedulers;
+
+import com.jakewharton.retrofit2.adapter.rxjava2.HttpException;
 
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 import uk.ac.excites.ucl.sapelliviewer.R;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.AccessToken;
+import uk.ac.excites.ucl.sapelliviewer.datamodel.UserInfo;
+import uk.ac.excites.ucl.sapelliviewer.db.AppDatabase;
 import uk.ac.excites.ucl.sapelliviewer.service.GeoKeyClient;
 import uk.ac.excites.ucl.sapelliviewer.service.RetrofitBuilder;
 import uk.ac.excites.ucl.sapelliviewer.utils.TokenManager;
@@ -35,6 +50,8 @@ public class LoginActivity extends AppCompatActivity {
     private TextView errorText;
     private TokenManager tokenManager;
     private Intent intent_settingsActivity;
+    private CompositeDisposable disposables;
+    private AppDatabase db;
 
 
     @Override
@@ -44,7 +61,10 @@ public class LoginActivity extends AppCompatActivity {
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         intent_settingsActivity = new Intent(this, SettingsActivity.class);
         tokenManager = TokenManager.getInstance();
+        disposables = new CompositeDisposable();
         setContentView(R.layout.activity_login);
+        db = AppDatabase.getAppDatabase(getApplicationContext());
+
 
         server_url = (EditText) findViewById(R.id.textUrl);
         userName = (EditText) findViewById(R.id.editUsername);
@@ -80,38 +100,69 @@ public class LoginActivity extends AppCompatActivity {
     public void login(String url, String username, String password) {
         tokenManager.saveServerUrl(url);
         GeoKeyClient client = RetrofitBuilder.createService(GeoKeyClient.class, url);
-        Call<AccessToken> call = client.login(AccessToken.GRANT_TYPE_PASSWORD, username, password);
-        call.enqueue(new Callback<AccessToken>() {
-            @Override
-            public void onResponse(Call<AccessToken> call, Response<AccessToken> response) {
-                if (response.isSuccessful()) {
-                    tokenManager.saveToken(response.body());
-                    startActivity(intent_settingsActivity);
-                    finish();
-                } else {
-                    if (response.code() == 404) {
-                        errorText.setText(R.string.geokey_not_found);
-                    } else if (response.code() == 401) {
-                        errorText.setText(R.string.invalid_username_pw);
-                    } else {
-                        try {
-                            errorText.setText(response.errorBody().string());
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }
-            }
+        disposables.add(
+                client.login(AccessToken.GRANT_TYPE_PASSWORD, username, password)
+                        .subscribeOn(Schedulers.io())
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .subscribeWith(new DisposableSingleObserver<AccessToken>() {
+                            @Override
+                            public void onSuccess(AccessToken accessToken) {
+                                tokenManager.saveToken(accessToken);
+                                updateUser();
+                            }
 
-            @Override
-            public void onFailure(Call<AccessToken> call, Throwable t) {
-                errorText.setText(R.string.geokey_not_found);
-            }
-        });
+                            @Override
+                            public void onError(Throwable e) {
+                                if (e instanceof UnknownHostException) {
+                                    errorText.setText(R.string.geokey_not_found);
+                                } else {
+                                    int errorCode = ((HttpException) e).code();
+                                    if (errorCode == 404) {
+                                        errorText.setText(R.string.geokey_not_found);
+                                    } else if (errorCode == 401) {
+                                        errorText.setText(R.string.invalid_username_pw);
+                                    } else {
+                                        errorText.setText(((HttpException) e).message());
+                                    }
+                                }
+                            }
+                        }));
 
 
     }
 
+    public void updateUser() {
+        GeoKeyClient clientWithAuth = RetrofitBuilder.createServiceWithAuth(GeoKeyClient.class, tokenManager);
+        disposables.add(
+                clientWithAuth.getUserInfo()
+                        .observeOn(Schedulers.io())
+                        .subscribeOn(AndroidSchedulers.mainThread())
+                        .subscribeWith(new DisposableSingleObserver<UserInfo>() {
+                            @Override
+                            public void onSuccess(UserInfo user) {
+                                db.userDao().clearPrevUser();
+                                db.userDao().insertUserInfo(user);
+                                startActivity(intent_settingsActivity);
+                                finish();
+                            }
 
+                            @Override
+                            public void onError(Throwable e) {
+                                //logout
+                            }
+                        })
+        );
+
+
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        disposables.clear();
+    }
 }
+
+
+
 

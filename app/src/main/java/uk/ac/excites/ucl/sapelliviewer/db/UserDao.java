@@ -9,6 +9,7 @@ import android.arch.persistence.room.Update;
 
 import java.util.List;
 
+import io.reactivex.Single;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.UserInfo;
 
 @Dao
@@ -23,7 +24,10 @@ public interface UserDao {
     @Delete
     void deleteUserInfo(UserInfo projectInfo);
 
-    @Query("SELECT * FROM UserInfo WHERE id = :id")
-    List<UserInfo> getUserInfo(int id);
+    @Query("SELECT * FROM UserInfo")
+    Single<UserInfo> getUserInfo();
+
+    @Query("DELETE FROM UserInfo")
+    public void clearPrevUser();
 
 }
