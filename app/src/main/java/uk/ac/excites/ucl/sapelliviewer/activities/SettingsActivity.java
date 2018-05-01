@@ -41,7 +41,6 @@ public class SettingsActivity extends AppCompatActivity {
     public static String PROJECT_ID = "project_id";
 
     private RecyclerView recyclerView;
-    private Toolbar toolbar;
     private TokenManager tokenManager;
     private GeoKeyClient clientWithAuth;
     private CompositeDisposable disposables;
@@ -57,7 +56,7 @@ public class SettingsActivity extends AppCompatActivity {
         db = AppDatabase.getAppDatabase(getApplicationContext());
         setContentView(R.layout.activity_settings);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
-        toolbar = (Toolbar) findViewById(R.id.custom_toolbar);
+        Toolbar toolbar = (Toolbar) findViewById(R.id.custom_toolbar);
         toolbar.setTitle("");
         setSupportActionBar(toolbar);
         toolbar.setLogo(R.mipmap.ic_sapelli_viewer);
@@ -80,31 +79,17 @@ public class SettingsActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-//        user has access token
         if (tokenManager.getToken().getAccess_token() != null) {
-            clientWithAuth.getUserInfo()
-                    .subscribeOn(Schedulers.io())
-                    .observeOn(Schedulers.io())
-                    .subscribe(new SingleObserver<UserInfo>() {
-                        @Override
-                        public void onSubscribe(Disposable d) {
-                            disposables.add(d);
-                        }
 
-                        @Override
-                        public void onSuccess(UserInfo user) {
-                            logIn(user);
-                            clientWithAuth.listProjects()
-                                    .subscribeOn(Schedulers.io())
-                                    .observeOn(AndroidSchedulers.mainThread())
-                                    .subscribe(projects -> displayProjects(projects));
-                        }
 
-                        @Override
-                        public void onError(Throwable e) {
-                            logOut();
-                        }
-                    });
+            disposables.add(
+                    clientWithAuth.listProjects()
+                            .subscribeOn(Schedulers.io())
+                            .observeOn(AndroidSchedulers.mainThread())
+                            .subscribe(projectInfos -> displayProjects(projectInfos))
+            );
+
+
         }
     }
 
@@ -120,6 +105,11 @@ public class SettingsActivity extends AppCompatActivity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_settings, menu);
+        MenuItem item = menu.getItem(0);
+        db.userDao().getUserInfo()
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(userInfo -> item.setTitle(userInfo.getDisplay_name()));
         return super.onCreateOptionsMenu(menu);
     }
 

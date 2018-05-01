@@ -26,7 +26,7 @@ public interface GeoKeyClient {
 
     @POST("/api/sapelli/login/")
     @FormUrlEncoded
-    Call<AccessToken> login(@Field("grant_type") String grantType,
+    Single<AccessToken> login(@Field("grant_type") String grantType,
                             @Field("username") String username,
                             @Field("password") String password);
 
