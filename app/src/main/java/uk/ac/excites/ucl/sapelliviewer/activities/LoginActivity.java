@@ -23,7 +23,7 @@ import uk.ac.excites.ucl.sapelliviewer.utils.TokenManager;
 import uk.ac.excites.ucl.sapelliviewer.utils.Validator;
 
 /**
- * A login screen that offers login via email/password. TODO: move strings to resources, convert network calls to RxJava
+ * A login screen that offers login via email/password. TODO: convert network calls to RxJava
  */
 public class LoginActivity extends AppCompatActivity {
 
@@ -33,7 +33,6 @@ public class LoginActivity extends AppCompatActivity {
     private EditText userName;
     private EditText password;
     private TextView errorText;
-    private GeoKeyClient service;
     private TokenManager tokenManager;
     private Intent intent_settingsActivity;
 
@@ -80,8 +79,8 @@ public class LoginActivity extends AppCompatActivity {
 
     public void login(String url, String username, String password) {
         tokenManager.saveServerUrl(url);
-        service = RetrofitBuilder.createService(GeoKeyClient.class, url);
-        Call<AccessToken> call = service.login(AccessToken.GRANT_TYPE_PASSWORD, username, password);
+        GeoKeyClient client = RetrofitBuilder.createService(GeoKeyClient.class, url);
+        Call<AccessToken> call = client.login(AccessToken.GRANT_TYPE_PASSWORD, username, password);
         call.enqueue(new Callback<AccessToken>() {
             @Override
             public void onResponse(Call<AccessToken> call, Response<AccessToken> response) {
@@ -91,9 +90,9 @@ public class LoginActivity extends AppCompatActivity {
                     finish();
                 } else {
                     if (response.code() == 404) {
-                        errorText.setText("GeoKey could not be found at this URL");
+                        errorText.setText(R.string.geokey_not_found);
                     } else if (response.code() == 401) {
-                        errorText.setText("Invalid username or password");
+                        errorText.setText(R.string.invalid_username_pw);
                     } else {
                         try {
                             errorText.setText(response.errorBody().string());
@@ -106,7 +105,7 @@ public class LoginActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<AccessToken> call, Throwable t) {
-                errorText.setText("GeoKey could not be found at this URL");
+                errorText.setText(R.string.geokey_not_found);
             }
         });
 
