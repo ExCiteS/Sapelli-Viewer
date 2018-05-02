@@ -1,12 +1,16 @@
 package uk.ac.excites.ucl.sapelliviewer.activities;
 
+import android.content.Context;
 import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.WindowManager;
@@ -16,11 +20,15 @@ import android.widget.Toast;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.reactivex.Observable;
 import io.reactivex.Scheduler;
 import io.reactivex.SingleObserver;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.disposables.Disposable;
+import io.reactivex.internal.observers.DisposableLambdaObserver;
+import io.reactivex.observers.DisposableObserver;
+import io.reactivex.observers.DisposableSingleObserver;
 import io.reactivex.schedulers.Schedulers;
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -30,9 +38,11 @@ import uk.ac.excites.ucl.sapelliviewer.datamodel.Project;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.ProjectInfo;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.UserInfo;
 import uk.ac.excites.ucl.sapelliviewer.db.AppDatabase;
+import uk.ac.excites.ucl.sapelliviewer.service.ConnectivityInterceptor;
 import uk.ac.excites.ucl.sapelliviewer.service.GeoKeyClient;
 import uk.ac.excites.ucl.sapelliviewer.service.RetrofitBuilder;
 import uk.ac.excites.ucl.sapelliviewer.ui.GeoKeyProjectAdapter;
+import uk.ac.excites.ucl.sapelliviewer.utils.NoConnectivityException;
 import uk.ac.excites.ucl.sapelliviewer.utils.TokenManager;
 
 
@@ -80,27 +90,38 @@ public class SettingsActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         if (tokenManager.getToken().getAccess_token() != null) {
-
-
             disposables.add(
                     clientWithAuth.listProjects()
                             .subscribeOn(Schedulers.io())
+                            .flatMap(Observable::fromIterable)
+                            .filter(projectInfo -> projectInfo.getUser_info().is_admin())
+                            .toList()
+                            .doOnSuccess(projectInfos -> db.projectInfoDao().clearProjectInfos())
+                            .doOnSuccess(projectInfos -> db.projectInfoDao().insertProjectInfo(projectInfos))
                             .observeOn(AndroidSchedulers.mainThread())
-                            .subscribe(projectInfos -> displayProjects(projectInfos))
+                            .subscribeWith(new DisposableSingleObserver<List<ProjectInfo>>() {
+                                               @Override
+                                               public void onSuccess(List<ProjectInfo> projectInfos) {
+                                                   recyclerView.setAdapter(new GeoKeyProjectAdapter(SettingsActivity.this, projectInfos));
+                                               }
+
+                                               @Override
+                                               public void onError(Throwable e) {
+                                                   if (e instanceof NoConnectivityException) {
+                                                       db.projectInfoDao().getProjectInfos().subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
+                                                               .subscribe(projectInfos -> recyclerView.setAdapter(new GeoKeyProjectAdapter(SettingsActivity.this, projectInfos)));
+
+
+                                                   } else
+                                                       Log.e(getLocalClassName(), e.getMessage());
+                                               }
+                                           }
+                            )
             );
 
-
         }
     }
 
-    private void displayProjects(List<ProjectInfo> projects) {
-        ArrayList<ProjectInfo> adminProjects = new ArrayList<ProjectInfo>();
-        for (ProjectInfo project : projects) {
-            if (project.getUser_info().is_admin())
-                adminProjects.add(project);
-        }
-        recyclerView.setAdapter(new GeoKeyProjectAdapter(SettingsActivity.this, adminProjects));
-    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {

@@ -17,6 +17,7 @@ import uk.ac.excites.ucl.sapelliviewer.datamodel.Project;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.ProjectInfo;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.AccessToken;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.UserInfo;
+import uk.ac.excites.ucl.sapelliviewer.utils.NoConnectivityException;
 
 /**
  * Created by Julia on 13/02/2018.
@@ -41,7 +42,7 @@ public interface GeoKeyClient {
 
     /* Get a list of all projects the authenticated user is allowed to access */
     @GET("/api/projects/")
-    Single<List<ProjectInfo>> listProjects();
+    Observable<List<ProjectInfo>> listProjects();
 
     @GET("/api/projects/{projectId}/")
     Call<Project> getProject(@Path("projectId") int projectID);
