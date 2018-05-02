@@ -13,6 +13,8 @@ import okhttp3.Request;
 import okhttp3.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
+import uk.ac.excites.ucl.sapelliviewer.activities.LoginActivity;
+import uk.ac.excites.ucl.sapelliviewer.datamodel.Login;
 import uk.ac.excites.ucl.sapelliviewer.utils.TokenManager;
 
 /**
@@ -45,7 +47,9 @@ public class RetrofitBuilder {
     }
 
     public static <T> T createService(Class<T> service, String url) {
-        Retrofit newRetrofit = retrofit.newBuilder().baseUrl(url).build();
+        OkHttpClient newClient = client.newBuilder().addInterceptor(new ConnectivityInterceptor(LoginActivity.get().getApplicationContext()))
+                .build();
+        Retrofit newRetrofit = buildRetrofit(newClient).newBuilder().baseUrl(url).build();
         return newRetrofit.create(service);
     }
 
@@ -62,7 +66,9 @@ public class RetrofitBuilder {
                 request = builder.build();
                 return chain.proceed(request);
             }
-        }).authenticator(RefreshAuthenticator.getInstance(tokenManager)).build();
+        }).authenticator(RefreshAuthenticator.getInstance(tokenManager))
+                .addInterceptor(new ConnectivityInterceptor(LoginActivity.get().getApplicationContext()))
+                .build();
 
         Retrofit newRetrofit = retrofit.newBuilder().client(newClient).build();
         return newRetrofit.create(service);
