@@ -132,12 +132,6 @@ public class SettingsActivity extends AppCompatActivity {
         finish();
     }
 
-    public void logIn(UserInfo user) {
-        db.userDao().insertUserInfo(user);
-//        MenuItem item = toolbar.getMenu().getItem(0);
-//        item.setTitle(user.getDisplay_name());
-    }
-
     public void openMap(int projectId) {
         Intent mapIntent = new Intent(this, MapsActivity.class);
         mapIntent.putExtra(PROJECT_ID, projectId);

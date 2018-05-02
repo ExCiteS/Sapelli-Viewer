@@ -10,30 +10,23 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
-import java.io.IOException;
 import java.net.UnknownHostException;
-import java.util.List;
 
-import io.reactivex.Observer;
-import io.reactivex.Scheduler;
-import io.reactivex.SingleObserver;
+
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
-import io.reactivex.disposables.Disposable;
 import io.reactivex.observers.DisposableSingleObserver;
 import io.reactivex.schedulers.Schedulers;
 
 import com.jakewharton.retrofit2.adapter.rxjava2.HttpException;
 
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
 import uk.ac.excites.ucl.sapelliviewer.R;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.AccessToken;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.UserInfo;
 import uk.ac.excites.ucl.sapelliviewer.db.AppDatabase;
 import uk.ac.excites.ucl.sapelliviewer.service.GeoKeyClient;
 import uk.ac.excites.ucl.sapelliviewer.service.RetrofitBuilder;
+import uk.ac.excites.ucl.sapelliviewer.utils.NoConnectivityException;
 import uk.ac.excites.ucl.sapelliviewer.utils.TokenManager;
 import uk.ac.excites.ucl.sapelliviewer.utils.Validator;
 
@@ -115,6 +108,8 @@ public class LoginActivity extends AppCompatActivity {
                             public void onError(Throwable e) {
                                 if (e instanceof UnknownHostException) {
                                     errorText.setText(R.string.geokey_not_found);
+                                } else if (e instanceof NoConnectivityException) {
+                                    errorText.setText(R.string.no_internet);
                                 } else {
                                     int errorCode = ((HttpException) e).code();
                                     if (errorCode == 404) {
@@ -136,7 +131,7 @@ public class LoginActivity extends AppCompatActivity {
         disposables.add(
                 clientWithAuth.getUserInfo()
                         .observeOn(Schedulers.io())
-                        .subscribeOn(AndroidSchedulers.mainThread())
+                        .subscribeOn(Schedulers.io())
                         .subscribeWith(new DisposableSingleObserver<UserInfo>() {
                             @Override
                             public void onSuccess(UserInfo user) {
