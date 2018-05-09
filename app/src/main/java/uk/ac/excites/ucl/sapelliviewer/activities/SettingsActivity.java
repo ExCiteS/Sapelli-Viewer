@@ -45,6 +45,8 @@ import retrofit2.Callback;
 import retrofit2.Response;
 import uk.ac.excites.ucl.sapelliviewer.R;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Category;
+import uk.ac.excites.ucl.sapelliviewer.datamodel.Field;
+import uk.ac.excites.ucl.sapelliviewer.datamodel.LookUpValue;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Project;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.ProjectInfo;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.UserInfo;
@@ -204,15 +206,50 @@ public class SettingsActivity extends AppCompatActivity {
                 clientWithAuth.getProject(projectId)
                         .subscribeOn(Schedulers.io())
                         .doOnNext(project -> db.projectInfoDao().insertProject(project))
-                        .flatMap(project -> Observable.fromIterable(project.categories))
+                        .concatMap(project -> Observable.fromIterable(project.categories))
                         .doOnNext(category -> category.setProjectid(projectId))
-                        .toList()
-                        .doOnSuccess(categories -> db.projectInfoDao().insertCategories(categories))
+                        .doOnNext(category -> db.projectInfoDao().insertCategory(category))
+                        .doOnNext(category -> setParentId(category))
+                        .concatMap(category -> Observable.fromIterable(category.getFields()))
+                        .doOnNext(field -> db.projectInfoDao().insertField(field))
+                        .doOnNext(field -> setParentId(field))
                         .observeOn(AndroidSchedulers.mainThread())
-                        .doAfterSuccess(categories -> rotator.cancel())
-                        .doAfterSuccess(categories -> clickedButton.getDrawable().mutate().setColorFilter(Color.parseColor("#37ab52"), PorterDuff.Mode.SRC_IN))
-                        .subscribe()
+                        .subscribeWith(new DisposableObserver<Field>() {
+                            @Override
+                            public void onNext(Field field) {
+                            }
+
+                            @Override
+                            public void onError(Throwable e) {
+                                Log.e("ERROR", e.getMessage());
+                                rotator.cancel();
+                                clickedButton.getDrawable().mutate().setColorFilter(Color.parseColor("#37ab52"), PorterDuff.Mode.SRC_IN);
+                            }
+
+                            @Override
+                            public void onComplete() {
+                                rotator.cancel();
+                                clickedButton.getDrawable().mutate().setColorFilter(Color.parseColor("#37ab52"), PorterDuff.Mode.SRC_IN);
+                            }
+                        })
         );
+    }
+
+    public void setParentId(Object object) {
+        if (object instanceof Category) {
+            Category category = (Category) object;
+            for (Field field : category.getFields()) {
+                field.setCategory_id(category.getId());
+            }
+        } else if (object instanceof Field) {
+            Field field = (Field) object;
+            if (field.getLookupvalues() != null) {
+                for (LookUpValue lookUpValue : field.getLookupvalues()) {
+                    lookUpValue.setFieldId(field.getId());
+                    db.projectInfoDao().insertLookupValue(lookUpValue);
+                }
+            }
+        }
     }
 
     @Override
