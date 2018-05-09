@@ -1,7 +1,13 @@
 package uk.ac.excites.ucl.sapelliviewer.activities;
 
+import android.animation.ObjectAnimator;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.PorterDuff;
+import android.graphics.drawable.Animatable;
+import android.graphics.drawable.AnimationDrawable;
+import android.graphics.drawable.Drawable;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.support.annotation.Nullable;
@@ -13,7 +19,10 @@ import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.view.WindowManager;
+import android.view.animation.Animation;
+import android.widget.ImageButton;
 import android.widget.Toast;
 
 
@@ -22,6 +31,7 @@ import java.util.List;
 
 import io.reactivex.Observable;
 import io.reactivex.Scheduler;
+import io.reactivex.Single;
 import io.reactivex.SingleObserver;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
@@ -34,6 +44,7 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 import uk.ac.excites.ucl.sapelliviewer.R;
+import uk.ac.excites.ucl.sapelliviewer.datamodel.Category;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Project;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.ProjectInfo;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.UserInfo;
@@ -55,6 +66,9 @@ public class SettingsActivity extends AppCompatActivity {
     private GeoKeyClient clientWithAuth;
     private CompositeDisposable disposables;
     private AppDatabase db;
+    private GeoKeyProjectAdapter projectAdapter;
+    private ImageButton clickedButton;
+    private ObjectAnimator rotator;
 
 
     @Override
@@ -74,6 +88,18 @@ public class SettingsActivity extends AppCompatActivity {
         recyclerView = (RecyclerView) findViewById(R.id.project_recyclerview);
         recyclerView.setHasFixedSize(true);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        projectAdapter = new GeoKeyProjectAdapter(getApplicationContext(), new GeoKeyProjectAdapter.DetailsAdapterListener() {
+            @Override
+            public void syncOnClick(View v, int position) {
+                clickedButton = (ImageButton) v;
+                getProject(projectAdapter.getProjectId(position));
+                rotator = ObjectAnimator.ofFloat(clickedButton, View.ROTATION, 0f, -360f);
+                rotator.setDuration(1000);
+                rotator.setRepeatCount(Animation.INFINITE);
+                rotator.start();
+            }
+        });
+
 
 //        projectList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 //            @Override
@@ -102,14 +128,28 @@ public class SettingsActivity extends AppCompatActivity {
                             .subscribeWith(new DisposableSingleObserver<List<ProjectInfo>>() {
                                                @Override
                                                public void onSuccess(List<ProjectInfo> projectInfos) {
-                                                   recyclerView.setAdapter(new GeoKeyProjectAdapter(SettingsActivity.this, projectInfos));
+                                                   projectAdapter.setProjects(projectInfos);
+                                                   recyclerView.setAdapter(projectAdapter);
                                                }
 
                                                @Override
                                                public void onError(Throwable e) {
                                                    if (e instanceof NoConnectivityException) {
-                                                       db.projectInfoDao().getProjectInfos().subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
-                                                               .subscribe(projectInfos -> recyclerView.setAdapter(new GeoKeyProjectAdapter(SettingsActivity.this, projectInfos)));
+                                                       db.projectInfoDao().getProjectInfos()
+                                                               .subscribeOn(Schedulers.io())
+                                                               .observeOn(AndroidSchedulers.mainThread())
+                                                               .subscribeWith(new DisposableSingleObserver<List<ProjectInfo>>() {
+                                                                   @Override
+                                                                   public void onSuccess(List<ProjectInfo> projectInfos) {
+                                                                       projectAdapter.setProjects(projectInfos);
+                                                                       recyclerView.setAdapter(projectAdapter);
+                                                                   }
+
+                                                                   @Override
+                                                                   public void onError(Throwable e) {
+
+                                                                   }
+                                                               });
 
 
                                                    } else
@@ -160,19 +200,19 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     public void getProject(int projectId) {
-        Call<Project> call = clientWithAuth.getProject(projectId);
-        call.enqueue(new Callback<Project>() {
-            @Override
-            public void onResponse(Call<Project> call, Response<Project> response) {
-                Toast.makeText(SettingsActivity.this, response.body().getName(), Toast.LENGTH_SHORT).show();
-            }
-
-            @Override
-            public void onFailure(Call<Project> call, Throwable t) {
-                Toast.makeText(SettingsActivity.this, "error :(", Toast.LENGTH_SHORT).show();
-            }
-        });
-
+        disposables.add(
+                clientWithAuth.getProject(projectId)
+                        .subscribeOn(Schedulers.io())
+                        .doOnNext(project -> db.projectInfoDao().insertProject(project))
+                        .flatMap(project -> Observable.fromIterable(project.categories))
+                        .doOnNext(category -> category.setProjectid(projectId))
+                        .toList()
+                        .doOnSuccess(categories -> db.projectInfoDao().insertCategories(categories))
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .doAfterSuccess(categories -> rotator.cancel())
+                        .doAfterSuccess(categories -> clickedButton.getDrawable().mutate().setColorFilter(Color.parseColor("#37ab52"), PorterDuff.Mode.SRC_IN))
+                        .subscribe()
+        );
     }
 
     @Override
