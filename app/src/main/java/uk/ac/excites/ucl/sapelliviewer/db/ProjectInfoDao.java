@@ -12,11 +12,15 @@ import java.util.List;
 import io.reactivex.Observable;
 import io.reactivex.Single;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Category;
+import uk.ac.excites.ucl.sapelliviewer.datamodel.Field;
+import uk.ac.excites.ucl.sapelliviewer.datamodel.LookUpValue;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Project;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.ProjectInfo;
 
 @Dao
 public interface ProjectInfoDao {
+
+    /* PROJECTS */
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertProjectInfo(List<ProjectInfo> projectInfos);
@@ -36,9 +40,28 @@ public interface ProjectInfoDao {
     @Query("DELETE FROM ProjectInfo")
     public void clearProjectInfos();
 
+    /* CATEGORIES */
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    void insertCategory(Category category);
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertCategories(List<Category> categories);
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertProject(Project project);
+
+    /* FIELDS */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    void insertField(Field field);
+
+    @Query("SELECT * FROM Field")
+    List<Field> getFields();
+
+    @Query("SELECT * FROM Field WHERE id=:id")
+    Field getField(int id);
+
+    /* LOOKUPVALUES */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    void insertLookupValue(LookUpValue lookUpValue);
 }
