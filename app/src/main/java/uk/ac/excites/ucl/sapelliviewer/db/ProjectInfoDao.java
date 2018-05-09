@@ -11,6 +11,8 @@ import java.util.List;
 
 import io.reactivex.Observable;
 import io.reactivex.Single;
+import uk.ac.excites.ucl.sapelliviewer.datamodel.Category;
+import uk.ac.excites.ucl.sapelliviewer.datamodel.Project;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.ProjectInfo;
 
 @Dao
@@ -33,4 +35,10 @@ public interface ProjectInfoDao {
 
     @Query("DELETE FROM ProjectInfo")
     public void clearProjectInfos();
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    void insertCategories(List<Category> categories);
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    void insertProject(Project project);
 }

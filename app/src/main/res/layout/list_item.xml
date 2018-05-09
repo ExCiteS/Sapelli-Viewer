@@ -40,12 +40,12 @@
                 android:layout_below="@+id/txt_contributions"
                 android:text="Media files: " />
 
-            <ImageButton
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+            <android.support.v7.widget.AppCompatImageButton
+                android:id="@+id/sync_project"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
                 android:layout_alignParentRight="true"
-                android:src="@mipmap/perm_group_sync_settings" />
-
+                app:srcCompat="@drawable/sync" />
         </RelativeLayout>
 
 

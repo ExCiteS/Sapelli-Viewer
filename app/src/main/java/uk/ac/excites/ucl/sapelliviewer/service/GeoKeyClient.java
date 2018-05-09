@@ -45,7 +45,7 @@ public interface GeoKeyClient {
     Observable<List<ProjectInfo>> listProjects();
 
     @GET("/api/projects/{projectId}/")
-    Call<Project> getProject(@Path("projectId") int projectID);
+    Observable<Project> getProject(@Path("projectId") int projectID);
 
     @GET("/api/projects/{projectId}/contributions/")
     Call<ContributionCollection> getContributions(@Path("projectId") int projectID);

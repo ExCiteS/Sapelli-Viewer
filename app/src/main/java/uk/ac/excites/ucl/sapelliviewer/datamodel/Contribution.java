@@ -1,6 +1,10 @@
 package uk.ac.excites.ucl.sapelliviewer.datamodel;
 
 
+import android.arch.persistence.room.Entity;
+import android.arch.persistence.room.Ignore;
+import android.arch.persistence.room.PrimaryKey;
+
 import com.google.maps.android.data.Geometry;
 
 import org.json.JSONObject;
@@ -11,25 +15,27 @@ import java.util.List;
 /**
  * Created by Julia on 18/02/2018.
  */
-
+@Entity
 public class Contribution {
-
+    @PrimaryKey
     private int id;
-    private JSONObject getProperties;
+//    private JSONObject getProperties;
     private Geometry geometry;
     private HashMap properties;
     private DisplayField display_field;
-    private Geometry expiry_field;
+    private String expiry_field;
     private Meta meta;
+    @Ignore
     private List<Comment> comments;
     private List<File> media;
+    @Ignore
     private List<Comment> review_comments;
 
     public int getId() {
         return id;
     }
 
-    public HashMap getGetProperties() {
+    public HashMap getProperties() {
         return properties;
     }
 
@@ -42,7 +48,7 @@ public class Contribution {
         return display_field;
     }
 
-    public Geometry getExpiry_field() {
+    public String getExpiry_field() {
         return expiry_field;
     }
 
