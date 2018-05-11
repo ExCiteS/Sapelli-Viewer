@@ -36,6 +36,7 @@ public class GeoKeyProjectAdapter extends RecyclerView.Adapter<GeoKeyProjectAdap
 
     public void setProjects(List<ProjectInfo> projectInfos) {
         this.projects = projectInfos;
+        notifyDataSetChanged();
     }
 
     @Override
