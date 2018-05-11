@@ -101,7 +101,8 @@ public class LoginActivity extends AppCompatActivity {
                             @Override
                             public void onSuccess(AccessToken accessToken) {
                                 tokenManager.saveToken(accessToken);
-                                updateUser();
+                                startActivity(intent_settingsActivity);
+                                finish();
                             }
 
                             @Override
@@ -126,28 +127,7 @@ public class LoginActivity extends AppCompatActivity {
 
     }
 
-    public void updateUser() {
-        GeoKeyClient clientWithAuth = RetrofitBuilder.createServiceWithAuth(GeoKeyClient.class, tokenManager);
-        disposables.add(
-                clientWithAuth.getUserInfo()
-                        .observeOn(Schedulers.io())
-                        .subscribeOn(Schedulers.io())
-                        .subscribeWith(new DisposableSingleObserver<UserInfo>() {
-                            @Override
-                            public void onSuccess(UserInfo user) {
-                                db.userDao().clearPrevUser();
-                                db.userDao().insertUserInfo(user);
-                                startActivity(intent_settingsActivity);
-                                finish();
-                            }
 
-                            @Override
-                            public void onError(Throwable e) {
-                                //logout
-                            }
-                        })
-        );
-    }
 
     @Override
     protected void onDestroy() {

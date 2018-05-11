@@ -1,15 +1,9 @@
 package uk.ac.excites.ucl.sapelliviewer.activities;
 
 import android.animation.ObjectAnimator;
-import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
-import android.graphics.drawable.Animatable;
-import android.graphics.drawable.AnimationDrawable;
-import android.graphics.drawable.Drawable;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -23,35 +17,29 @@ import android.view.View;
 import android.view.WindowManager;
 import android.view.animation.Animation;
 import android.widget.ImageButton;
-import android.widget.Toast;
 
 
-import java.util.ArrayList;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.List;
 
 import io.reactivex.Observable;
-import io.reactivex.Scheduler;
-import io.reactivex.Single;
-import io.reactivex.SingleObserver;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
-import io.reactivex.disposables.Disposable;
-import io.reactivex.internal.observers.DisposableLambdaObserver;
 import io.reactivex.observers.DisposableObserver;
 import io.reactivex.observers.DisposableSingleObserver;
 import io.reactivex.schedulers.Schedulers;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
+import okhttp3.ResponseBody;
 import uk.ac.excites.ucl.sapelliviewer.R;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Category;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Field;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.LookUpValue;
-import uk.ac.excites.ucl.sapelliviewer.datamodel.Project;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.ProjectInfo;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.UserInfo;
 import uk.ac.excites.ucl.sapelliviewer.db.AppDatabase;
-import uk.ac.excites.ucl.sapelliviewer.service.ConnectivityInterceptor;
 import uk.ac.excites.ucl.sapelliviewer.service.GeoKeyClient;
 import uk.ac.excites.ucl.sapelliviewer.service.RetrofitBuilder;
 import uk.ac.excites.ucl.sapelliviewer.ui.GeoKeyProjectAdapter;
@@ -71,6 +59,7 @@ public class SettingsActivity extends AppCompatActivity {
     private GeoKeyProjectAdapter projectAdapter;
     private ImageButton clickedButton;
     private ObjectAnimator rotator;
+    private MenuItem nameItem;
 
 
     @Override
@@ -101,6 +90,7 @@ public class SettingsActivity extends AppCompatActivity {
                 rotator.start();
             }
         });
+        recyclerView.setAdapter(projectAdapter);
 
 
 //        projectList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -117,62 +107,93 @@ public class SettingsActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        Log.d(getLocalClassName(), "onResume called");
+        Log.d(getLocalClassName(), tokenManager.getToken().getAccess_token());
         if (tokenManager.getToken().getAccess_token() != null) {
-            disposables.add(
-                    clientWithAuth.listProjects()
-                            .subscribeOn(Schedulers.io())
-                            .flatMap(Observable::fromIterable)
-                            .filter(projectInfo -> projectInfo.getUser_info().is_admin())
-                            .toList()
-                            .doOnSuccess(projectInfos -> db.projectInfoDao().clearProjectInfos())
-                            .doOnSuccess(projectInfos -> db.projectInfoDao().insertProjectInfo(projectInfos))
-                            .observeOn(AndroidSchedulers.mainThread())
-                            .subscribeWith(new DisposableSingleObserver<List<ProjectInfo>>() {
-                                               @Override
-                                               public void onSuccess(List<ProjectInfo> projectInfos) {
-                                                   projectAdapter.setProjects(projectInfos);
-                                                   recyclerView.setAdapter(projectAdapter);
-                                               }
-
-                                               @Override
-                                               public void onError(Throwable e) {
-                                                   if (e instanceof NoConnectivityException) {
-                                                       db.projectInfoDao().getProjectInfos()
-                                                               .subscribeOn(Schedulers.io())
-                                                               .observeOn(AndroidSchedulers.mainThread())
-                                                               .subscribeWith(new DisposableSingleObserver<List<ProjectInfo>>() {
-                                                                   @Override
-                                                                   public void onSuccess(List<ProjectInfo> projectInfos) {
-                                                                       projectAdapter.setProjects(projectInfos);
-                                                                       recyclerView.setAdapter(projectAdapter);
-                                                                   }
-
-                                                                   @Override
-                                                                   public void onError(Throwable e) {
-
-                                                                   }
-                                                               });
-
-
-                                                   } else
-                                                       Log.e(getLocalClassName(), e.getMessage());
-                                               }
-                                           }
-                            )
-            );
-
+            updateUser();
         }
+    }
+
+    public void updateUser() {
+        GeoKeyClient clientWithAuth = RetrofitBuilder.createServiceWithAuth(GeoKeyClient.class, tokenManager);
+        disposables.add(
+                clientWithAuth.getUserInfo()
+                        .subscribeOn(Schedulers.io())
+                        .doOnSuccess(user -> db.userDao().clearPrevUser())
+                        .doOnSuccess(user -> db.userDao().insertUserInfo(user))
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .subscribeWith(new DisposableSingleObserver<UserInfo>() {
+                            @Override
+                            public void onSuccess(UserInfo user) {
+                                nameItem.setTitle(user.getDisplay_name());
+                                updateProjects();
+                                Log.d(getLocalClassName(), user.getDisplay_name());
+                            }
+
+                            @Override
+                            public void onError(Throwable e) {
+                                Log.e(getLocalClassName(), "Error");
+                            }
+                        })
+        );
+    }
+
+    public void updateProjects() {
+        disposables.add(
+                clientWithAuth.listProjects()
+                        .subscribeOn(Schedulers.io())
+                        .flatMap(Observable::fromIterable)
+                        .filter(projectInfo -> projectInfo.getUser_info().is_admin())
+                        .toList()
+                        .doOnSuccess(projectInfos -> Log.d(getLocalClassName(), "projects: " + projectInfos.size()))
+                        .doOnSuccess(projectInfos -> db.projectInfoDao().clearProjectInfos())
+                        .doOnSuccess(projectInfos -> db.projectInfoDao().insertProjectInfo(projectInfos))
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .subscribeWith(new DisposableSingleObserver<List<ProjectInfo>>() {
+
+                                           @Override
+                                           public void onSuccess(List<ProjectInfo> projectInfos) {
+                                               Log.d(getLocalClassName(), "projects: " + projectInfos.size());
+                                               projectAdapter.setProjects(projectInfos);
+//                                                   recyclerView.setAdapter(projectAdapter);
+                                           }
+
+                                           @Override
+                                           public void onError(Throwable e) {
+                                               if (e instanceof NoConnectivityException) {
+                                                   db.projectInfoDao().getProjectInfos()
+                                                           .subscribeOn(Schedulers.io())
+                                                           .observeOn(AndroidSchedulers.mainThread())
+                                                           .subscribeWith(new DisposableSingleObserver<List<ProjectInfo>>() {
+                                                               @Override
+                                                               public void onSuccess(List<ProjectInfo> projectInfos) {
+                                                                   projectAdapter.setProjects(projectInfos);
+                                                                   recyclerView.setAdapter(projectAdapter);
+                                                               }
+
+                                                               @Override
+                                                               public void onError(Throwable e) {
+
+                                                               }
+                                                           });
+
+
+                                               } else
+                                                   Log.e(getLocalClassName(), e.getMessage());
+                                           }
+
+
+                                       }
+                        )
+        );
     }
 
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_settings, menu);
-        MenuItem item = menu.getItem(0);
-        db.userDao().getUserInfo()
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(userInfo -> item.setTitle(userInfo.getDisplay_name()));
+        nameItem = menu.getItem(0);
+
         return super.onCreateOptionsMenu(menu);
     }
 
@@ -247,8 +268,78 @@ public class SettingsActivity extends AppCompatActivity {
                 for (LookUpValue lookUpValue : field.getLookupvalues()) {
                     lookUpValue.setFieldId(field.getId());
                     db.projectInfoDao().insertLookupValue(lookUpValue);
+                    if (lookUpValue.getSymbol() != null)
+                        downloadfile(lookUpValue.getSymbol().substring(1));
                 }
             }
+        }
+    }
+
+    private void downloadfile(String url) {
+        disposables.add(
+                clientWithAuth.downloadFileByUrl(url)
+                        .observeOn(Schedulers.io())
+                        .subscribeWith(new DisposableObserver<ResponseBody>() {
+                            @Override
+                            public void onNext(ResponseBody responseBody) {
+                                writeFileToDisk(responseBody, url);
+                            }
+
+                            @Override
+                            public void onError(Throwable e) {
+
+                            }
+
+                            @Override
+                            public void onComplete() {
+
+                            }
+                        })
+
+        );
+    }
+
+    private boolean writeFileToDisk(ResponseBody responseBody, String url) {
+        try {
+//            new File("/data/data/" + getPackageName() + "/symbols").mkdir();
+//            File file = new File("/data/data/" + getPackageName() + "/symbols/" + url.substring(13));
+            File file = new File("/data/data/" + getPackageName() + File.separator + url);
+            file.mkdirs();
+
+
+            InputStream inputStream = null;
+            OutputStream outputStream = null;
+
+            try {
+                byte[] fileReader = new byte[4096];
+                long fileSize = responseBody.contentLength();
+                long fileSizeDownloaded = 0;
+
+                inputStream = responseBody.byteStream();
+                outputStream = new FileOutputStream(file);
+
+                while (true) {
+                    int read = inputStream.read(fileReader);
+                    if (read == -1)
+                        break;
+                    outputStream.write(fileReader, 0, read);
+                    fileSizeDownloaded += read;
+
+                    Log.d(getLocalClassName(), "file downloaded " + fileSizeDownloaded + " of " + fileSize);
+                }
+
+                outputStream.flush();
+                return true;
+            } catch (IOException e) {
+                return false;
+            } finally {
+                if (inputStream != null)
+                    inputStream.close();
+                if (outputStream != null)
+                    outputStream.flush();
+            }
+        } catch (IOException e) {
+            return false;
         }
     }
 
