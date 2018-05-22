@@ -320,21 +320,23 @@ public class SettingsActivity extends AppCompatActivity {
         disposables.add(
                 clientWithAuth.getContributions(project.getId())
                         .flatMap(contributionCollection -> Observable.fromIterable(contributionCollection.getFeatures()))
-                        .doOnNext(contribution -> contribution.setProjectId(project.getId()))
-                        .doOnNext(contribution -> db.contributionDao().insertContributionProperty(contribution))
-                        .toList()
                         .subscribeOn(Schedulers.io())
-                        .observeOn(AndroidSchedulers.mainThread())
-                        .subscribeWith(new DisposableSingleObserver<List<Contribution>>() {
-
+                        .observeOn(Schedulers.io())
+                        .subscribeWith(new DisposableObserver<Contribution>() {
                             @Override
-                            public void onSuccess(List<Contribution> contributions) {
-                                projectAdapter.getContributionCount(project);
+                            public void onNext(Contribution contribution) {
+                                contribution.setProjectId(project.getId());
+                                insertProperties(contribution);
                             }
 
                             @Override
                             public void onError(Throwable e) {
-                                Log.e("LoadContributions", e.getMessage());
+                                Log.e("loadContributions", e.getMessage());
+                            }
+
+                            @Override
+                            public void onComplete() {
+                                projectAdapter.getContributionCount(project);
                             }
                         })
         );
