@@ -52,7 +52,7 @@ public interface GeoKeyClient {
     Observable<Project> getProject(@Path("projectId") int projectID);
 
     @GET("/api/projects/{projectId}/contributions/")
-    Call<ContributionCollection> getContributions(@Path("projectId") int projectID);
+    Observable<ContributionCollection> getContributions(@Path("projectId") int projectID);
 
     @Streaming
     @GET

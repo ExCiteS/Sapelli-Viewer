@@ -17,7 +17,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="@dimen/activity_horizontal_margin">
+            android:padding="@dimen/activity_horizontal_margin"            >
 
             <TextView
                 android:id="@+id/list_item_text"
@@ -30,8 +30,7 @@
                 android:id="@+id/txt_contributions"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_below="@+id/list_item_text"
-                android:text="Contributions: " />
+                android:layout_below="@+id/list_item_text" />
 
             <TextView
                 android:id="@+id/txt_media"
@@ -40,12 +39,21 @@
                 android:layout_below="@+id/txt_contributions"
                 android:text="Media files: " />
 
+
             <android.support.v7.widget.AppCompatImageButton
                 android:id="@+id/sync_project"
                 android:layout_width="32dp"
                 android:layout_height="32dp"
                 android:layout_alignParentRight="true"
                 app:srcCompat="@drawable/sync" />
+
+            <android.support.v7.widget.AppCompatImageButton
+                android:id="@+id/sync_contributions"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginRight="16dp"
+                android:layout_toLeftOf="@id/sync_project"
+                app:srcCompat="@drawable/download" />
         </RelativeLayout>
 
 

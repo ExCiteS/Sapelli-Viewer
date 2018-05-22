@@ -9,7 +9,6 @@ import android.arch.persistence.room.Update;
 
 import java.util.List;
 
-import io.reactivex.Observable;
 import io.reactivex.Single;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Category;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Field;
@@ -40,8 +39,10 @@ public interface ProjectInfoDao {
     @Query("DELETE FROM ProjectInfo")
     public void clearProjectInfos();
 
-    /* CATEGORIES */
+    @Query("SELECT COUNT(*) FROM Contribution WHERE projectid = :projectId")
+    Single<Integer> getContributionsCount(int projectId);
 
+    /* CATEGORIES */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertCategory(Category category);
 
@@ -59,9 +60,17 @@ public interface ProjectInfoDao {
     List<Field> getFields();
 
     @Query("SELECT * FROM Field WHERE id=:id")
-    Field getField(int id);
+    Field getFieldById(int id);
+
+    @Query("SELECT * FROM Field WHERE `key`=:key")
+    Field getFieldByKey(String key);
 
     /* LOOKUPVALUES */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertLookupValue(LookUpValue lookUpValue);
+
+    @Query("SELECT * FROM LookUpValue Where id=:id")
+    LookUpValue getLookupValueById(String id);
+
+
 }
