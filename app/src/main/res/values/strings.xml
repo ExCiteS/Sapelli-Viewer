@@ -13,4 +13,5 @@
     <string name="geokey_not_found">GeoKey could not be found at this URL</string>
     <string name="invalid_username_pw">Invalid username or password</string>
     <string name="no_internet">Please check your internet connection</string>
+    <string name="contributions">"Contributions: "</string>
 </resources>

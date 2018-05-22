@@ -7,12 +7,17 @@ import android.arch.persistence.room.Embedded;
 import android.arch.persistence.room.Entity;
 import android.arch.persistence.room.Ignore;
 import android.arch.persistence.room.PrimaryKey;
+import android.arch.persistence.room.TypeConverter;
+import android.arch.persistence.room.TypeConverters;
 import android.text.format.DateUtils;
 
 import com.google.maps.android.data.Geometry;
 
 import java.util.Date;
 import java.util.List;
+
+import uk.ac.excites.ucl.sapelliviewer.db.GeoKeyTypeConverters;
+import uk.ac.excites.ucl.sapelliviewer.db.ProjectInfoDao;
 
 /**
  * Created by Julia on 13/02/2018.
@@ -31,7 +36,7 @@ public class Project {
     public List<Category> categories;
     @Embedded
     public UserPrivlg user_info;
-    @Ignore
+    @Embedded
     public Extent geographic_extent; //TODO: HANDLE EXTENT
 
     public int getId() {
@@ -91,25 +96,25 @@ public class Project {
     }
 
     @Entity
-    private class Extent {
-
+    public class Extent {
         public String type;
-        @Embedded
-        public Geometry coordinates;
+
+        @TypeConverters(GeoKeyTypeConverters.class)
+        public double[][][] coordinates;
 
         public String getType() {
             return type;
         }
 
-        public Geometry getCoordinates() {
-            return coordinates;
+        public double[][] getCoordinates() {
+            return coordinates[0];
         }
 
         public void setType(String type) {
             this.type = type;
         }
 
-        public void setCoordinates(Geometry coordinates) {
+        public void setCoordinates(double[][][] coordinates) {
             this.coordinates = coordinates;
         }
     }

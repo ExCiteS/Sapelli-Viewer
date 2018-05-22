@@ -2,7 +2,6 @@ package uk.ac.excites.ucl.sapelliviewer.service;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.maps.android.data.Geometry;
 import com.jakewharton.retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory;
 
 import java.io.IOException;
@@ -14,6 +13,7 @@ import okhttp3.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 import uk.ac.excites.ucl.sapelliviewer.activities.LoginActivity;
+import uk.ac.excites.ucl.sapelliviewer.datamodel.Geometry;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Login;
 import uk.ac.excites.ucl.sapelliviewer.utils.TokenManager;
 

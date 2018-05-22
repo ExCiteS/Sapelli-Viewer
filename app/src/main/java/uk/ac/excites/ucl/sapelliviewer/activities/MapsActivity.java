@@ -61,28 +61,28 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         LatLng sydney = new LatLng(-34, 151);
         map.addMarker(new MarkerOptions().position(sydney).title("Marker in Sydney"));
         map.moveCamera(CameraUpdateFactory.newLatLng(sydney));
-        getContributions(project_id);
+//        getContributions(project_id);
 
     }
 
-    public void getContributions(int projectId) {
-
-        Call<ContributionCollection> call = clientWithAuth.getContributions(projectId);
-        call.enqueue(new Callback<ContributionCollection>() {
-            @Override
-            public void onResponse(Call<ContributionCollection> call, Response<ContributionCollection> response) {
-                List<Contribution> contributions = response.body().getFeatures();
-                for (Contribution contribution : contributions) {
-                    map.addMarker(new MarkerOptions().position(((Point) contribution.getGeometry()).getGeometryObject()).title(contribution.getDisplay_field().getKey()));
-                }
-            }
-            @Override
-            public void onFailure(Call<ContributionCollection> call, Throwable t) {
-                Toast.makeText(MapsActivity.this, "error :(", Toast.LENGTH_SHORT).show();
-                System.out.println(t.getStackTrace().toString());
-
-            }
-        });
-
-    }
+//    public void getContributions(int projectId) {
+//
+//        Call<ContributionCollection> call = clientWithAuth.getContributions(projectId);
+//        call.enqueue(new Callback<ContributionCollection>() {
+//            @Override
+//            public void onResponse(Call<ContributionCollection> call, Response<ContributionCollection> response) {
+//                List<Contribution> contributions = response.body().getFeatures();
+//                for (Contribution contribution : contributions) {
+//                    map.addMarker(new MarkerOptions().position(((Point) contribution.getGeometry()).getGeometryObject()).title(contribution.getDisplay_field().getKey()));
+//                }
+//            }
+//            @Override
+//            public void onFailure(Call<ContributionCollection> call, Throwable t) {
+//                Toast.makeText(MapsActivity.this, "error :(", Toast.LENGTH_SHORT).show();
+//                System.out.println(t.getStackTrace().toString());
+//
+//            }
+//        });
+//
+//    }
 }

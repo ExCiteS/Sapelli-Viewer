@@ -2,6 +2,7 @@ package uk.ac.excites.ucl.sapelliviewer.datamodel;
 
 import android.arch.persistence.room.Embedded;
 import android.arch.persistence.room.Entity;
+import android.arch.persistence.room.Ignore;
 import android.arch.persistence.room.PrimaryKey;
 import android.support.annotation.NonNull;
 
@@ -15,6 +16,8 @@ public class ProjectInfo {
     private int id;
     private String name;
     private String description;
+    @Ignore
+    private int contributionCount;
 
     @Embedded
     private UserPrivlg user_info;
@@ -49,5 +52,13 @@ public class ProjectInfo {
 
     public void setUser_info(UserPrivlg user_info) {
         this.user_info = user_info;
+    }
+
+    public int getContributionCount() {
+        return contributionCount;
+    }
+
+    public void setContributionCount(int contributionCount) {
+        this.contributionCount = contributionCount;
     }
 }

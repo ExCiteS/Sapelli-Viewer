@@ -25,16 +25,21 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.List;
+import java.util.Map;
 
 import io.reactivex.Observable;
+import io.reactivex.SingleObserver;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.disposables.Disposable;
 import io.reactivex.observers.DisposableObserver;
 import io.reactivex.observers.DisposableSingleObserver;
 import io.reactivex.schedulers.Schedulers;
 import okhttp3.ResponseBody;
 import uk.ac.excites.ucl.sapelliviewer.R;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Category;
+import uk.ac.excites.ucl.sapelliviewer.datamodel.Contribution;
+import uk.ac.excites.ucl.sapelliviewer.datamodel.ContributionProperty;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Field;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.LookUpValue;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.ProjectInfo;
@@ -45,7 +50,6 @@ import uk.ac.excites.ucl.sapelliviewer.service.RetrofitBuilder;
 import uk.ac.excites.ucl.sapelliviewer.ui.GeoKeyProjectAdapter;
 import uk.ac.excites.ucl.sapelliviewer.utils.NoConnectivityException;
 import uk.ac.excites.ucl.sapelliviewer.utils.TokenManager;
-
 
 public class SettingsActivity extends AppCompatActivity {
 
@@ -78,12 +82,18 @@ public class SettingsActivity extends AppCompatActivity {
 
         recyclerView = (RecyclerView) findViewById(R.id.project_recyclerview);
         recyclerView.setHasFixedSize(true);
+        recyclerView.setItemAnimator(null);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        projectAdapter = new GeoKeyProjectAdapter(getApplicationContext(), new GeoKeyProjectAdapter.DetailsAdapterListener() {
+        projectAdapter = new GeoKeyProjectAdapter(getApplicationContext(), disposables, new GeoKeyProjectAdapter.DetailsAdapterListener() {
             @Override
-            public void syncOnClick(View v, int position) {
+            public void syncContributionOnClick(View v, int position) {
+                loadContributions(projectAdapter.getProject(position));
+            }
+
+            @Override
+            public void syncProjectOnClick(View v, int position) {
                 clickedButton = (ImageButton) v;
-                getProject(projectAdapter.getProjectId(position));
+                getProject(projectAdapter.getProject(position).getId());
                 rotator = ObjectAnimator.ofFloat(clickedButton, View.ROTATION, 0f, -360f);
                 rotator.setDuration(1000);
                 rotator.setRepeatCount(Animation.INFINITE);
@@ -93,22 +103,11 @@ public class SettingsActivity extends AppCompatActivity {
         recyclerView.setAdapter(projectAdapter);
 
 
-//        projectList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-//            @Override
-//            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-////                Toast.makeText(SettingsActivity.this, Integer.toString(adminProjects.get(position).getId()), Toast.LENGTH_SHORT).show();
-////                getProject(adminProjects.get(position).getId());
-////                getContributions(adminProjects.get(position).getId());
-//                openMap(adminProjects.get(position).getId());
-//            }
-//        });
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        Log.d(getLocalClassName(), "onResume called");
-        Log.d(getLocalClassName(), tokenManager.getToken().getAccess_token());
         if (tokenManager.getToken().getAccess_token() != null) {
             updateUser();
         }
@@ -125,14 +124,38 @@ public class SettingsActivity extends AppCompatActivity {
                         .subscribeWith(new DisposableSingleObserver<UserInfo>() {
                             @Override
                             public void onSuccess(UserInfo user) {
-                                nameItem.setTitle(user.getDisplay_name());
+                                if (nameItem != null)
+                                    nameItem.setTitle(user.getDisplay_name());
                                 updateProjects();
                                 Log.d(getLocalClassName(), user.getDisplay_name());
                             }
 
                             @Override
                             public void onError(Throwable e) {
-                                Log.e(getLocalClassName(), "Error");
+                                if (e instanceof NoConnectivityException) {
+                                    // get user from database
+                                    db.userDao().getUserInfo()
+                                            .subscribeOn(Schedulers.io())
+                                            .observeOn(AndroidSchedulers.mainThread())
+                                            .subscribeWith(new SingleObserver<UserInfo>() {
+                                                @Override
+                                                public void onSubscribe(Disposable d) {
+                                                    disposables.add(d);
+                                                }
+
+                                                @Override
+                                                public void onSuccess(UserInfo userInfo) {
+                                                    nameItem.setTitle(userInfo.getDisplay_name());
+                                                    updateProjects();
+                                                }
+
+                                                @Override
+                                                public void onError(Throwable e) {
+                                                    Log.e("USER INFO", e.getMessage());
+                                                }
+                                            });
+                                } else
+                                    Log.e("USER INFO", e.getMessage());
                             }
                         })
         );
@@ -155,7 +178,6 @@ public class SettingsActivity extends AppCompatActivity {
                                            public void onSuccess(List<ProjectInfo> projectInfos) {
                                                Log.d(getLocalClassName(), "projects: " + projectInfos.size());
                                                projectAdapter.setProjects(projectInfos);
-//                                                   recyclerView.setAdapter(projectAdapter);
                                            }
 
                                            @Override
@@ -176,13 +198,9 @@ public class SettingsActivity extends AppCompatActivity {
 
                                                                }
                                                            });
-
-
                                                } else
-                                                   Log.e(getLocalClassName(), e.getMessage());
+                                                   Log.e("Update Projects", e.getMessage());
                                            }
-
-
                                        }
                         )
         );
@@ -244,7 +262,7 @@ public class SettingsActivity extends AppCompatActivity {
                             public void onError(Throwable e) {
                                 Log.e("ERROR", e.getMessage());
                                 rotator.cancel();
-                                clickedButton.getDrawable().mutate().setColorFilter(Color.parseColor("#37ab52"), PorterDuff.Mode.SRC_IN);
+                                clickedButton.getDrawable().mutate().setColorFilter(Color.parseColor("#c70039"), PorterDuff.Mode.SRC_IN);
                             }
 
                             @Override
@@ -295,14 +313,48 @@ public class SettingsActivity extends AppCompatActivity {
 
                             }
                         })
-
         );
+    }
+
+    public void loadContributions(ProjectInfo project) {
+        disposables.add(
+                clientWithAuth.getContributions(project.getId())
+                        .flatMap(contributionCollection -> Observable.fromIterable(contributionCollection.getFeatures()))
+                        .doOnNext(contribution -> contribution.setProjectId(project.getId()))
+                        .doOnNext(contribution -> db.contributionDao().insertContributionProperty(contribution))
+                        .toList()
+                        .subscribeOn(Schedulers.io())
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .subscribeWith(new DisposableSingleObserver<List<Contribution>>() {
+
+                            @Override
+                            public void onSuccess(List<Contribution> contributions) {
+                                projectAdapter.getContributionCount(project);
+                            }
+
+                            @Override
+                            public void onError(Throwable e) {
+                                Log.e("LoadContributions", e.getMessage());
+                            }
+                        })
+        );
+    }
+
+    private void insertProperties(Contribution contribution) {
+        for (Map.Entry<String, String> property : contribution.getProperties().entrySet()) {
+            Field field = db.projectInfoDao().getFieldByKey(property.getKey());
+            ContributionProperty contributionProperty = new ContributionProperty(contribution.getId(), field.getId(), property.getKey(), property.getValue());
+            if (field.getFieldtype().equals("LookupField")) {
+                LookUpValue lookUpValue = db.projectInfoDao().getLookupValueById(property.getValue());
+                contributionProperty.setValue(lookUpValue.getName());
+                contributionProperty.setSymbol(lookUpValue.getSymbol());
+            }
+            db.contributionDao().insertContributionProperty(contributionProperty);
+        }
     }
 
     private boolean writeFileToDisk(ResponseBody responseBody, String url) {
         try {
-//            new File("/data/data/" + getPackageName() + "/symbols").mkdir();
-//            File file = new File("/data/data/" + getPackageName() + "/symbols/" + url.substring(13));
             File file = new File("/data/data/" + getPackageName() + File.separator + url);
             file.mkdirs();
 
