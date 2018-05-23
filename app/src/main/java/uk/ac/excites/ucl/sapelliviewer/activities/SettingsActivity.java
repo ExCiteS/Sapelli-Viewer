@@ -19,11 +19,15 @@ import android.view.animation.Animation;
 import android.widget.ImageButton;
 
 
+import com.google.android.gms.common.internal.ApiExceptionUtil;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.List;
 import java.util.Map;
 
@@ -32,6 +36,7 @@ import io.reactivex.SingleObserver;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.disposables.Disposable;
+import io.reactivex.internal.util.ExceptionHelper;
 import io.reactivex.observers.DisposableObserver;
 import io.reactivex.observers.DisposableSingleObserver;
 import io.reactivex.schedulers.Schedulers;
@@ -114,51 +119,52 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     public void updateUser() {
-        GeoKeyClient clientWithAuth = RetrofitBuilder.createServiceWithAuth(GeoKeyClient.class, tokenManager);
-        disposables.add(
-                clientWithAuth.getUserInfo()
-                        .subscribeOn(Schedulers.io())
-                        .doOnSuccess(user -> db.userDao().clearPrevUser())
-                        .doOnSuccess(user -> db.userDao().insertUserInfo(user))
-                        .observeOn(AndroidSchedulers.mainThread())
-                        .subscribeWith(new DisposableSingleObserver<UserInfo>() {
-                            @Override
-                            public void onSuccess(UserInfo user) {
-                                if (nameItem != null)
+        if (nameItem != null) {
+            GeoKeyClient clientWithAuth = RetrofitBuilder.createServiceWithAuth(GeoKeyClient.class, tokenManager);
+            disposables.add(
+                    clientWithAuth.getUserInfo()
+                            .subscribeOn(Schedulers.io())
+                            .doOnSuccess(user -> db.userDao().clearPrevUser())
+                            .doOnSuccess(user -> db.userDao().insertUserInfo(user))
+                            .observeOn(AndroidSchedulers.mainThread())
+                            .subscribeWith(new DisposableSingleObserver<UserInfo>() {
+                                @Override
+                                public void onSuccess(UserInfo user) {
                                     nameItem.setTitle(user.getDisplay_name());
-                                updateProjects();
-                                Log.d(getLocalClassName(), user.getDisplay_name());
-                            }
+                                    updateProjects();
+                                    Log.d(getLocalClassName(), user.getDisplay_name());
+                                }
 
-                            @Override
-                            public void onError(Throwable e) {
-                                if (e instanceof NoConnectivityException) {
-                                    // get user from database
-                                    db.userDao().getUserInfo()
-                                            .subscribeOn(Schedulers.io())
-                                            .observeOn(AndroidSchedulers.mainThread())
-                                            .subscribeWith(new SingleObserver<UserInfo>() {
-                                                @Override
-                                                public void onSubscribe(Disposable d) {
-                                                    disposables.add(d);
-                                                }
+                                @Override
+                                public void onError(Throwable e) {
+                                    if (e instanceof NoConnectivityException) {
+                                        // get user from database
+                                        db.userDao().getUserInfo()
+                                                .subscribeOn(Schedulers.io())
+                                                .observeOn(AndroidSchedulers.mainThread())
+                                                .subscribeWith(new SingleObserver<UserInfo>() {
+                                                    @Override
+                                                    public void onSubscribe(Disposable d) {
+                                                        disposables.add(d);
+                                                    }
 
-                                                @Override
-                                                public void onSuccess(UserInfo userInfo) {
-                                                    nameItem.setTitle(userInfo.getDisplay_name());
-                                                    updateProjects();
-                                                }
+                                                    @Override
+                                                    public void onSuccess(UserInfo userInfo) {
+                                                        nameItem.setTitle(userInfo.getDisplay_name());
+                                                        updateProjects();
+                                                    }
 
-                                                @Override
-                                                public void onError(Throwable e) {
-                                                    Log.e("USER INFO", e.getMessage());
-                                                }
-                                            });
-                                } else
-                                    Log.e("USER INFO", e.getMessage());
-                            }
-                        })
-        );
+                                                    @Override
+                                                    public void onError(Throwable e) {
+                                                        Log.e("USER INFO", e.getMessage());
+                                                    }
+                                                });
+                                    } else
+                                        Log.e("USER INFO", e.getMessage());
+                                }
+                            })
+            );
+        }
     }
 
     public void updateProjects() {
@@ -198,8 +204,12 @@ public class SettingsActivity extends AppCompatActivity {
 
                                                                }
                                                            });
-                                               } else
-                                                   Log.e("Update Projects", e.getMessage());
+                                               } else {
+                                                   StringWriter sw = new StringWriter();
+                                                   PrintWriter pw = new PrintWriter(sw);
+                                                   e.printStackTrace(pw);
+                                                   Log.e("Update Projects", sw.toString());
+                                               }
                                            }
                                        }
                         )
@@ -211,7 +221,7 @@ public class SettingsActivity extends AppCompatActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_settings, menu);
         nameItem = menu.getItem(0);
-
+        updateUser();
         return super.onCreateOptionsMenu(menu);
     }
 
