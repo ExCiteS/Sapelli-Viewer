@@ -107,7 +107,7 @@ public class GeoKeyProjectAdapter extends RecyclerView.Adapter<GeoKeyProjectAdap
 
         RelativeLayout cardLayout;
         TextView projectName;
-        ImageButton syncContributionButton;
+        ImageButton openMapButton;
         ImageButton syncProjectButton;
         TextView contributionsTxt;
 
@@ -115,14 +115,14 @@ public class GeoKeyProjectAdapter extends RecyclerView.Adapter<GeoKeyProjectAdap
             super(itemView);
             projectName = (TextView) itemView.findViewById(R.id.list_item_text);
             cardLayout = (RelativeLayout) itemView.findViewById(R.id.card);
-            syncContributionButton = (ImageButton) itemView.findViewById(R.id.sync_contributions);
+            openMapButton = (ImageButton) itemView.findViewById(R.id.open_map);
             syncProjectButton = (ImageButton) itemView.findViewById(R.id.sync_project);
             contributionsTxt = (TextView) itemView.findViewById(R.id.txt_contributions);
 
-            syncContributionButton.setOnClickListener(new View.OnClickListener() {
+            openMapButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    onClickListener.syncContributionOnClick(view, getAdapterPosition());
+                    onClickListener.openMap(view, getAdapterPosition());
                 }
             });
 
@@ -136,7 +136,7 @@ public class GeoKeyProjectAdapter extends RecyclerView.Adapter<GeoKeyProjectAdap
     }
 
     public interface DetailsAdapterListener {
-        void syncContributionOnClick(View v, int position);
+        void openMap(View v, int position);
 
         void syncProjectOnClick(View v, int position);
     }

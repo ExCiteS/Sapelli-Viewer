@@ -17,6 +17,7 @@ import android.view.View;
 import android.view.WindowManager;
 import android.view.animation.Animation;
 import android.widget.ImageButton;
+import android.widget.Toast;
 
 
 import com.google.android.gms.common.internal.ApiExceptionUtil;
@@ -91,14 +92,14 @@ public class SettingsActivity extends AppCompatActivity {
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         projectAdapter = new GeoKeyProjectAdapter(getApplicationContext(), disposables, new GeoKeyProjectAdapter.DetailsAdapterListener() {
             @Override
-            public void syncContributionOnClick(View v, int position) {
-                loadContributions(projectAdapter.getProject(position));
+            public void openMap(View v, int position) {
+                Toast.makeText(getApplicationContext(), "Open Map", Toast.LENGTH_SHORT).show();
             }
 
             @Override
             public void syncProjectOnClick(View v, int position) {
                 clickedButton = (ImageButton) v;
-                getProject(projectAdapter.getProject(position).getId());
+                getProject(projectAdapter.getProject(position));
                 rotator = ObjectAnimator.ofFloat(clickedButton, View.ROTATION, 0f, -360f);
                 rotator.setDuration(1000);
                 rotator.setRepeatCount(Animation.INFINITE);
@@ -250,13 +251,13 @@ public class SettingsActivity extends AppCompatActivity {
         startActivity(mapIntent);
     }
 
-    public void getProject(int projectId) {
+    public void getProject(ProjectInfo projectInfo) {
         disposables.add(
-                clientWithAuth.getProject(projectId)
+                clientWithAuth.getProject(projectInfo.getId())
                         .subscribeOn(Schedulers.io())
                         .doOnNext(project -> db.projectInfoDao().insertProject(project))
                         .concatMap(project -> Observable.fromIterable(project.categories))
-                        .doOnNext(category -> category.setProjectid(projectId))
+                        .doOnNext(category -> category.setProjectid(projectInfo.getId()))
                         .doOnNext(category -> db.projectInfoDao().insertCategory(category))
                         .doOnNext(category -> setParentId(category))
                         .concatMap(category -> Observable.fromIterable(category.getFields()))
@@ -266,6 +267,7 @@ public class SettingsActivity extends AppCompatActivity {
                         .subscribeWith(new DisposableObserver<Field>() {
                             @Override
                             public void onNext(Field field) {
+                                loadContributions(projectInfo);
                             }
 
                             @Override
@@ -342,7 +344,7 @@ public class SettingsActivity extends AppCompatActivity {
 
                             @Override
                             public void onError(Throwable e) {
-                                Log.e("loadContributions", e.getMessage());
+
                             }
 
                             @Override
@@ -363,7 +365,7 @@ public class SettingsActivity extends AppCompatActivity {
                 contributionProperty.setSymbol(lookUpValue.getSymbol());
             }
             db.contributionDao().insertContributionProperty(contributionProperty);
-            
+
         }
     }
 
