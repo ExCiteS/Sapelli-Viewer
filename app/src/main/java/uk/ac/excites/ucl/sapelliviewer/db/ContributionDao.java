@@ -16,11 +16,15 @@ import uk.ac.excites.ucl.sapelliviewer.datamodel.Project;
 public interface ContributionDao {
 
     /* CONTRIBUTION */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    void insertContribution(Contribution contribution);
+
     @Query("SELECT COUNT(*) FROM contribution where projectId = :projectId")
     Single<Integer> getNumberContributions(int projectId);
 
     /* CONTRIBUTION PROPERTIES*/
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertContributionProperty(ContributionProperty contributionProperty);
+
 
 }

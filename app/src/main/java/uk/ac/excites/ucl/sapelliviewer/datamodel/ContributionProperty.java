@@ -5,8 +5,8 @@ import android.arch.persistence.room.ForeignKey;
 import android.arch.persistence.room.PrimaryKey;
 
 @Entity(foreignKeys = {
-        @ForeignKey(entity = Contribution.class, parentColumns = "id", childColumns = "contributionId", onDelete = ForeignKey.CASCADE),
-        @ForeignKey(entity = Field.class, parentColumns = "id", childColumns = "fieldId", onDelete = ForeignKey.CASCADE)})
+        @ForeignKey(entity = Contribution.class, parentColumns = "id", childColumns = "contributionId"),
+        @ForeignKey(entity = Field.class, parentColumns = "id", childColumns = "fieldId")})
 public class ContributionProperty {
 
     @PrimaryKey(autoGenerate = true)
