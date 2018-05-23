@@ -336,6 +336,7 @@ public class SettingsActivity extends AppCompatActivity {
                             @Override
                             public void onNext(Contribution contribution) {
                                 contribution.setProjectId(project.getId());
+                                db.contributionDao().insertContribution(contribution);
                                 insertProperties(contribution);
                             }
 
@@ -362,6 +363,7 @@ public class SettingsActivity extends AppCompatActivity {
                 contributionProperty.setSymbol(lookUpValue.getSymbol());
             }
             db.contributionDao().insertContributionProperty(contributionProperty);
+            
         }
     }
 
