@@ -24,7 +24,7 @@ public class Contribution {
     private int category;
     @Embedded
     private Geometry geometry;
-    @Ignore // TODO: insert properly
+    @Ignore
     private HashMap<String, String> properties;
     @Ignore // TODO: insert properly
     private DisplayField display_field;
