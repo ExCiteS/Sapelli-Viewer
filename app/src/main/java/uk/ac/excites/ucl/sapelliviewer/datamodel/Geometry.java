@@ -1,8 +1,15 @@
 package uk.ac.excites.ucl.sapelliviewer.datamodel;
 
+import android.arch.persistence.room.Entity;
+import android.arch.persistence.room.PrimaryKey;
+
+@Entity
 public class Geometry {
-    String type;
-    String coordinates;
+
+    @PrimaryKey(autoGenerate = true)
+    public int geometryId;
+    public String type;
+    public String coordinates;
 
     public Geometry(String type, String coordinates) {
         this.type = type;

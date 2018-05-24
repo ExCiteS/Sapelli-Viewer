@@ -93,7 +93,7 @@ public class SettingsActivity extends AppCompatActivity {
         projectAdapter = new GeoKeyProjectAdapter(getApplicationContext(), disposables, new GeoKeyProjectAdapter.DetailsAdapterListener() {
             @Override
             public void openMap(View v, int position) {
-                Toast.makeText(getApplicationContext(), "Open Map", Toast.LENGTH_SHORT).show();
+                openMapView(projectAdapter.getProject(position).getId());
             }
 
             @Override
@@ -245,7 +245,7 @@ public class SettingsActivity extends AppCompatActivity {
         finish();
     }
 
-    public void openMap(int projectId) {
+    public void openMapView(int projectId) {
         Intent mapIntent = new Intent(this, MapsActivity.class);
         mapIntent.putExtra(PROJECT_ID, projectId);
         startActivity(mapIntent);
@@ -344,6 +344,7 @@ public class SettingsActivity extends AppCompatActivity {
 
                             @Override
                             public void onError(Throwable e) {
+                                Log.e("getContributions", e.getMessage());
 
                             }
 
@@ -360,11 +361,27 @@ public class SettingsActivity extends AppCompatActivity {
             Field field = db.projectInfoDao().getFieldByKey(property.getKey());
             ContributionProperty contributionProperty = new ContributionProperty(contribution.getId(), field.getId(), property.getKey(), property.getValue());
             if (field.getFieldtype().equals("LookupField")) {
-                LookUpValue lookUpValue = db.projectInfoDao().getLookupValueById(property.getValue());
-                contributionProperty.setValue(lookUpValue.getName());
-                contributionProperty.setSymbol(lookUpValue.getSymbol());
-            }
-            db.contributionDao().insertContributionProperty(contributionProperty);
+                db.projectInfoDao().getLookupValueById(property.getValue()).subscribeWith(new SingleObserver<LookUpValue>() {
+                    @Override
+                    public void onSubscribe(Disposable d) {
+                        disposables.add(d);
+                    }
+
+                    @Override
+                    public void onSuccess(LookUpValue lookUpValue) {
+                        contributionProperty.setValue(lookUpValue.getName());
+                        contributionProperty.setSymbol(lookUpValue.getSymbol());
+                        db.contributionDao().insertContributionProperty(contributionProperty);
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        Log.e("getLookupValueById", e.getMessage());
+                    }
+                });
+
+            } else
+                db.contributionDao().insertContributionProperty(contributionProperty);
 
         }
     }

@@ -30,9 +30,6 @@ public interface ProjectInfoDao {
     @Delete
     void deleteProjectInfo(ProjectInfo projectInfo);
 
-    @Query("SELECT * FROM ProjectInfo WHERE id = :id")
-    List<ProjectInfo> getProjectInfo(int id);
-
     @Query("SELECT * FROM ProjectInfo")
     Single<List<ProjectInfo>> getProjectInfos();
 
@@ -70,7 +67,7 @@ public interface ProjectInfoDao {
     void insertLookupValue(LookUpValue lookUpValue);
 
     @Query("SELECT * FROM LookUpValue Where id=:id")
-    LookUpValue getLookupValueById(String id);
+    Single<LookUpValue> getLookupValueById(String id);
 
 
 }
