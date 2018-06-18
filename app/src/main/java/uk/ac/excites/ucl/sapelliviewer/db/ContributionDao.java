@@ -24,6 +24,9 @@ public interface ContributionDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertContribution(Contribution contribution);
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    void insertContributions(List<Contribution> contributions);
+
     @Query("SELECT COUNT(*) FROM contribution where projectId = :projectId")
     Single<Integer> getNumberContributions(int projectId);
 
@@ -32,7 +35,7 @@ public interface ContributionDao {
 
     /* CONTRIBUTION PROPERTIES*/
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    void insertContributionProperty(ContributionProperty contributionProperty);
+    void insertContributionProperty(List<ContributionProperty> contributionProperty);
 
     @Query("SELECT * FROM contributionProperty where contributionId = :contributionId")
     Single<List<ContributionProperty>> getContributionsProperties(int contributionId);
