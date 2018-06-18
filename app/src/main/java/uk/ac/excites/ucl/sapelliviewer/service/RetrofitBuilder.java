@@ -57,12 +57,13 @@ public class RetrofitBuilder {
 
         OkHttpClient newClient = client.newBuilder().addInterceptor(new Interceptor() {
             @Override
-            public Response intercept(Interceptor.Chain chain) throws IOException {
+            public Response intercept(Chain chain) throws IOException {
                 Request request = chain.request();
                 Request.Builder builder = request.newBuilder();
                 if (tokenManager.getToken().getAccess_token() != null) {
                     builder.addHeader("Authorization", "Bearer " + tokenManager.getToken().getAccess_token());
                 }
+
                 request = builder.build();
                 return chain.proceed(request);
             }
@@ -70,7 +71,7 @@ public class RetrofitBuilder {
                 .addInterceptor(new ConnectivityInterceptor(LoginActivity.get().getApplicationContext()))
                 .build();
 
-        Retrofit newRetrofit = retrofit.newBuilder().client(newClient).build();
+        Retrofit newRetrofit = retrofit.newBuilder().client(newClient).baseUrl(TokenManager.getInstance().getServerUrl()).build();
         return newRetrofit.create(service);
     }
 }

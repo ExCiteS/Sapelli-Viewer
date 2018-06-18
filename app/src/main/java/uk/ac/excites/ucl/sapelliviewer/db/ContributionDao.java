@@ -34,5 +34,6 @@ public interface ContributionDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertContributionProperty(ContributionProperty contributionProperty);
 
-
+    @Query("SELECT * FROM contributionProperty where contributionId = :contributionId")
+    Single<List<ContributionProperty>> getContributionsProperties(int contributionId);
 }

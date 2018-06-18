@@ -20,6 +20,8 @@ import io.reactivex.schedulers.Schedulers;
 
 import com.jakewharton.retrofit2.adapter.rxjava2.HttpException;
 
+import javax.net.ssl.SSLPeerUnverifiedException;
+
 import uk.ac.excites.ucl.sapelliviewer.R;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.AccessToken;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.UserInfo;
@@ -107,7 +109,7 @@ public class LoginActivity extends AppCompatActivity {
 
                             @Override
                             public void onError(Throwable e) {
-                                if (e instanceof UnknownHostException) {
+                                if (e instanceof UnknownHostException || e instanceof SSLPeerUnverifiedException) {
                                     errorText.setText(R.string.geokey_not_found);
                                 } else if (e instanceof NoConnectivityException) {
                                     errorText.setText(R.string.no_internet);
@@ -123,10 +125,7 @@ public class LoginActivity extends AppCompatActivity {
                                 }
                             }
                         }));
-
-
     }
-
 
 
     @Override

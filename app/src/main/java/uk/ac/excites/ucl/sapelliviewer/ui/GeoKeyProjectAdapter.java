@@ -53,6 +53,7 @@ public class GeoKeyProjectAdapter extends RecyclerView.Adapter<GeoKeyProjectAdap
 
 
     public void getContributionCount(ProjectInfo project) {
+        Log.d("getContributionCount", " reached");
         AppDatabase.getAppDatabase(ctx).projectInfoDao().getContributionsCount(project.getId())
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
@@ -89,7 +90,6 @@ public class GeoKeyProjectAdapter extends RecyclerView.Adapter<GeoKeyProjectAdap
     public void onBindViewHolder(ProjectViewHolder holder, int position) {
         ProjectInfo project = projects.get(position);
         holder.projectName.setText(project.getName());
-        getContributionCount(project);
         holder.contributionsTxt.setText(ctx.getResources().getString(R.string.contributions) + project.getContributionCount());
     }
 

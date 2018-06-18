@@ -279,7 +279,7 @@ public class SettingsActivity extends AppCompatActivity {
 
                             @Override
                             public void onComplete() {
-                                rotator.cancel();
+//                                rotator.cancel();
                                 clickedButton.getDrawable().mutate().setColorFilter(Color.parseColor("#37ab52"), PorterDuff.Mode.SRC_IN);
                             }
                         })
@@ -299,7 +299,7 @@ public class SettingsActivity extends AppCompatActivity {
                     lookUpValue.setFieldId(field.getId());
                     db.projectInfoDao().insertLookupValue(lookUpValue);
                     if (lookUpValue.getSymbol() != null)
-                        downloadfile(lookUpValue.getSymbol().substring(1));
+                        downloadfile(lookUpValue.getSymbol());
                 }
             }
         }
@@ -345,12 +345,16 @@ public class SettingsActivity extends AppCompatActivity {
                             @Override
                             public void onError(Throwable e) {
                                 Log.e("getContributions", e.getMessage());
+                                rotator.cancel();
+
 
                             }
 
                             @Override
                             public void onComplete() {
+                                Log.d("Update UI", " reached!!!");
                                 projectAdapter.getContributionCount(project);
+                                rotator.cancel();
                             }
                         })
         );
@@ -388,8 +392,9 @@ public class SettingsActivity extends AppCompatActivity {
 
     private boolean writeFileToDisk(ResponseBody responseBody, String url) {
         try {
-            File file = new File("/data/data/" + getPackageName() + File.separator + url);
+            File file = new File(getFilesDir() + File.separator + url.split("/")[2]);
             file.mkdirs();
+
 
 
             InputStream inputStream = null;
