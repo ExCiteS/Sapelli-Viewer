@@ -17,10 +17,7 @@ import android.view.View;
 import android.view.WindowManager;
 import android.view.animation.Animation;
 import android.widget.ImageButton;
-import android.widget.Toast;
 
-
-import com.google.android.gms.common.internal.ApiExceptionUtil;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -29,15 +26,17 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import io.reactivex.Completable;
+import io.reactivex.CompletableObserver;
 import io.reactivex.Observable;
 import io.reactivex.SingleObserver;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.disposables.Disposable;
-import io.reactivex.internal.util.ExceptionHelper;
 import io.reactivex.observers.DisposableObserver;
 import io.reactivex.observers.DisposableSingleObserver;
 import io.reactivex.schedulers.Schedulers;
@@ -70,6 +69,7 @@ public class SettingsActivity extends AppCompatActivity {
     private ImageButton clickedButton;
     private ObjectAnimator rotator;
     private MenuItem nameItem;
+    private List<ContributionProperty> contributionProperties = new ArrayList<ContributionProperty>();
 
 
     @Override
@@ -99,6 +99,7 @@ public class SettingsActivity extends AppCompatActivity {
             @Override
             public void syncProjectOnClick(View v, int position) {
                 clickedButton = (ImageButton) v;
+                clickedButton.getDrawable().mutate().setColorFilter(Color.parseColor("#000000"), PorterDuff.Mode.SRC_IN);
                 getProject(projectAdapter.getProject(position));
                 rotator = ObjectAnimator.ofFloat(clickedButton, View.ROTATION, 0f, -360f);
                 rotator.setDuration(1000);
@@ -202,7 +203,6 @@ public class SettingsActivity extends AppCompatActivity {
 
                                                                @Override
                                                                public void onError(Throwable e) {
-
                                                                }
                                                            });
                                                } else {
@@ -255,32 +255,27 @@ public class SettingsActivity extends AppCompatActivity {
         disposables.add(
                 clientWithAuth.getProject(projectInfo.getId())
                         .subscribeOn(Schedulers.io())
+                        .doOnNext(project -> loadContributions(projectInfo)) // load contributions in parallel
                         .doOnNext(project -> db.projectInfoDao().insertProject(project))
-                        .concatMap(project -> Observable.fromIterable(project.categories))
+                        .flatMap(project -> Observable.fromIterable(project.categories))
                         .doOnNext(category -> category.setProjectid(projectInfo.getId()))
                         .doOnNext(category -> db.projectInfoDao().insertCategory(category))
                         .doOnNext(category -> setParentId(category))
-                        .concatMap(category -> Observable.fromIterable(category.getFields()))
+                        .flatMap(category -> Observable.fromIterable(category.getFields()))
                         .doOnNext(field -> db.projectInfoDao().insertField(field))
                         .doOnNext(field -> setParentId(field))
+                        .toList()
                         .observeOn(AndroidSchedulers.mainThread())
-                        .subscribeWith(new DisposableObserver<Field>() {
+                        .subscribeWith(new DisposableSingleObserver<List<Field>>() {
                             @Override
-                            public void onNext(Field field) {
-                                loadContributions(projectInfo);
+                            public void onSuccess(List<Field> fields) {
+                                Log.d("getProject", "Successful");
                             }
 
                             @Override
                             public void onError(Throwable e) {
-                                Log.e("ERROR", e.getMessage());
-                                rotator.cancel();
-                                clickedButton.getDrawable().mutate().setColorFilter(Color.parseColor("#c70039"), PorterDuff.Mode.SRC_IN);
-                            }
-
-                            @Override
-                            public void onComplete() {
-//                                rotator.cancel();
-                                clickedButton.getDrawable().mutate().setColorFilter(Color.parseColor("#37ab52"), PorterDuff.Mode.SRC_IN);
+                                Log.e("getProject", e.getMessage());
+                                updateUI(false);
                             }
                         })
         );
@@ -317,12 +312,10 @@ public class SettingsActivity extends AppCompatActivity {
 
                             @Override
                             public void onError(Throwable e) {
-
                             }
 
                             @Override
                             public void onComplete() {
-
                             }
                         })
         );
@@ -332,61 +325,59 @@ public class SettingsActivity extends AppCompatActivity {
         disposables.add(
                 clientWithAuth.getContributions(project.getId())
                         .flatMap(contributionCollection -> Observable.fromIterable(contributionCollection.getFeatures()))
+                        .doOnNext(contribution -> contribution.setProjectId(project.getId()))
+                        .doOnNext(contribution -> insertProperties(project, contribution))
+                        .toList()
+                        .doOnSuccess(contributions -> db.contributionDao().insertContributions(contributions))
                         .subscribeOn(Schedulers.io())
-                        .observeOn(Schedulers.io())
-                        .subscribeWith(new DisposableObserver<Contribution>() {
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .subscribeWith(new DisposableSingleObserver<List<Contribution>>() {
                             @Override
-                            public void onNext(Contribution contribution) {
-                                contribution.setProjectId(project.getId());
-                                db.contributionDao().insertContribution(contribution);
-                                insertProperties(contribution);
+                            public void onSuccess(List<Contribution> contributions) {
+                                Log.d("loadContributions", "Successful");
+                                insertContributionProperties(contributionProperties);
+                                projectAdapter.getContributionCount(project);
+                                updateUI(true);
                             }
 
                             @Override
                             public void onError(Throwable e) {
                                 Log.e("getContributions", e.getMessage());
-                                rotator.cancel();
-
-
-                            }
-
-                            @Override
-                            public void onComplete() {
-                                Log.d("Update UI", " reached!!!");
-                                projectAdapter.getContributionCount(project);
-                                rotator.cancel();
+                                updateUI(false);
                             }
                         })
         );
     }
 
-    private void insertProperties(Contribution contribution) {
+    private void insertProperties(ProjectInfo project, Contribution contribution) {
         for (Map.Entry<String, String> property : contribution.getProperties().entrySet()) {
             Field field = db.projectInfoDao().getFieldByKey(property.getKey());
             ContributionProperty contributionProperty = new ContributionProperty(contribution.getId(), field.getId(), property.getKey(), property.getValue());
             if (field.getFieldtype().equals("LookupField")) {
-                db.projectInfoDao().getLookupValueById(property.getValue()).subscribeWith(new SingleObserver<LookUpValue>() {
-                    @Override
-                    public void onSubscribe(Disposable d) {
-                        disposables.add(d);
-                    }
+                db.projectInfoDao().getLookupValueById(property.getValue()).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
+                        .subscribeWith(new SingleObserver<LookUpValue>() {
+                            @Override
+                            public void onSubscribe(Disposable d) {
+                                disposables.add(d);
+                            }
 
-                    @Override
-                    public void onSuccess(LookUpValue lookUpValue) {
-                        contributionProperty.setValue(lookUpValue.getName());
-                        contributionProperty.setSymbol(lookUpValue.getSymbol());
-                        db.contributionDao().insertContributionProperty(contributionProperty);
-                    }
+                            @Override
+                            public void onSuccess(LookUpValue lookUpValue) {
+                                Log.d("getLookupValueById", "Successful");
+                                contributionProperty.setValue(lookUpValue.getName());
+                                contributionProperty.setSymbol(lookUpValue.getSymbol());
+                                contributionProperties.add(contributionProperty);
+                            }
 
-                    @Override
-                    public void onError(Throwable e) {
-                        Log.e("getLookupValueById", e.getMessage());
-                    }
-                });
+                            @Override
+                            public void onError(Throwable e) {
+                                Log.e("getLookupValueById", e.getMessage());
+                            }
+                        });
 
-            } else
-                db.contributionDao().insertContributionProperty(contributionProperty);
-
+            } else {
+                contributionProperties.add(contributionProperty);
+            }
         }
     }
 
@@ -394,7 +385,6 @@ public class SettingsActivity extends AppCompatActivity {
         try {
             File file = new File(getFilesDir() + File.separator + url.split("/")[2]);
             file.mkdirs();
-
 
 
             InputStream inputStream = null;
@@ -437,5 +427,38 @@ public class SettingsActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         disposables.clear();
+    }
+
+    public void insertContributionProperties(List<ContributionProperty> contributionProperties) {
+        Completable.fromAction(() -> db.contributionDao().insertContributionProperty(contributionProperties)).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
+                .subscribeWith(new CompletableObserver() {
+                    @Override
+                    public void onSubscribe(Disposable d) {
+                        disposables.add(d);
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        contributionProperties.clear();
+                        Log.d("insertContribProperty", "Successful");
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+//                        updateUI(false);
+                    }
+
+
+                });
+    }
+
+
+    public void updateUI(boolean success) {
+        rotator.cancel();
+        if (success) {
+            clickedButton.getDrawable().mutate().setColorFilter(Color.parseColor("#37ab52"), PorterDuff.Mode.SRC_IN);
+        } else {
+            clickedButton.getDrawable().mutate().setColorFilter(Color.parseColor("#c70039"), PorterDuff.Mode.SRC_IN);
+        }
     }
 }
