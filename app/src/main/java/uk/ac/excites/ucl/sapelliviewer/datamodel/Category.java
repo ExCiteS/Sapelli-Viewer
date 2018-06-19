@@ -22,7 +22,7 @@ public class Category {
     @Ignore
     private Date created_at; //TODO: Handle dates properly
     @Ignore
-    private List<Field> fields; //TODO: Implement fields
+    private List<Field> fields;
     private String colour;
     private String symbol;
     private int order;

@@ -4,12 +4,10 @@ package uk.ac.excites.ucl.sapelliviewer.datamodel;
 import android.arch.persistence.room.Embedded;
 import android.arch.persistence.room.Entity;
 import android.arch.persistence.room.Ignore;
-import android.arch.persistence.room.Insert;
 import android.arch.persistence.room.PrimaryKey;
 
 
-import org.json.JSONObject;
-
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
@@ -29,12 +27,11 @@ public class Contribution {
     @Ignore // TODO: insert properly
     private DisplayField display_field;
     private String expiry_field;
-    @Ignore // Ingore for now, might need later
+    @Ignore // Ignore for now, might need later
     private Meta meta;
     @Ignore
     private List<Comment> comments;
-    @Ignore // TODO: insert properly
-    private List<File> media;
+
     @Ignore
     private List<Comment> review_comments;
 
@@ -64,10 +61,6 @@ public class Contribution {
 
     public List<Comment> getComments() {
         return comments;
-    }
-
-    public List<File> getMedia() {
-        return media;
     }
 
     public List<Comment> getReview_comments() {
@@ -100,10 +93,6 @@ public class Contribution {
 
     public void setComments(List<Comment> comments) {
         this.comments = comments;
-    }
-
-    public void setMedia(List<File> media) {
-        this.media = media;
     }
 
     public void setReview_comments(List<Comment> review_comments) {

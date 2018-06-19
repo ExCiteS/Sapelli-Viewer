@@ -12,7 +12,7 @@ import java.util.Date;
  * Created by Julia on 19/02/2018.
  */
 @Entity(foreignKeys = @ForeignKey(entity = Contribution.class, parentColumns = "id", childColumns = "contribution_id"))
-public class File {
+public class Document {
 
     @PrimaryKey
     private int id;

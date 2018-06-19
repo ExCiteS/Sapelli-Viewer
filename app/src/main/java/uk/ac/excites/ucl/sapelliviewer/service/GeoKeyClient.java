@@ -17,6 +17,7 @@ import retrofit2.http.Path;
 import retrofit2.http.Streaming;
 import retrofit2.http.Url;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.ContributionCollection;
+import uk.ac.excites.ucl.sapelliviewer.datamodel.Document;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Project;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.ProjectInfo;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.AccessToken;
@@ -53,6 +54,9 @@ public interface GeoKeyClient {
 
     @GET("/api/projects/{projectId}/contributions/")
     Observable<ContributionCollection> getContributions(@Path("projectId") int projectID);
+
+    @GET("/api/projects/{projectId}/contributions/{contributionId}/media/")
+    Observable<List<Document>> getMedia(@Path("projectId") int projectId, @Path("contributionId") int contributionId);
 
     @Streaming
     @GET

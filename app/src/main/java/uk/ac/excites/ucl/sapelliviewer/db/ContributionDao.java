@@ -7,15 +7,10 @@ import android.arch.persistence.room.Query;
 
 import java.util.List;
 
-import io.reactivex.Completable;
-import io.reactivex.Maybe;
-import io.reactivex.Observable;
 import io.reactivex.Single;
-import io.reactivex.SingleObserver;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Contribution;
-import uk.ac.excites.ucl.sapelliviewer.datamodel.ContributionCollection;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.ContributionProperty;
-import uk.ac.excites.ucl.sapelliviewer.datamodel.Project;
+import uk.ac.excites.ucl.sapelliviewer.datamodel.Document;
 
 @Dao
 public interface ContributionDao {
@@ -39,4 +34,8 @@ public interface ContributionDao {
 
     @Query("SELECT * FROM contributionProperty where contributionId = :contributionId")
     Single<List<ContributionProperty>> getContributionsProperties(int contributionId);
+
+    /* MEDIA FILES */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    void insertMediaFiles(List<Document> mediaFiles);
 }

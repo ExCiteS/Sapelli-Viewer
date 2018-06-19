@@ -24,7 +24,6 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_toLeftOf="@+id/sync_project"
-                android:text="Text"
                 android:textAppearance="@style/Base.TextAppearance.AppCompat.Title" />
 
             <TextView
@@ -37,15 +36,22 @@
                 android:id="@+id/txt_media"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_below="@+id/txt_contributions"
-                android:text="Media files: " />
+                android:layout_below="@+id/txt_contributions" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentBottom="true"
+                android:layout_alignParentRight="true"
+                android:text="ACTIVE"
+                android:textColor="@color/cardview_light_background"/>
 
 
             <android.support.v7.widget.AppCompatImageButton
                 android:id="@+id/sync_project"
-                android:layout_marginLeft="8dp"
                 android:layout_width="32dp"
                 android:layout_height="32dp"
+                android:layout_marginLeft="8dp"
                 android:layout_toLeftOf="@id/open_map"
                 app:srcCompat="@drawable/sync" />
 
@@ -56,6 +62,7 @@
                 android:layout_alignParentRight="true"
                 android:layout_marginLeft="16dp"
                 app:srcCompat="@drawable/markericon" />
+
         </RelativeLayout>
 
 

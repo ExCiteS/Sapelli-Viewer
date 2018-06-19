@@ -36,8 +36,13 @@ public interface ProjectInfoDao {
     @Query("DELETE FROM ProjectInfo")
     public void clearProjectInfos();
 
+
     @Query("SELECT COUNT(*) FROM Contribution WHERE projectid = :projectId")
     Single<Integer> getContributionsCount(int projectId);
+
+    @Query("SELECT count(*) FROM Document WHERE contribution_id IN (SELECT id FROM Contribution WHERE projectid = :projectId)")
+    Single<Integer> getMediaCount(int projectId);
+
 
     /* CATEGORIES */
     @Insert(onConflict = OnConflictStrategy.REPLACE)

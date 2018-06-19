@@ -45,6 +45,7 @@ import uk.ac.excites.ucl.sapelliviewer.R;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Category;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Contribution;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.ContributionProperty;
+import uk.ac.excites.ucl.sapelliviewer.datamodel.Document;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Field;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.LookUpValue;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.ProjectInfo;
@@ -106,9 +107,15 @@ public class SettingsActivity extends AppCompatActivity {
                 rotator.setRepeatCount(Animation.INFINITE);
                 rotator.start();
             }
+
+            @Override
+            public void activateMapOnClick(View v, int position) {
+                int clickedProjectId = projectAdapter.getProject(position).getId();
+                projectAdapter.toggleProject(clickedProjectId);
+
+            }
         });
         recyclerView.setAdapter(projectAdapter);
-
 
     }
 
@@ -327,6 +334,7 @@ public class SettingsActivity extends AppCompatActivity {
                         .flatMap(contributionCollection -> Observable.fromIterable(contributionCollection.getFeatures()))
                         .doOnNext(contribution -> contribution.setProjectId(project.getId()))
                         .doOnNext(contribution -> insertProperties(project, contribution))
+                        .doOnNext(contribution -> insertMedia(project, contribution))
                         .toList()
                         .doOnSuccess(contributions -> db.contributionDao().insertContributions(contributions))
                         .subscribeOn(Schedulers.io())
@@ -336,7 +344,7 @@ public class SettingsActivity extends AppCompatActivity {
                             public void onSuccess(List<Contribution> contributions) {
                                 Log.d("loadContributions", "Successful");
                                 insertContributionProperties(contributionProperties);
-                                projectAdapter.getContributionCount(project);
+                                projectAdapter.getCounts(project);
                                 updateUI(true);
                             }
 
@@ -349,11 +357,33 @@ public class SettingsActivity extends AppCompatActivity {
         );
     }
 
+    private void insertMedia(ProjectInfo project, Contribution contribution) {
+        if (contribution.getMeta().getNum_media() != 0) {
+            clientWithAuth.getMedia(project.getId(), contribution.getId())
+                    .subscribeOn(Schedulers.io())
+                    .flatMap(Observable::fromIterable)
+                    .doOnNext(mediaFile -> mediaFile.setContribution_id(contribution.getId()))
+                    .toList()
+                    .doOnSuccess(mediaList -> db.contributionDao().insertMediaFiles(mediaList))
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribeWith(new DisposableSingleObserver<List<Document>>() {
+                        @Override
+                        public void onSuccess(List<Document> documents) {
+                        }
+
+                        @Override
+                        public void onError(Throwable e) {
+                            Log.e("insertMedia", e.getMessage());
+                        }
+                    });
+        }
+    }
+
     private void insertProperties(ProjectInfo project, Contribution contribution) {
         for (Map.Entry<String, String> property : contribution.getProperties().entrySet()) {
             Field field = db.projectInfoDao().getFieldByKey(property.getKey());
             ContributionProperty contributionProperty = new ContributionProperty(contribution.getId(), field.getId(), property.getKey(), property.getValue());
-            if (field.getFieldtype().equals("LookupField")) {
+            if (field.getFieldtype().equals("LookupField"))
                 db.projectInfoDao().getLookupValueById(property.getValue()).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
                         .subscribeWith(new SingleObserver<LookUpValue>() {
                             @Override
@@ -374,8 +404,7 @@ public class SettingsActivity extends AppCompatActivity {
                                 Log.e("getLookupValueById", e.getMessage());
                             }
                         });
-
-            } else {
+            else {
                 contributionProperties.add(contributionProperty);
             }
         }
