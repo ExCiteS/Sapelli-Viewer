@@ -18,6 +18,19 @@ public class ProjectInfo {
     private String description;
     @Ignore
     private int contributionCount;
+    @Ignore
+    private int mediaCount;
+
+    @Ignore
+    private boolean active;
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
+    }
 
     @Embedded
     private UserPrivlg user_info;
@@ -58,7 +71,15 @@ public class ProjectInfo {
         return contributionCount;
     }
 
+    public int getMediaCount() {
+        return mediaCount;
+    }
+
     public void setContributionCount(int contributionCount) {
         this.contributionCount = contributionCount;
+    }
+
+    public void setMediaCount(int mediaCount) {
+        this.mediaCount = mediaCount;
     }
 }
