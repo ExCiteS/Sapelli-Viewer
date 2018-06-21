@@ -17,6 +17,7 @@ import android.view.View;
 import android.view.WindowManager;
 import android.view.animation.Animation;
 import android.widget.ImageButton;
+import android.widget.Toast;
 
 
 import java.io.File;
@@ -146,8 +147,8 @@ public class SettingsActivity extends AppCompatActivity {
 
                                 @Override
                                 public void onError(Throwable e) {
-                                    if (e instanceof NoConnectivityException) {
-                                        // get user from database
+                                    // get user from database
+                                    if (e instanceof NoConnectivityException)
                                         db.userDao().getUserInfo()
                                                 .subscribeOn(Schedulers.io())
                                                 .observeOn(AndroidSchedulers.mainThread())
@@ -168,7 +169,7 @@ public class SettingsActivity extends AppCompatActivity {
                                                         Log.e("USER INFO", e.getMessage());
                                                     }
                                                 });
-                                    } else
+                                    else
                                         Log.e("USER INFO", e.getMessage());
                                 }
                             })
@@ -198,20 +199,21 @@ public class SettingsActivity extends AppCompatActivity {
                                            @Override
                                            public void onError(Throwable e) {
                                                if (e instanceof NoConnectivityException) {
-                                                   db.projectInfoDao().getProjectInfos()
-                                                           .subscribeOn(Schedulers.io())
-                                                           .observeOn(AndroidSchedulers.mainThread())
-                                                           .subscribeWith(new DisposableSingleObserver<List<ProjectInfo>>() {
-                                                               @Override
-                                                               public void onSuccess(List<ProjectInfo> projectInfos) {
-                                                                   projectAdapter.setProjects(projectInfos);
-                                                                   recyclerView.setAdapter(projectAdapter);
-                                                               }
+                                                   disposables.add(
+                                                           db.projectInfoDao().getProjectInfos()
+                                                                   .subscribeOn(Schedulers.io())
+                                                                   .observeOn(AndroidSchedulers.mainThread())
+                                                                   .subscribeWith(new DisposableSingleObserver<List<ProjectInfo>>() {
+                                                                       @Override
+                                                                       public void onSuccess(List<ProjectInfo> projectInfos) {
+                                                                           projectAdapter.setProjects(projectInfos);
+                                                                           recyclerView.setAdapter(projectAdapter);
+                                                                       }
 
-                                                               @Override
-                                                               public void onError(Throwable e) {
-                                                               }
-                                                           });
+                                                                       @Override
+                                                                       public void onError(Throwable e) {
+                                                                       }
+                                                                   }));
                                                } else {
                                                    StringWriter sw = new StringWriter();
                                                    PrintWriter pw = new PrintWriter(sw);
@@ -346,6 +348,7 @@ public class SettingsActivity extends AppCompatActivity {
                                 insertContributionProperties(contributionProperties);
                                 projectAdapter.getCounts(project);
                                 updateUI(true);
+
                             }
 
                             @Override
@@ -359,23 +362,25 @@ public class SettingsActivity extends AppCompatActivity {
 
     private void insertMedia(ProjectInfo project, Contribution contribution) {
         if (contribution.getMeta().getNum_media() != 0) {
-            clientWithAuth.getMedia(project.getId(), contribution.getId())
-                    .subscribeOn(Schedulers.io())
-                    .flatMap(Observable::fromIterable)
-                    .doOnNext(mediaFile -> mediaFile.setContribution_id(contribution.getId()))
-                    .toList()
-                    .doOnSuccess(mediaList -> db.contributionDao().insertMediaFiles(mediaList))
-                    .observeOn(AndroidSchedulers.mainThread())
-                    .subscribeWith(new DisposableSingleObserver<List<Document>>() {
-                        @Override
-                        public void onSuccess(List<Document> documents) {
-                        }
+            disposables.add(
+                    clientWithAuth.getMedia(project.getId(), contribution.getId())
+                            .subscribeOn(Schedulers.io())
+                            .flatMap(Observable::fromIterable)
+                            .doOnNext(mediaFile -> mediaFile.setContribution_id(contribution.getId()))
+                            .doOnNext(mediaFile -> downloadfile(mediaFile.getUrl()))
+                            .toList()
+                            .doOnSuccess(mediaList -> db.contributionDao().insertMediaFiles(mediaList))
+                            .observeOn(AndroidSchedulers.mainThread())
+                            .subscribeWith(new DisposableSingleObserver<List<Document>>() {
+                                @Override
+                                public void onSuccess(List<Document> documents) {
+                                }
 
-                        @Override
-                        public void onError(Throwable e) {
-                            Log.e("insertMedia", e.getMessage());
-                        }
-                    });
+                                @Override
+                                public void onError(Throwable e) {
+                                    Log.e("insertMedia", e.getMessage());
+                                }
+                            }));
         }
     }
 
@@ -412,9 +417,12 @@ public class SettingsActivity extends AppCompatActivity {
 
     private boolean writeFileToDisk(ResponseBody responseBody, String url) {
         try {
-            File file = new File(getFilesDir() + File.separator + url.split("/")[2]);
-            file.mkdirs();
 
+            String fileName = url.split("/")[url.split("/").length - 1];
+            String subPath = url.replace(fileName, "");
+
+            new File("/data/data/" + getPackageName() + subPath).mkdirs();
+            File destinationFile = new File("/data/data/" + getPackageName() + subPath + fileName);
 
             InputStream inputStream = null;
             OutputStream outputStream = null;
@@ -425,7 +433,7 @@ public class SettingsActivity extends AppCompatActivity {
                 long fileSizeDownloaded = 0;
 
                 inputStream = responseBody.byteStream();
-                outputStream = new FileOutputStream(file);
+                outputStream = new FileOutputStream(destinationFile);
 
                 while (true) {
                     int read = inputStream.read(fileReader);
@@ -434,12 +442,13 @@ public class SettingsActivity extends AppCompatActivity {
                     outputStream.write(fileReader, 0, read);
                     fileSizeDownloaded += read;
 
-                    Log.d(getLocalClassName(), "file downloaded " + fileSizeDownloaded + " of " + fileSize);
+
                 }
 
                 outputStream.flush();
                 return true;
             } catch (IOException e) {
+                Log.e("File download", e.getMessage());
                 return false;
             } finally {
                 if (inputStream != null)
@@ -474,7 +483,6 @@ public class SettingsActivity extends AppCompatActivity {
 
                     @Override
                     public void onError(Throwable e) {
-//                        updateUI(false);
                     }
 
 
