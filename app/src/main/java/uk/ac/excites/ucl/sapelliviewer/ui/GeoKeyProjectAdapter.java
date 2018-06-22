@@ -1,7 +1,9 @@
 package uk.ac.excites.ucl.sapelliviewer.ui;
 
 import android.content.Context;
+import android.content.res.Resources;
 import android.graphics.Color;
+import android.graphics.PorterDuff;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -23,6 +25,8 @@ import uk.ac.excites.ucl.sapelliviewer.R;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.ProjectInfo;
 import uk.ac.excites.ucl.sapelliviewer.db.AppDatabase;
 import uk.ac.excites.ucl.sapelliviewer.utils.TokenManager;
+
+import static uk.ac.excites.ucl.sapelliviewer.R.drawable.sync;
 
 
 /**
@@ -83,8 +87,14 @@ public class GeoKeyProjectAdapter extends RecyclerView.Adapter<GeoKeyProjectAdap
         holder.projectName.setText(project.getName());
         holder.contributionsTxt.setText(ctx.getResources().getString(R.string.contributions) + project.getContributionCount());
         holder.mediaTxt.setText(ctx.getResources().getString(R.string.media) + project.getMediaCount());
-        if (project.isActive()) holder.cardLayout.setBackgroundColor(Color.parseColor("#42a2ce"));
-        else holder.cardLayout.setBackgroundColor(0);
+        if (project.isActive()) {
+            holder.cardLayout.setBackgroundColor(Color.parseColor("#42a2ce"));
+            holder.activeTxt.setText(R.string.active);
+        } else {
+            holder.cardLayout.setBackgroundColor(0);
+            holder.activeTxt.setText("");
+        }
+        holder.syncProjectButton.setBackgroundResource(sync);
 
     }
 
@@ -97,6 +107,14 @@ public class GeoKeyProjectAdapter extends RecyclerView.Adapter<GeoKeyProjectAdap
         return projects.get(position);
     }
 
+    public int getPosition(ProjectInfo project) {
+        for (int i = 0; i < projects.size(); i++) {
+            if (project.getId() == projects.get(i).getId())
+                return i;
+        }
+        return -1;
+    }
+
     public void toggleProject(int clickedProjectId) {
         for (ProjectInfo project : projects) {
             if (project.getId() == clickedProjectId) {
@@ -107,9 +125,10 @@ public class GeoKeyProjectAdapter extends RecyclerView.Adapter<GeoKeyProjectAdap
                     project.setActive(true);
                     TokenManager.getInstance().saveActiveProject(clickedProjectId);
                 }
-            } else project.setActive(false);
+            } else
+                project.setActive(false);
+            notifyItemChanged(getPosition(project));
         }
-        notifyDataSetChanged();
     }
 
 
@@ -121,6 +140,7 @@ public class GeoKeyProjectAdapter extends RecyclerView.Adapter<GeoKeyProjectAdap
         ImageButton syncProjectButton;
         TextView contributionsTxt;
         TextView mediaTxt;
+        TextView activeTxt;
 
         ProjectViewHolder(View itemView) {
             super(itemView);
@@ -130,6 +150,7 @@ public class GeoKeyProjectAdapter extends RecyclerView.Adapter<GeoKeyProjectAdap
             syncProjectButton = (ImageButton) itemView.findViewById(R.id.sync_project);
             contributionsTxt = (TextView) itemView.findViewById(R.id.txt_contributions);
             mediaTxt = (TextView) itemView.findViewById(R.id.txt_media);
+            activeTxt = (TextView) itemView.findViewById(R.id.active_txt);
 
             openMapButton.setOnClickListener(new View.OnClickListener() {
                 @Override

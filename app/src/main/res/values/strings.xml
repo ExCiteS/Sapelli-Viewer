@@ -15,4 +15,5 @@
     <string name="no_internet">Please check your internet connection</string>
     <string name="contributions">"Contributions: "</string>
     <string name="media">"Media files: "</string>
+    <string name="active">ACTIVE</string>
 </resources>

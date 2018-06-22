@@ -114,6 +114,7 @@ public class SettingsActivity extends AppCompatActivity {
                 int clickedProjectId = projectAdapter.getProject(position).getId();
                 projectAdapter.toggleProject(clickedProjectId);
 
+
             }
         });
         recyclerView.setAdapter(projectAdapter);
@@ -334,9 +335,11 @@ public class SettingsActivity extends AppCompatActivity {
         disposables.add(
                 clientWithAuth.getContributions(project.getId())
                         .flatMap(contributionCollection -> Observable.fromIterable(contributionCollection.getFeatures()))
-                        .doOnNext(contribution -> contribution.setProjectId(project.getId()))
-                        .doOnNext(contribution -> insertProperties(project, contribution))
-                        .doOnNext(contribution -> insertMedia(project, contribution))
+                        .doOnNext(contribution -> {
+                            contribution.setProjectId(project.getId());
+                            insertProperties(project, contribution);
+                            insertMedia(project, contribution);
+                        })
                         .toList()
                         .doOnSuccess(contributions -> db.contributionDao().insertContributions(contributions))
                         .subscribeOn(Schedulers.io())
@@ -429,8 +432,6 @@ public class SettingsActivity extends AppCompatActivity {
 
             try {
                 byte[] fileReader = new byte[4096];
-                long fileSize = responseBody.contentLength();
-                long fileSizeDownloaded = 0;
 
                 inputStream = responseBody.byteStream();
                 outputStream = new FileOutputStream(destinationFile);
@@ -440,9 +441,6 @@ public class SettingsActivity extends AppCompatActivity {
                     if (read == -1)
                         break;
                     outputStream.write(fileReader, 0, read);
-                    fileSizeDownloaded += read;
-
-
                 }
 
                 outputStream.flush();

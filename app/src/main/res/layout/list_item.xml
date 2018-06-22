@@ -39,11 +39,11 @@
                 android:layout_below="@+id/txt_contributions" />
 
             <TextView
+                android:id="@+id/active_txt"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_alignParentBottom="true"
                 android:layout_alignParentRight="true"
-                android:text="ACTIVE"
                 android:textColor="@color/cardview_light_background"/>
 
 
