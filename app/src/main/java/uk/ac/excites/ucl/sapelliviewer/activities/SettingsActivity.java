@@ -17,7 +17,6 @@ import android.view.View;
 import android.view.WindowManager;
 import android.view.animation.Animation;
 import android.widget.ImageButton;
-import android.widget.Toast;
 
 
 import java.io.File;
@@ -61,6 +60,8 @@ import uk.ac.excites.ucl.sapelliviewer.utils.TokenManager;
 public class SettingsActivity extends AppCompatActivity {
 
     public static String PROJECT_ID = "project_id";
+    public static String ERROR_CODE = "error_code";
+
 
     private RecyclerView recyclerView;
     private TokenManager tokenManager;
@@ -148,30 +149,25 @@ public class SettingsActivity extends AppCompatActivity {
 
                                 @Override
                                 public void onError(Throwable e) {
-                                    // get user from database
-                                    if (e instanceof NoConnectivityException)
-                                        db.userDao().getUserInfo()
-                                                .subscribeOn(Schedulers.io())
-                                                .observeOn(AndroidSchedulers.mainThread())
-                                                .subscribeWith(new SingleObserver<UserInfo>() {
-                                                    @Override
-                                                    public void onSubscribe(Disposable d) {
-                                                        disposables.add(d);
-                                                    }
+                                    disposables.add(
+                                            db.userDao().getUserInfo()
+                                                    .subscribeOn(Schedulers.io())
+                                                    .observeOn(AndroidSchedulers.mainThread())
+                                                    .subscribeWith(new DisposableSingleObserver<UserInfo>() {
+                                                        @Override
+                                                        public void onSuccess(UserInfo userInfo) {
+                                                            Log.d("getUserFromDB", "SUCCESS");
+                                                            nameItem.setTitle(userInfo.getDisplay_name());
+                                                            listProjects();
+                                                        }
 
-                                                    @Override
-                                                    public void onSuccess(UserInfo userInfo) {
-                                                        nameItem.setTitle(userInfo.getDisplay_name());
-                                                        updateProjects();
-                                                    }
+                                                        @Override
+                                                        public void onError(Throwable e) {
+                                                            Log.e("getUserFromDB", e.getMessage());
+                                                            logOut(e.getMessage());
+                                                        }
+                                                    }));
 
-                                                    @Override
-                                                    public void onError(Throwable e) {
-                                                        Log.e("USER INFO", e.getMessage());
-                                                    }
-                                                });
-                                    else
-                                        Log.e("USER INFO", e.getMessage());
                                 }
                             })
             );
@@ -200,21 +196,7 @@ public class SettingsActivity extends AppCompatActivity {
                                            @Override
                                            public void onError(Throwable e) {
                                                if (e instanceof NoConnectivityException) {
-                                                   disposables.add(
-                                                           db.projectInfoDao().getProjectInfos()
-                                                                   .subscribeOn(Schedulers.io())
-                                                                   .observeOn(AndroidSchedulers.mainThread())
-                                                                   .subscribeWith(new DisposableSingleObserver<List<ProjectInfo>>() {
-                                                                       @Override
-                                                                       public void onSuccess(List<ProjectInfo> projectInfos) {
-                                                                           projectAdapter.setProjects(projectInfos);
-                                                                           recyclerView.setAdapter(projectAdapter);
-                                                                       }
-
-                                                                       @Override
-                                                                       public void onError(Throwable e) {
-                                                                       }
-                                                                   }));
+                                                   listProjects();
                                                } else {
                                                    StringWriter sw = new StringWriter();
                                                    PrintWriter pw = new PrintWriter(sw);
@@ -225,6 +207,25 @@ public class SettingsActivity extends AppCompatActivity {
                                        }
                         )
         );
+    }
+
+    public void listProjects() {
+        disposables.add(
+                db.projectInfoDao().getProjectInfos()
+                        .subscribeOn(Schedulers.io())
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .subscribeWith(new DisposableSingleObserver<List<ProjectInfo>>() {
+                            @Override
+                            public void onSuccess(List<ProjectInfo> projectInfos) {
+                                projectAdapter.setProjects(projectInfos);
+                                recyclerView.setAdapter(projectAdapter);
+                            }
+
+                            @Override
+                            public void onError(Throwable e) {
+                                Log.e("getProjectInfosDB", e.getMessage());
+                            }
+                        }));
     }
 
 
@@ -241,16 +242,18 @@ public class SettingsActivity extends AppCompatActivity {
         int id = item.getItemId();
         switch (id) {
             case R.id.logout:
-                logOut();
+                logOut(null);
             default:
                 return super.onOptionsItemSelected(item);
         }
     }
 
-    public void logOut() {
+    public void logOut(String errorCode) {
         tokenManager.deleteToken();
         tokenManager.deleteServerUrl();
         Intent loginIntent = new Intent(this, LoginActivity.class);
+        if (errorCode != null)
+            loginIntent.putExtra(ERROR_CODE, errorCode);
         startActivity(loginIntent);
         finish();
     }
@@ -372,7 +375,10 @@ public class SettingsActivity extends AppCompatActivity {
                             .doOnNext(mediaFile -> mediaFile.setContribution_id(contribution.getId()))
                             .doOnNext(mediaFile -> downloadfile(mediaFile.getUrl()))
                             .toList()
-                            .doOnSuccess(mediaList -> db.contributionDao().insertMediaFiles(mediaList))
+                            .doOnSuccess(mediaList -> {
+                                db.contributionDao().insertMediaFiles(mediaList);
+                                Log.d("INSERT MEDIA", "CALLED");
+                            })
                             .observeOn(AndroidSchedulers.mainThread())
                             .subscribeWith(new DisposableSingleObserver<List<Document>>() {
                                 @Override

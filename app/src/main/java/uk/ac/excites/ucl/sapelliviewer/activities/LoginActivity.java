@@ -59,15 +59,15 @@ public class LoginActivity extends AppCompatActivity {
         disposables = new CompositeDisposable();
         setContentView(R.layout.activity_login);
         db = AppDatabase.getAppDatabase(getApplicationContext());
+        String receivedErrorText = getIntent().getStringExtra(SettingsActivity.ERROR_CODE);
 
 
         server_url = (EditText) findViewById(R.id.textUrl);
         userName = (EditText) findViewById(R.id.editUsername);
         password = (EditText) findViewById(R.id.editPassword);
         errorText = (TextView) findViewById(R.id.text_error);
+        errorText.setText(receivedErrorText);
         final Button loginButton = (Button) findViewById(R.id.buttonLogin);
-
-
         loginButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
