@@ -59,4 +59,15 @@ public class TokenManager {
         prefs.edit().remove("SERVER_URL").commit();
     }
 
+    public void saveActiveProject(int id) {
+        prefs.edit().putInt("ACTIVE_PROJECT", id).commit();
+    }
+
+    public int getActiveProject() {
+        return prefs.getInt("ACTIVE_PROJECT", -1);
+    }
+
+    public void deleteActiveProject() {
+        prefs.edit().remove("ACTIVE_PROJECT").commit();
+    }
 }
