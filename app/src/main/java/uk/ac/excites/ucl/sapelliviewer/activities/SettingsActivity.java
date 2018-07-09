@@ -372,6 +372,7 @@ public class SettingsActivity extends AppCompatActivity {
                     clientWithAuth.getMedia(project.getId(), contribution.getId())
                             .subscribeOn(Schedulers.io())
                             .flatMap(Observable::fromIterable)
+                            .filter(mediaFile -> mediaFile.getFile_type() != "VideoFile") // Don't handle video files for now
                             .doOnNext(mediaFile -> mediaFile.setContribution_id(contribution.getId()))
                             .doOnNext(mediaFile -> downloadfile(mediaFile.getUrl()))
                             .toList()
