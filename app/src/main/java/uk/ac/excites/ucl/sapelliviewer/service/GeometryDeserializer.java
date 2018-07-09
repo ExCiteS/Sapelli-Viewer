@@ -39,6 +39,16 @@ public class GeometryDeserializer implements JsonDeserializer<Geometry> {
         if (type.equals("Point")) {
             coordArray = (JsonArray) coordinates.getAsJsonArray();
             result += "[" + coordArray.get(0).toString() + ", " + coordArray.get(1).toString() + "]";
+
+        } else if (type.equals("LineString")) {
+            coordArray = (JsonArray) coordinates.getAsJsonArray();
+            result += "[";
+            for (int i = 0; i < coordArray.size(); i++) {
+                result += "[" + coordArray.get(i).getAsJsonArray().get(0) + ", " + coordArray.get(i).getAsJsonArray().get(1) + "],";
+            }
+            result = result.substring(0, result.length() - 1);
+            result += "]";
+
         } else {
             coordArray = (JsonArray) coordinates.getAsJsonArray().get(0);
             result += "[";
