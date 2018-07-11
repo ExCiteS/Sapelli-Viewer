@@ -16,4 +16,6 @@
     <string name="contributions">"Contributions: "</string>
     <string name="media">"Media files: "</string>
     <string name="active">ACTIVE</string>
+    <string name="map_path">"Map path: "</string>
+    <string name="pick_tpk">Select a map tile package</string>
 </resources>

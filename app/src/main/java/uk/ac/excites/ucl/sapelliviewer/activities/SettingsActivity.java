@@ -1,12 +1,19 @@
 package uk.ac.excites.ucl.sapelliviewer.activities;
 
+import android.Manifest;
 import android.animation.ObjectAnimator;
+import android.app.Activity;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
-import android.support.annotation.Nullable;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.os.Environment;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
+import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
@@ -17,7 +24,10 @@ import android.view.View;
 import android.view.WindowManager;
 import android.view.animation.Animation;
 import android.widget.ImageButton;
+import android.widget.Toast;
 
+import com.nbsp.materialfilepicker.MaterialFilePicker;
+import com.nbsp.materialfilepicker.ui.FilePickerActivity;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -29,14 +39,15 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import io.reactivex.Completable;
-import io.reactivex.CompletableObserver;
 import io.reactivex.Observable;
 import io.reactivex.SingleObserver;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.disposables.Disposable;
+import io.reactivex.observers.DisposableCompletableObserver;
 import io.reactivex.observers.DisposableObserver;
 import io.reactivex.observers.DisposableSingleObserver;
 import io.reactivex.schedulers.Schedulers;
@@ -49,6 +60,7 @@ import uk.ac.excites.ucl.sapelliviewer.datamodel.Document;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Field;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.LookUpValue;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.ProjectInfo;
+import uk.ac.excites.ucl.sapelliviewer.datamodel.ProjectProperties;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.UserInfo;
 import uk.ac.excites.ucl.sapelliviewer.db.AppDatabase;
 import uk.ac.excites.ucl.sapelliviewer.service.GeoKeyClient;
@@ -59,9 +71,10 @@ import uk.ac.excites.ucl.sapelliviewer.utils.TokenManager;
 
 public class SettingsActivity extends AppCompatActivity {
 
-    public static String PROJECT_ID = "project_id";
-    public static String ERROR_CODE = "error_code";
-
+    public static final String PROJECT_ID = "project_id";
+    public static final String ERROR_CODE = "error_code";
+    public static final int PERMISSIONS_REQUEST_CODE = 0;
+    public static final int FILE_PICKER_REQUEST_CODE = 1;
 
     private RecyclerView recyclerView;
     private TokenManager tokenManager;
@@ -73,6 +86,7 @@ public class SettingsActivity extends AppCompatActivity {
     private ObjectAnimator rotator;
     private MenuItem nameItem;
     private List<ContributionProperty> contributionProperties = new ArrayList<ContributionProperty>();
+    private int mapPathPosition;
 
 
     @Override
@@ -116,6 +130,12 @@ public class SettingsActivity extends AppCompatActivity {
                 projectAdapter.toggleProject(clickedProjectId);
 
 
+            }
+
+            @Override
+            public void setMapPath(View v, int position) {
+                mapPathPosition = position;
+                checkPermissionsAndOpenFilePicker();
             }
         });
         recyclerView.setAdapter(projectAdapter);
@@ -259,8 +279,13 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     public void openMapView(int projectId) {
-        Intent mapIntent = new Intent(this, MapsActivity.class);
-        mapIntent.putExtra(PROJECT_ID, projectId);
+//        online map
+//        Intent mapIntent = new Intent(this, MapsActivity.class);
+//        mapIntent.putExtra(PROJECT_ID, projectId);
+
+//        offline map
+        Intent mapIntent = new Intent(this, OfflineMapsActivity.class);
+
         startActivity(mapIntent);
     }
 
@@ -473,25 +498,21 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     public void insertContributionProperties(List<ContributionProperty> contributionProperties) {
-        Completable.fromAction(() -> db.contributionDao().insertContributionProperty(contributionProperties)).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
-                .subscribeWith(new CompletableObserver() {
-                    @Override
-                    public void onSubscribe(Disposable d) {
-                        disposables.add(d);
-                    }
+        disposables.add(
+                Completable.fromAction(() -> db.contributionDao().insertContributionProperty(contributionProperties)).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
+                        .subscribeWith(new DisposableCompletableObserver() {
+                            @Override
+                            public void onComplete() {
+                                contributionProperties.clear();
+                                Log.d("insertContribProperty", "Successful");
+                            }
 
-                    @Override
-                    public void onComplete() {
-                        contributionProperties.clear();
-                        Log.d("insertContribProperty", "Successful");
-                    }
-
-                    @Override
-                    public void onError(Throwable e) {
-                    }
+                            @Override
+                            public void onError(Throwable e) {
+                            }
 
 
-                });
+                        }));
     }
 
 
@@ -501,6 +522,70 @@ public class SettingsActivity extends AppCompatActivity {
             clickedButton.getDrawable().mutate().setColorFilter(Color.parseColor("#37ab52"), PorterDuff.Mode.SRC_IN);
         } else {
             clickedButton.getDrawable().mutate().setColorFilter(Color.parseColor("#c70039"), PorterDuff.Mode.SRC_IN);
+        }
+    }
+
+    private void checkPermissionsAndOpenFilePicker() {
+        String permission = Manifest.permission.READ_EXTERNAL_STORAGE;
+        if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this, permission)) {
+                Toast.makeText(this, "Allow external storage reading", Toast.LENGTH_SHORT).show();
+            } else {
+                ActivityCompat.requestPermissions(this, new String[]{permission}, PERMISSIONS_REQUEST_CODE);
+            }
+        } else {
+            openFilePicker();
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           @NonNull String permissions[], @NonNull int[] grantResults) {
+        switch (requestCode) {
+            case PERMISSIONS_REQUEST_CODE: {
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    openFilePicker();
+                } else {
+                    Toast.makeText(this, "Allow external storage reading", Toast.LENGTH_SHORT).show();
+                }
+            }
+        }
+    }
+
+    private void openFilePicker() {
+        new MaterialFilePicker()
+                .withTitle(getString(R.string.pick_tpk))
+                .withActivity(this)
+                .withPath(String.valueOf(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)))
+                .withRequestCode(FILE_PICKER_REQUEST_CODE)
+                .withFilter(Pattern.compile(".*\\.tpk$")) // Filtering files and directories by file name using regexp
+                .withHiddenFiles(true) // Show hidden files and folders
+                .start();
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == FILE_PICKER_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
+            if (data != null) {
+                String filePath = data.getStringExtra(FilePickerActivity.RESULT_FILE_PATH);
+                ProjectProperties projectProperties = new ProjectProperties(projectAdapter.getProject(mapPathPosition).getId(), filePath);
+
+                disposables.add(
+                        Completable.fromAction(() -> db.projectInfoDao().insertProjectProperties(projectProperties)).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
+                                .subscribeWith(new DisposableCompletableObserver() {
+                                    @Override
+                                    public void onComplete() {
+                                        projectAdapter.notifyItemChanged(mapPathPosition);
+                                    }
+
+                                    @Override
+                                    public void onError(Throwable e) {
+                                        Log.e("setMapPath", e.getMessage());
+                                    }
+                                }));
+            }
         }
     }
 }

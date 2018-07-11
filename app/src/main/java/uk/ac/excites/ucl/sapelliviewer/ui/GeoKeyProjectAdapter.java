@@ -4,22 +4,29 @@ import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
+import android.support.annotation.MainThread;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.ImageButton;
 
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+import org.w3c.dom.Text;
+
 import java.util.ArrayList;
 import java.util.List;
 
 import io.reactivex.Single;
+import io.reactivex.SingleObserver;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.observers.DisposableSingleObserver;
 import io.reactivex.schedulers.Schedulers;
 import uk.ac.excites.ucl.sapelliviewer.R;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.ProjectInfo;
@@ -73,6 +80,23 @@ public class GeoKeyProjectAdapter extends RecyclerView.Adapter<GeoKeyProjectAdap
                 .subscribe();
     }
 
+    public void getMapPath(ProjectInfo project, TextView view) {
+        compositeDisposable.add(
+                AppDatabase.getAppDatabase(ctx).projectInfoDao().getMapPath(project.getId()).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
+                        .subscribeWith(new DisposableSingleObserver<String>() {
+                            @Override
+                            public void onSuccess(String path) {
+                                view.setText(path);
+                                notifyItemChanged(getPosition(project));
+                            }
+
+                            @Override
+                            public void onError(Throwable e) {
+                                Log.e("getMapPath", e.getMessage());
+                            }
+                        }));
+    }
+
 
     @Override
     public ProjectViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
@@ -87,6 +111,7 @@ public class GeoKeyProjectAdapter extends RecyclerView.Adapter<GeoKeyProjectAdap
         holder.projectName.setText(project.getName());
         holder.contributionsTxt.setText(ctx.getResources().getString(R.string.contributions) + project.getContributionCount());
         holder.mediaTxt.setText(ctx.getResources().getString(R.string.media) + project.getMediaCount());
+        getMapPath(getProject(position), holder.mapPathTxt);
         if (project.isActive()) {
             holder.cardLayout.setBackgroundColor(Color.parseColor("#42a2ce"));
             holder.activeTxt.setText(R.string.active);
@@ -141,6 +166,8 @@ public class GeoKeyProjectAdapter extends RecyclerView.Adapter<GeoKeyProjectAdap
         TextView contributionsTxt;
         TextView mediaTxt;
         TextView activeTxt;
+        TextView mapPathTxt;
+        Button btnMapPath;
 
         ProjectViewHolder(View itemView) {
             super(itemView);
@@ -149,8 +176,11 @@ public class GeoKeyProjectAdapter extends RecyclerView.Adapter<GeoKeyProjectAdap
             openMapButton = (ImageButton) itemView.findViewById(R.id.open_map);
             syncProjectButton = (ImageButton) itemView.findViewById(R.id.sync_project);
             contributionsTxt = (TextView) itemView.findViewById(R.id.txt_contributions);
+            btnMapPath = (Button) itemView.findViewById(R.id.btn_map_path);
+            mapPathTxt = (TextView) itemView.findViewById(R.id.txt_map_path);
             mediaTxt = (TextView) itemView.findViewById(R.id.txt_media);
             activeTxt = (TextView) itemView.findViewById(R.id.active_txt);
+
 
             openMapButton.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -172,6 +202,13 @@ public class GeoKeyProjectAdapter extends RecyclerView.Adapter<GeoKeyProjectAdap
                     onClickListener.activateMapOnClick(view, getAdapterPosition());
                 }
             });
+
+            btnMapPath.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    onClickListener.setMapPath(view, getAdapterPosition());
+                }
+            });
         }
     }
 
@@ -181,6 +218,8 @@ public class GeoKeyProjectAdapter extends RecyclerView.Adapter<GeoKeyProjectAdap
         void syncProjectOnClick(View v, int position);
 
         void activateMapOnClick(View v, int position);
+
+        void setMapPath(View v, int position);
     }
 
 }

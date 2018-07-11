@@ -11,6 +11,7 @@
     -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-feature android:glEsVersion="0x00020000" android:required="true" />
 
     <application
         android:allowBackup="true"
@@ -48,7 +49,10 @@
 
         <activity
             android:name=".activities.MapsActivity"
-            android:label="@string/title_activity_maps"></activity>
+            android:label="Map"></activity>
+        <activity
+            android:name=".activities.OfflineMapsActivity"
+            android:label="Offline Map"></activity>
     </application>
 
 </manifest>
