@@ -18,7 +18,7 @@
     </style>
 
     <style name="FullscreenActionBarStyle" parent="FullscreenTheme">
-        <item name="android:background">@color/black_overlay</item>
+        <item name="android:background">@color/colorPrimaryDark</item>
     </style>
 
 </resources>

@@ -15,12 +15,12 @@ import uk.ac.excites.ucl.sapelliviewer.datamodel.Field;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.LookUpValue;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Project;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.ProjectInfo;
+import uk.ac.excites.ucl.sapelliviewer.datamodel.ProjectProperties;
 
 @Dao
 public interface ProjectInfoDao {
 
     /* PROJECTS */
-
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertProjectInfo(List<ProjectInfo> projectInfos);
 
@@ -43,6 +43,11 @@ public interface ProjectInfoDao {
     @Query("SELECT count(*) FROM Document WHERE contribution_id IN (SELECT id FROM Contribution WHERE projectid = :projectId)")
     Single<Integer> getMediaCount(int projectId);
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    void insertProjectProperties(ProjectProperties projectProperties);
+
+    @Query("SELECT mapPath FROM projectproperties WHERE id=:projectId")
+    Single<String> getMapPath(int projectId);
 
     /* CATEGORIES */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
