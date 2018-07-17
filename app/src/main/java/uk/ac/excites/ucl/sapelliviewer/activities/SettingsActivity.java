@@ -285,7 +285,7 @@ public class SettingsActivity extends AppCompatActivity {
 
 //        offline map
         Intent mapIntent = new Intent(this, OfflineMapsActivity.class);
-
+        mapIntent.putExtra(PROJECT_ID, projectId);
         startActivity(mapIntent);
     }
 
@@ -369,6 +369,7 @@ public class SettingsActivity extends AppCompatActivity {
                             insertMedia(project, contribution);
                         })
                         .toList()
+                        .doOnSuccess(contributions -> Log.d("|||||||||||", contributions.get(1).getContributionProperty().value))
                         .doOnSuccess(contributions -> db.contributionDao().insertContributions(contributions))
                         .subscribeOn(Schedulers.io())
                         .observeOn(AndroidSchedulers.mainThread())
@@ -434,9 +435,13 @@ public class SettingsActivity extends AppCompatActivity {
                             @Override
                             public void onSuccess(LookUpValue lookUpValue) {
                                 Log.d("getLookupValueById", "Successful");
+
                                 contributionProperty.setValue(lookUpValue.getName());
                                 contributionProperty.setSymbol(lookUpValue.getSymbol());
                                 contributionProperties.add(contributionProperty);
+                                if (contributionProperty.getKey().equals(contribution.getDisplay_field().getKey()))
+                                    contribution.setContributionProperty(contributionProperty);
+
                             }
 
                             @Override
@@ -446,6 +451,9 @@ public class SettingsActivity extends AppCompatActivity {
                         });
             else {
                 contributionProperties.add(contributionProperty);
+                if (contributionProperty.getKey().equals(contribution.getDisplay_field().getKey()))
+                    contribution.setContributionProperty(contributionProperty);
+
             }
         }
     }
