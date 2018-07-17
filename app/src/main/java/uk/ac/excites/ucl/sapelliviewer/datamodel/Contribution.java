@@ -24,8 +24,10 @@ public class Contribution {
     private Geometry geometry;
     @Ignore
     private HashMap<String, String> properties;
-    @Ignore // TODO: insert properly
+    @Ignore //
     private DisplayField display_field;
+    @Embedded
+    private ContributionProperty contributionProperty;
     private String expiry_field;
     @Ignore // Ignore for now, might need later
     private Meta meta;
@@ -113,5 +115,13 @@ public class Contribution {
 
     public void setCategory(int category) {
         this.category = category;
+    }
+
+    public ContributionProperty getContributionProperty() {
+        return contributionProperty;
+    }
+
+    public void setContributionProperty(ContributionProperty contributionProperty) {
+        this.contributionProperty = contributionProperty;
     }
 }

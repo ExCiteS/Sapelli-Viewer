@@ -11,7 +11,10 @@
     -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-feature android:glEsVersion="0x00020000" android:required="true" />
+
+    <uses-feature
+        android:glEsVersion="0x00020000"
+        android:required="true" />
 
     <application
         android:allowBackup="true"
@@ -47,6 +50,9 @@
             android:name="com.google.android.maps.v2.API_KEY"
             android:value="AIzaSyDIygJYQ1wW_V2hoyeSrkwqrL_vtkAYnCM" />
 
+        <activity
+            android:name=".activities.BaseMapsActivity"
+            android:label="Map"></activity>
         <activity
             android:name=".activities.MapsActivity"
             android:label="Map"></activity>

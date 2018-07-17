@@ -10,7 +10,7 @@ import android.arch.persistence.room.PrimaryKey;
 public class ContributionProperty {
 
     @PrimaryKey(autoGenerate = true)
-    public int id;
+    public int contribPropertyId;
     public int contributionId;
     public int fieldId;
     public String key;
@@ -25,11 +25,11 @@ public class ContributionProperty {
     }
 
     public int getId() {
-        return id;
+        return contribPropertyId;
     }
 
     public void setId(int id) {
-        this.id = id;
+        this.contribPropertyId = id;
     }
 
     public int getContributionId() {
