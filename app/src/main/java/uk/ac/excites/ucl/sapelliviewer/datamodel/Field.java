@@ -5,6 +5,7 @@ import android.arch.persistence.room.ForeignKey;
 import android.arch.persistence.room.Ignore;
 import android.arch.persistence.room.PrimaryKey;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -26,7 +27,7 @@ public class Field {
     private boolean textarea;
     private double maxlength;
     @Ignore
-    private List<LookUpValue> lookupvalues;  // TODO: IMPLEMENT LOOKUPVALuES
+    private List<LookUpValue> lookupvalues;
     private int order;
 
     public int getId() {
