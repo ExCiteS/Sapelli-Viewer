@@ -1,65 +1,78 @@
 package uk.ac.excites.ucl.sapelliviewer.service;
 
+import android.content.Context;
+import android.util.Log;
 
 import java.util.List;
 
-import io.reactivex.Flowable;
 import io.reactivex.Observable;
 import io.reactivex.Single;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.schedulers.Schedulers;
 import okhttp3.ResponseBody;
-import retrofit2.Call;
-import retrofit2.Response;
-import retrofit2.http.Field;
-import retrofit2.http.FormUrlEncoded;
-import retrofit2.http.GET;
-import retrofit2.http.POST;
-import retrofit2.http.Path;
-import retrofit2.http.Streaming;
-import retrofit2.http.Url;
-import uk.ac.excites.ucl.sapelliviewer.datamodel.ContributionCollection;
-import uk.ac.excites.ucl.sapelliviewer.datamodel.Document;
-import uk.ac.excites.ucl.sapelliviewer.datamodel.Project;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.ProjectInfo;
-import uk.ac.excites.ucl.sapelliviewer.datamodel.AccessToken;
-import uk.ac.excites.ucl.sapelliviewer.datamodel.UserInfo;
-import uk.ac.excites.ucl.sapelliviewer.utils.NoConnectivityException;
+import uk.ac.excites.ucl.sapelliviewer.db.AppDatabase;
+import uk.ac.excites.ucl.sapelliviewer.utils.MediaHelpers;
+import uk.ac.excites.ucl.sapelliviewer.utils.TokenManager;
 
-/**
- * Created by Julia on 13/02/2018.
- */
+/* Executes GeoKey network calls and returns observables */
+public class GeoKeyClient {
 
-public interface GeoKeyClient {
-
-    @POST("/api/sapelli/login/")
-    @FormUrlEncoded
-    Single<AccessToken> login(@Field("grant_type") String grantType,
-                              @Field("username") String username,
-                              @Field("password") String password);
+    private TokenManager tokenManager;
+    private GeoKeyRequests geoKeyRequests;
+    private AppDatabase db;
 
 
-    @POST("/api/sapelli/login/")
-    @FormUrlEncoded
-    Call<AccessToken> refreshToken(@Field("grant_type") String grantType,
-                                   @Field("refresh_token") String refreshToken);
+    public GeoKeyClient(Context context) {
+        this.tokenManager = TokenManager.getInstance();
+        this.geoKeyRequests = RetrofitBuilder.createServiceWithAuth(GeoKeyRequests.class, tokenManager);
+        db = AppDatabase.getAppDatabase(context);
 
-    @GET("/api/user/")
-    Single<UserInfo> getUserInfo();
+    }
 
-    /* Get a list of all projects the authenticated user is allowed to access */
-    @GET("/api/projects/")
-    Observable<List<ProjectInfo>> listProjects();
+    /* Retrieve list of projects from GeoKey and store in db */
+    public Single<List<ProjectInfo>> updateProjects() {
+        return geoKeyRequests.listProjects()
+                .subscribeOn(Schedulers.io())
+                .concatMap(Observable::fromIterable)
+                .filter(projectInfo -> projectInfo.getUser_info().is_admin())
+                .toList()
+                .doOnSuccess(projectInfos -> {
+                    db.projectInfoDao().clearProjectInfos();
+                    db.projectInfoDao().insertProjectInfo(projectInfos);
+                })
+                .observeOn(AndroidSchedulers.mainThread());
+    }
 
-    @GET("/api/projects/{projectId}/")
-    Observable<Project> getProject(@Path("projectId") int projectID);
+    /* Retrieve entire project structure from GeoKey server and store in db */
+    public Observable<ResponseBody> getProject(int projectID) {
+        return geoKeyRequests.getProject(projectID)
+                .subscribeOn(Schedulers.io())
+                .doOnNext(project -> db.projectInfoDao().insertProject(project))
+                .flatMap(project -> Observable.fromIterable(project.categories))
+                .doOnNext(category -> {
+                    category.setProjectid(projectID);
+                    db.projectInfoDao().insertCategory(category);
+                })
+                .flatMap(category -> Observable.fromIterable(category.getFields())
+                        .doOnNext(field -> {
+                            field.setCategory_id(category.getId());
+                            db.projectInfoDao().insertField(field);
+                        })
+                        .filter(field -> field.getLookupvalues() != null)
+                        .flatMap(field -> Observable.fromIterable(field.getLookupvalues())
+                                .doOnNext(lookUpValue -> {
+                                    lookUpValue.setFieldId(field.getId());
+                                    db.projectInfoDao().insertLookupValue(lookUpValue);
+                                })
+                                .filter(lookUpValue -> lookUpValue.getSymbol() != null)
+                                .flatMap(lookUpValue -> geoKeyRequests.downloadFileByUrl(lookUpValue.getSymbol())
+                                        .doOnNext(symbol -> MediaHelpers.writeFileToDisk(symbol, lookUpValue.getSymbol())))
+                        )
+                )
+                .observeOn(AndroidSchedulers.mainThread());
 
-    @GET("/api/projects/{projectId}/contributions/")
-    Observable<ContributionCollection> getContributions(@Path("projectId") int projectID);
+    }
 
-    @GET("/api/projects/{projectId}/contributions/{contributionId}/media/")
-    Observable<List<Document>> getMedia(@Path("projectId") int projectId, @Path("contributionId") int contributionId);
-
-    @Streaming
-    @GET
-    Observable<ResponseBody> downloadFileByUrl(@Url String fileUrl);
 
 }

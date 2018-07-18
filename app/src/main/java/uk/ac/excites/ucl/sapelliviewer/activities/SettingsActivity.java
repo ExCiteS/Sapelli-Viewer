@@ -29,13 +29,6 @@ import android.widget.Toast;
 import com.nbsp.materialfilepicker.MaterialFilePicker;
 import com.nbsp.materialfilepicker.ui.FilePickerActivity;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -64,10 +57,13 @@ import uk.ac.excites.ucl.sapelliviewer.datamodel.ProjectProperties;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.UserInfo;
 import uk.ac.excites.ucl.sapelliviewer.db.AppDatabase;
 import uk.ac.excites.ucl.sapelliviewer.service.GeoKeyClient;
+import uk.ac.excites.ucl.sapelliviewer.service.GeoKeyRequests;
 import uk.ac.excites.ucl.sapelliviewer.service.RetrofitBuilder;
 import uk.ac.excites.ucl.sapelliviewer.ui.GeoKeyProjectAdapter;
 import uk.ac.excites.ucl.sapelliviewer.utils.NoConnectivityException;
 import uk.ac.excites.ucl.sapelliviewer.utils.TokenManager;
+
+import static uk.ac.excites.ucl.sapelliviewer.utils.MediaHelpers.writeFileToDisk;
 
 public class SettingsActivity extends AppCompatActivity {
 
@@ -78,7 +74,7 @@ public class SettingsActivity extends AppCompatActivity {
 
     private RecyclerView recyclerView;
     private TokenManager tokenManager;
-    private GeoKeyClient clientWithAuth;
+    private GeoKeyRequests requestsWithAuth;
     private CompositeDisposable disposables;
     private AppDatabase db;
     private GeoKeyProjectAdapter projectAdapter;
@@ -87,6 +83,7 @@ public class SettingsActivity extends AppCompatActivity {
     private MenuItem nameItem;
     private List<ContributionProperty> contributionProperties = new ArrayList<ContributionProperty>();
     private int mapPathPosition;
+    private GeoKeyClient geoKeyclient;
 
 
     @Override
@@ -94,8 +91,9 @@ public class SettingsActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         tokenManager = TokenManager.getInstance();
         disposables = new CompositeDisposable();
-        clientWithAuth = RetrofitBuilder.createServiceWithAuth(GeoKeyClient.class, tokenManager);
+        requestsWithAuth = RetrofitBuilder.createServiceWithAuth(GeoKeyRequests.class, tokenManager);
         db = AppDatabase.getAppDatabase(getApplicationContext());
+        geoKeyclient = new GeoKeyClient(getApplicationContext());
         setContentView(R.layout.activity_settings);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         Toolbar toolbar = (Toolbar) findViewById(R.id.custom_toolbar);
@@ -152,7 +150,7 @@ public class SettingsActivity extends AppCompatActivity {
 
     public void updateUser() {
         if (nameItem != null) {
-            GeoKeyClient clientWithAuth = RetrofitBuilder.createServiceWithAuth(GeoKeyClient.class, tokenManager);
+            GeoKeyRequests clientWithAuth = RetrofitBuilder.createServiceWithAuth(GeoKeyRequests.class, tokenManager);
             disposables.add(
                     clientWithAuth.getUserInfo()
                             .subscribeOn(Schedulers.io())
@@ -194,38 +192,17 @@ public class SettingsActivity extends AppCompatActivity {
         }
     }
 
+    /* Fetch project information list from server and update database and UI */
     public void updateProjects() {
         disposables.add(
-                clientWithAuth.listProjects()
-                        .subscribeOn(Schedulers.io())
-                        .flatMap(Observable::fromIterable)
-                        .filter(projectInfo -> projectInfo.getUser_info().is_admin())
-                        .toList()
-                        .doOnSuccess(projectInfos -> Log.d(getLocalClassName(), "projects: " + projectInfos.size()))
-                        .doOnSuccess(projectInfos -> db.projectInfoDao().clearProjectInfos())
-                        .doOnSuccess(projectInfos -> db.projectInfoDao().insertProjectInfo(projectInfos))
-                        .observeOn(AndroidSchedulers.mainThread())
-                        .subscribeWith(new DisposableSingleObserver<List<ProjectInfo>>() {
-
-                                           @Override
-                                           public void onSuccess(List<ProjectInfo> projectInfos) {
-                                               Log.d(getLocalClassName(), "projects: " + projectInfos.size());
-                                               projectAdapter.setProjects(projectInfos);
-                                           }
-
-                                           @Override
-                                           public void onError(Throwable e) {
-                                               if (e instanceof NoConnectivityException) {
-                                                   listProjects();
-                                               } else {
-                                                   StringWriter sw = new StringWriter();
-                                                   PrintWriter pw = new PrintWriter(sw);
-                                                   e.printStackTrace(pw);
-                                                   Log.e("Update Projects", sw.toString());
-                                               }
-                                           }
-                                       }
-                        )
+                geoKeyclient.updateProjects()
+                        .subscribe(
+                                projectInfos -> projectAdapter.setProjects(projectInfos),
+                                error -> {
+                                    if (error instanceof NoConnectivityException)
+                                        listProjects(); // if no internet connection -> get projects from db
+                                    else Log.e("Update Projects", error.getMessage());
+                                })
         );
     }
 
@@ -289,58 +266,34 @@ public class SettingsActivity extends AppCompatActivity {
         startActivity(mapIntent);
     }
 
+
     public void getProject(ProjectInfo projectInfo) {
         disposables.add(
-                clientWithAuth.getProject(projectInfo.getId())
-                        .subscribeOn(Schedulers.io())
-                        .doOnNext(project -> loadContributions(projectInfo)) // load contributions in parallel
-                        .doOnNext(project -> db.projectInfoDao().insertProject(project))
-                        .flatMap(project -> Observable.fromIterable(project.categories))
-                        .doOnNext(category -> category.setProjectid(projectInfo.getId()))
-                        .doOnNext(category -> db.projectInfoDao().insertCategory(category))
-                        .doOnNext(category -> setParentId(category))
-                        .flatMap(category -> Observable.fromIterable(category.getFields()))
-                        .doOnNext(field -> db.projectInfoDao().insertField(field))
-                        .doOnNext(field -> setParentId(field))
-                        .toList()
-                        .observeOn(AndroidSchedulers.mainThread())
-                        .subscribeWith(new DisposableSingleObserver<List<Field>>() {
+                geoKeyclient.getProject(projectInfo.getId())
+                        .subscribeWith(new DisposableObserver<ResponseBody>() {
                             @Override
-                            public void onSuccess(List<Field> fields) {
-                                Log.d("getProject", "Successful");
+                            public void onNext(ResponseBody responseBody) {
                             }
 
                             @Override
                             public void onError(Throwable e) {
-                                Log.e("getProject", e.getMessage());
                                 updateUI(false);
+                                Log.e("Update Projects", e.getMessage());
+                            }
+
+                            @Override
+                            public void onComplete() {
+                                updateUI(true);
                             }
                         })
         );
     }
 
-    public void setParentId(Object object) {
-        if (object instanceof Category) {
-            Category category = (Category) object;
-            for (Field field : category.getFields()) {
-                field.setCategory_id(category.getId());
-            }
-        } else if (object instanceof Field) {
-            Field field = (Field) object;
-            if (field.getLookupvalues() != null) {
-                for (LookUpValue lookUpValue : field.getLookupvalues()) {
-                    lookUpValue.setFieldId(field.getId());
-                    db.projectInfoDao().insertLookupValue(lookUpValue);
-                    if (lookUpValue.getSymbol() != null)
-                        downloadfile(lookUpValue.getSymbol());
-                }
-            }
-        }
-    }
+
 
     private void downloadfile(String url) {
         disposables.add(
-                clientWithAuth.downloadFileByUrl(url)
+                requestsWithAuth.downloadFileByUrl(url)
                         .observeOn(Schedulers.io())
                         .subscribeWith(new DisposableObserver<ResponseBody>() {
                             @Override
@@ -361,7 +314,7 @@ public class SettingsActivity extends AppCompatActivity {
 
     public void loadContributions(ProjectInfo project) {
         disposables.add(
-                clientWithAuth.getContributions(project.getId())
+                requestsWithAuth.getContributions(project.getId())
                         .flatMap(contributionCollection -> Observable.fromIterable(contributionCollection.getFeatures()))
                         .doOnNext(contribution -> {
                             contribution.setProjectId(project.getId());
@@ -395,7 +348,7 @@ public class SettingsActivity extends AppCompatActivity {
     private void insertMedia(ProjectInfo project, Contribution contribution) {
         if (contribution.getMeta().getNum_media() != 0) {
             disposables.add(
-                    clientWithAuth.getMedia(project.getId(), contribution.getId())
+                    requestsWithAuth.getMedia(project.getId(), contribution.getId())
                             .subscribeOn(Schedulers.io())
                             .flatMap(Observable::fromIterable)
                             .filter(mediaFile -> mediaFile.getFile_type() != "VideoFile") // Don't handle video files for now
@@ -458,46 +411,6 @@ public class SettingsActivity extends AppCompatActivity {
         }
     }
 
-    private boolean writeFileToDisk(ResponseBody responseBody, String url) {
-        try {
-
-            String fileName = url.split("/")[url.split("/").length - 1];
-            String subPath = url.replace(fileName, "");
-
-            new File("/data/data/" + getPackageName() + subPath).mkdirs();
-            File destinationFile = new File("/data/data/" + getPackageName() + subPath + fileName);
-
-            InputStream inputStream = null;
-            OutputStream outputStream = null;
-
-            try {
-                byte[] fileReader = new byte[4096];
-
-                inputStream = responseBody.byteStream();
-                outputStream = new FileOutputStream(destinationFile);
-
-                while (true) {
-                    int read = inputStream.read(fileReader);
-                    if (read == -1)
-                        break;
-                    outputStream.write(fileReader, 0, read);
-                }
-
-                outputStream.flush();
-                return true;
-            } catch (IOException e) {
-                Log.e("File download", e.getMessage());
-                return false;
-            } finally {
-                if (inputStream != null)
-                    inputStream.close();
-                if (outputStream != null)
-                    outputStream.flush();
-            }
-        } catch (IOException e) {
-            return false;
-        }
-    }
 
     @Override
     protected void onDestroy() {

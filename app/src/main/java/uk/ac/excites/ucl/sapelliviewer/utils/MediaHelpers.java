@@ -14,7 +14,13 @@ import com.caverock.androidsvg.SVG;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.regex.Pattern;
+
+import okhttp3.ResponseBody;
 
 /**
  * @author Michalis Vitos, mstevens
@@ -28,9 +34,14 @@ public final class MediaHelpers {
     }
 
     /**
+     * Internal Android path to store data
+     */
+    static private final String dataPath = "/data/data/uk.ac.excites.ucl.sapelliviewer";
+
+    /**
      * Image size
      */
-    static private final int SIZE = 150;
+    static private final int size = 150;
 
 
     /**
@@ -95,7 +106,7 @@ public final class MediaHelpers {
 
     public static View createView(ImageView view, String path) {
         boolean isVectorBased = MediaHelpers.isVectorImageFileName(path);
-        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(SIZE, SIZE);
+        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(size, size);
         view.setLayoutParams(layoutParams);
 
 
@@ -125,6 +136,47 @@ public final class MediaHelpers {
         }
 
         return view;
+    }
+
+    public static boolean writeFileToDisk(ResponseBody responseBody, String url) {
+        try {
+
+            String fileName = url.split("/")[url.split("/").length - 1];
+            String subPath = url.replace(fileName, "");
+
+            new File(dataPath + subPath).mkdirs();
+            File destinationFile = new File(dataPath + subPath + fileName);
+
+            InputStream inputStream = null;
+            OutputStream outputStream = null;
+
+            try {
+                byte[] fileReader = new byte[4096];
+
+                inputStream = responseBody.byteStream();
+                outputStream = new FileOutputStream(destinationFile);
+
+                while (true) {
+                    int read = inputStream.read(fileReader);
+                    if (read == -1)
+                        break;
+                    outputStream.write(fileReader, 0, read);
+                }
+
+                outputStream.flush();
+                return true;
+            } catch (IOException e) {
+                Log.e("File download", e.getMessage());
+                return false;
+            } finally {
+                if (inputStream != null)
+                    inputStream.close();
+                if (outputStream != null)
+                    outputStream.flush();
+            }
+        } catch (IOException e) {
+            return false;
+        }
     }
 
 }

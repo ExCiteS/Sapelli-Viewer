@@ -24,9 +24,8 @@ import javax.net.ssl.SSLPeerUnverifiedException;
 
 import uk.ac.excites.ucl.sapelliviewer.R;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.AccessToken;
-import uk.ac.excites.ucl.sapelliviewer.datamodel.UserInfo;
 import uk.ac.excites.ucl.sapelliviewer.db.AppDatabase;
-import uk.ac.excites.ucl.sapelliviewer.service.GeoKeyClient;
+import uk.ac.excites.ucl.sapelliviewer.service.GeoKeyRequests;
 import uk.ac.excites.ucl.sapelliviewer.service.RetrofitBuilder;
 import uk.ac.excites.ucl.sapelliviewer.utils.NoConnectivityException;
 import uk.ac.excites.ucl.sapelliviewer.utils.TokenManager;
@@ -94,7 +93,7 @@ public class LoginActivity extends AppCompatActivity {
 
     public void login(String url, String username, String password) {
         tokenManager.saveServerUrl(url);
-        GeoKeyClient client = RetrofitBuilder.createService(GeoKeyClient.class, url);
+        GeoKeyRequests client = RetrofitBuilder.createService(GeoKeyRequests.class, url);
         disposables.add(
                 client.login(AccessToken.GRANT_TYPE_PASSWORD, username, password)
                         .subscribeOn(Schedulers.io())
