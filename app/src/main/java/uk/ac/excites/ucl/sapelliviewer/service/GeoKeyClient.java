@@ -3,6 +3,7 @@ package uk.ac.excites.ucl.sapelliviewer.service;
 import android.content.Context;
 import android.util.Log;
 
+import java.io.File;
 import java.util.List;
 
 import io.reactivex.Observable;
@@ -10,6 +11,8 @@ import io.reactivex.Single;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.schedulers.Schedulers;
 import okhttp3.ResponseBody;
+import uk.ac.excites.ucl.sapelliviewer.datamodel.Contribution;
+import uk.ac.excites.ucl.sapelliviewer.datamodel.ContributionProperty;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.ProjectInfo;
 import uk.ac.excites.ucl.sapelliviewer.db.AppDatabase;
 import uk.ac.excites.ucl.sapelliviewer.utils.MediaHelpers;
@@ -18,13 +21,19 @@ import uk.ac.excites.ucl.sapelliviewer.utils.TokenManager;
 /* Executes GeoKey network calls and returns observables */
 public class GeoKeyClient {
 
-    private TokenManager tokenManager;
     private GeoKeyRequests geoKeyRequests;
     private AppDatabase db;
 
+    /* keep variables in memory to reduce db write operations */
+//    private List<Field> fields = new ArrayList<>();
+    //    private List<Contribution> contributionList = new ArrayList<>();
+//    private List<LookUpValue> lookUpValues = new ArrayList<>();
+    //    private List<ContributionProperty> contributionProperties = new ArrayList<>();
+//    private List<Document> mediaFiles = new ArrayList<>();
+
 
     public GeoKeyClient(Context context) {
-        this.tokenManager = TokenManager.getInstance();
+        TokenManager tokenManager = TokenManager.getInstance();
         this.geoKeyRequests = RetrofitBuilder.createServiceWithAuth(GeoKeyRequests.class, tokenManager);
         db = AppDatabase.getAppDatabase(context);
 
@@ -67,12 +76,62 @@ public class GeoKeyClient {
                                 })
                                 .filter(lookUpValue -> lookUpValue.getSymbol() != null)
                                 .flatMap(lookUpValue -> geoKeyRequests.downloadFileByUrl(lookUpValue.getSymbol())
-                                        .doOnNext(symbol -> MediaHelpers.writeFileToDisk(symbol, lookUpValue.getSymbol())))
+                                        .doOnNext(symbol -> MediaHelpers.writeFileToDisk(symbol, lookUpValue.getSymbol()))
+                                )
                         )
-                )
-                .observeOn(AndroidSchedulers.mainThread());
-
+                );
     }
 
+    private Observable<Contribution> getContributions(int projectID) {
+        return geoKeyRequests.getContributions(projectID)
+                .subscribeOn(Schedulers.io())
+                .flatMap(contributionCollection -> Observable.fromIterable(contributionCollection.getFeatures())
+                        .doOnNext(contribution -> contribution.setProjectId(projectID))
+                );
+    }
 
+    public Observable<ContributionProperty> getContributionsWithProperties(int projectID) {
+        return getContributions(projectID)
+                .doOnNext(contribution -> db.contributionDao().insertContribution(contribution))
+                .flatMap(contribution -> Observable.fromIterable(contribution.getProperties().entrySet())
+                        .flatMap(property -> db.projectInfoDao().getFieldByKey(property.getKey()).toObservable()
+                                .flatMap(field -> Observable.just(new ContributionProperty(contribution.getId(), field.getId(), property.getKey(), property.getValue()))
+                                        .doOnNext(contributionProperty -> {
+                                            db.contributionDao().insertContributionProperties(contributionProperty);
+                                            if (contributionProperty.getKey().equals(contribution.getDisplay_field().getKey())) {
+                                                contribution.setContributionProperty(contributionProperty);
+                                                db.contributionDao().insertContribution(contribution);
+                                            }
+
+                                        })
+                                        .filter(contributionProperty -> field.getFieldtype().equals("LookupField"))
+                                        .doOnNext(contributionProperty -> db.projectInfoDao().getLookupValueById(contributionProperty.getValue()).toObservable().subscribe(lookUpValue -> {
+                                            contributionProperty.setValue(lookUpValue.getName());
+                                            contributionProperty.setSymbol(lookUpValue.getSymbol());
+                                            if (contributionProperty.getKey().equals(contribution.getDisplay_field().getKey())) {
+                                                contribution.setContributionProperty(contributionProperty);
+                                                db.contributionDao().insertContribution(contribution);
+                                            }
+                                            db.contributionDao().insertContributionProperties(contributionProperty);
+                                        }))
+                                )
+                        )
+                );
+    }
+
+    public Observable<ResponseBody> getMedia(int projectID) {
+        return getContributions(projectID)
+                .flatMap(contribution -> geoKeyRequests.getMedia(projectID, contribution.getId())
+                        .flatMap(documents -> Observable.fromIterable(documents)
+                                .filter(mediaFile -> !mediaFile.getFile_type().equals("VideoFile")) // Don't handle video files for now
+                                .doOnNext(mediaFile -> {
+                                    mediaFile.setContribution_id(contribution.getId());
+                                    db.contributionDao().insertMediaFile(mediaFile);
+                                })
+                                .filter(mediaFile -> !(new File(MediaHelpers.dataPath + mediaFile.getUrl()).exists()))
+                                .flatMap(mediaFile -> geoKeyRequests.downloadFileByUrl(mediaFile.getUrl())
+                                        .doOnNext(symbol -> MediaHelpers.writeFileToDisk(symbol, mediaFile.getUrl())))
+                        )
+                );
+    }
 }

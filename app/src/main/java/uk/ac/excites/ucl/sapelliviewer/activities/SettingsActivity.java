@@ -31,27 +31,21 @@ import com.nbsp.materialfilepicker.ui.FilePickerActivity;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Pattern;
 
 import io.reactivex.Completable;
 import io.reactivex.Observable;
-import io.reactivex.SingleObserver;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
-import io.reactivex.disposables.Disposable;
 import io.reactivex.observers.DisposableCompletableObserver;
 import io.reactivex.observers.DisposableObserver;
 import io.reactivex.observers.DisposableSingleObserver;
 import io.reactivex.schedulers.Schedulers;
 import okhttp3.ResponseBody;
 import uk.ac.excites.ucl.sapelliviewer.R;
-import uk.ac.excites.ucl.sapelliviewer.datamodel.Category;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Contribution;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.ContributionProperty;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Document;
-import uk.ac.excites.ucl.sapelliviewer.datamodel.Field;
-import uk.ac.excites.ucl.sapelliviewer.datamodel.LookUpValue;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.ProjectInfo;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.ProjectProperties;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.UserInfo;
@@ -266,149 +260,32 @@ public class SettingsActivity extends AppCompatActivity {
         startActivity(mapIntent);
     }
 
-
     public void getProject(ProjectInfo projectInfo) {
+        int projectID = projectInfo.getId();
+
+        Observable<Object> contributionAndMediaObervable =
+                Observable.merge(geoKeyclient.getContributionsWithProperties(projectID), geoKeyclient.getMedia(projectID));
+
         disposables.add(
-                geoKeyclient.getProject(projectInfo.getId())
-                        .subscribeWith(new DisposableObserver<ResponseBody>() {
-                            @Override
-                            public void onNext(ResponseBody responseBody) {
-                            }
-
-                            @Override
-                            public void onError(Throwable e) {
-                                updateUI(false);
-                                Log.e("Update Projects", e.getMessage());
-                            }
-
-                            @Override
-                            public void onComplete() {
-                                updateUI(true);
-                            }
-                        })
-        );
-    }
-
-
-
-    private void downloadfile(String url) {
-        disposables.add(
-                requestsWithAuth.downloadFileByUrl(url)
-                        .observeOn(Schedulers.io())
-                        .subscribeWith(new DisposableObserver<ResponseBody>() {
-                            @Override
-                            public void onNext(ResponseBody responseBody) {
-                                writeFileToDisk(responseBody, url);
-                            }
-
-                            @Override
-                            public void onError(Throwable e) {
-                            }
-
-                            @Override
-                            public void onComplete() {
-                            }
-                        })
-        );
-    }
-
-    public void loadContributions(ProjectInfo project) {
-        disposables.add(
-                requestsWithAuth.getContributions(project.getId())
-                        .flatMap(contributionCollection -> Observable.fromIterable(contributionCollection.getFeatures()))
-                        .doOnNext(contribution -> {
-                            contribution.setProjectId(project.getId());
-                            insertProperties(project, contribution);
-                            insertMedia(project, contribution);
-                        })
-                        .toList()
-                        .doOnSuccess(contributions -> Log.d("|||||||||||", contributions.get(1).getContributionProperty().value))
-                        .doOnSuccess(contributions -> db.contributionDao().insertContributions(contributions))
-                        .subscribeOn(Schedulers.io())
+                Observable.concat(geoKeyclient.getProject(projectID), contributionAndMediaObervable)
                         .observeOn(AndroidSchedulers.mainThread())
-                        .subscribeWith(new DisposableSingleObserver<List<Contribution>>() {
+                        .subscribeWith(new DisposableObserver<Object>() {
                             @Override
-                            public void onSuccess(List<Contribution> contributions) {
-                                Log.d("loadContributions", "Successful");
-                                insertContributionProperties(contributionProperties);
-                                projectAdapter.getCounts(project);
-                                updateUI(true);
-
+                            public void onNext(Object o) {
                             }
 
                             @Override
                             public void onError(Throwable e) {
-                                Log.e("getContributions", e.getMessage());
+                                Log.e("getProject", e.getMessage());
                                 updateUI(false);
                             }
-                        })
-        );
-    }
-
-    private void insertMedia(ProjectInfo project, Contribution contribution) {
-        if (contribution.getMeta().getNum_media() != 0) {
-            disposables.add(
-                    requestsWithAuth.getMedia(project.getId(), contribution.getId())
-                            .subscribeOn(Schedulers.io())
-                            .flatMap(Observable::fromIterable)
-                            .filter(mediaFile -> mediaFile.getFile_type() != "VideoFile") // Don't handle video files for now
-                            .doOnNext(mediaFile -> mediaFile.setContribution_id(contribution.getId()))
-                            .doOnNext(mediaFile -> downloadfile(mediaFile.getUrl()))
-                            .toList()
-                            .doOnSuccess(mediaList -> {
-                                db.contributionDao().insertMediaFiles(mediaList);
-                                Log.d("INSERT MEDIA", "CALLED");
-                            })
-                            .observeOn(AndroidSchedulers.mainThread())
-                            .subscribeWith(new DisposableSingleObserver<List<Document>>() {
-                                @Override
-                                public void onSuccess(List<Document> documents) {
-                                }
-
-                                @Override
-                                public void onError(Throwable e) {
-                                    Log.e("insertMedia", e.getMessage());
-                                }
-                            }));
-        }
-    }
-
-    private void insertProperties(ProjectInfo project, Contribution contribution) {
-        for (Map.Entry<String, String> property : contribution.getProperties().entrySet()) {
-            Field field = db.projectInfoDao().getFieldByKey(property.getKey());
-            ContributionProperty contributionProperty = new ContributionProperty(contribution.getId(), field.getId(), property.getKey(), property.getValue());
-            if (field.getFieldtype().equals("LookupField"))
-                db.projectInfoDao().getLookupValueById(property.getValue()).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
-                        .subscribeWith(new SingleObserver<LookUpValue>() {
-                            @Override
-                            public void onSubscribe(Disposable d) {
-                                disposables.add(d);
-                            }
 
                             @Override
-                            public void onSuccess(LookUpValue lookUpValue) {
-                                Log.d("getLookupValueById", "Successful");
-
-                                contributionProperty.setValue(lookUpValue.getName());
-                                contributionProperty.setSymbol(lookUpValue.getSymbol());
-                                contributionProperties.add(contributionProperty);
-                                if (contributionProperty.getKey().equals(contribution.getDisplay_field().getKey()))
-                                    contribution.setContributionProperty(contributionProperty);
-
+                            public void onComplete() {
+                                projectAdapter.getCounts(projectInfo);
+                                updateUI(true);
                             }
-
-                            @Override
-                            public void onError(Throwable e) {
-                                Log.e("getLookupValueById", e.getMessage());
-                            }
-                        });
-            else {
-                contributionProperties.add(contributionProperty);
-                if (contributionProperty.getKey().equals(contribution.getDisplay_field().getKey()))
-                    contribution.setContributionProperty(contributionProperty);
-
-            }
-        }
+                        }));
     }
 
 
@@ -416,24 +293,6 @@ public class SettingsActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         disposables.clear();
-    }
-
-    public void insertContributionProperties(List<ContributionProperty> contributionProperties) {
-        disposables.add(
-                Completable.fromAction(() -> db.contributionDao().insertContributionProperty(contributionProperties)).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
-                        .subscribeWith(new DisposableCompletableObserver() {
-                            @Override
-                            public void onComplete() {
-                                contributionProperties.clear();
-                                Log.d("insertContribProperty", "Successful");
-                            }
-
-                            @Override
-                            public void onError(Throwable e) {
-                            }
-
-
-                        }));
     }
 
 
