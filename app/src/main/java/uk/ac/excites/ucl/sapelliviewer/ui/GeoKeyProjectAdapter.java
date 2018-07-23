@@ -26,6 +26,7 @@ import io.reactivex.SingleObserver;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.disposables.Disposable;
+import io.reactivex.observers.DisposableMaybeObserver;
 import io.reactivex.observers.DisposableSingleObserver;
 import io.reactivex.schedulers.Schedulers;
 import uk.ac.excites.ucl.sapelliviewer.R;
@@ -73,7 +74,7 @@ public class GeoKeyProjectAdapter extends RecyclerView.Adapter<GeoKeyProjectAdap
                 .subscribeOn(Schedulers.io())
                 .doOnSubscribe(compositeDisposable::add)
                 .doOnSuccess(project::setMediaCount);
-        Single.concat(contributionSingle, mediaSingle)
+        Single.merge(contributionSingle, mediaSingle)
                 .observeOn(AndroidSchedulers.mainThread())
                 .doOnComplete(() -> notifyItemChanged(projects.indexOf(project)))
                 .doOnError(e -> Log.e("Update Count", e.getMessage()))
@@ -83,16 +84,21 @@ public class GeoKeyProjectAdapter extends RecyclerView.Adapter<GeoKeyProjectAdap
     public void getMapPath(ProjectInfo project, TextView view) {
         compositeDisposable.add(
                 AppDatabase.getAppDatabase(ctx).projectInfoDao().getMapPath(project.getId()).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
-                        .subscribeWith(new DisposableSingleObserver<String>() {
+                        .subscribeWith(new DisposableMaybeObserver<String>() {
                             @Override
                             public void onSuccess(String path) {
                                 view.setText(path);
-                                notifyItemChanged(getPosition(project));
                             }
 
                             @Override
                             public void onError(Throwable e) {
                                 Log.e("getMapPath", e.getMessage());
+                            }
+
+                            @Override
+                            public void onComplete() {
+                                view.setText(R.string.choose_map_path);
+                                notifyItemChanged(getPosition(project));
                             }
                         }));
     }

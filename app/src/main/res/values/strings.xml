@@ -18,4 +18,5 @@
     <string name="active">ACTIVE</string>
     <string name="map_path">"Map path: "</string>
     <string name="pick_tpk">Select a map tile package</string>
+    <string name="choose_map_path">Choose a map path</string>
 </resources>

@@ -9,6 +9,7 @@ import android.arch.persistence.room.Update;
 
 import java.util.List;
 
+import io.reactivex.Maybe;
 import io.reactivex.Single;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Category;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Field;
@@ -47,7 +48,7 @@ public interface ProjectInfoDao {
     void insertProjectProperties(ProjectProperties projectProperties);
 
     @Query("SELECT mapPath FROM projectproperties WHERE id=:projectId")
-    Single<String> getMapPath(int projectId);
+    Maybe<String> getMapPath(int projectId);
 
     /* CATEGORIES */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -70,7 +71,7 @@ public interface ProjectInfoDao {
     Field getFieldById(int id);
 
     @Query("SELECT * FROM Field WHERE `key`=:key")
-    Field getFieldByKey(String key);
+    Single<Field> getFieldByKey(String key);
 
     /* LOOKUPVALUES */
     @Insert(onConflict = OnConflictStrategy.REPLACE)

@@ -36,7 +36,7 @@ public final class MediaHelpers {
     /**
      * Internal Android path to store data
      */
-    static private final String dataPath = "/data/data/uk.ac.excites.ucl.sapelliviewer";
+    static public final String dataPath = "/data/data/uk.ac.excites.ucl.sapelliviewer";
 
     /**
      * Image size

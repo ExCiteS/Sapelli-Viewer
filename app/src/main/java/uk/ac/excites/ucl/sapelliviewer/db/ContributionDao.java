@@ -30,12 +30,18 @@ public interface ContributionDao {
 
     /* CONTRIBUTION PROPERTIES*/
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    void insertContributionProperty(List<ContributionProperty> contributionProperty);
+//    void insertContributionProperties(List<ContributionProperty> contributionProperty);
+    void insertContributionProperties(ContributionProperty contributionProperty);
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    void insertContributionProperties(List<ContributionProperty> contributionProperties);
+
+
 
     @Query("SELECT * FROM contributionProperty where contributionId = :contributionId")
     Single<List<ContributionProperty>> getContributionsProperties(int contributionId);
 
     /* MEDIA FILES */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    void insertMediaFiles(List<Document> mediaFiles);
+    void insertMediaFile(Document mediaFile);
 }
