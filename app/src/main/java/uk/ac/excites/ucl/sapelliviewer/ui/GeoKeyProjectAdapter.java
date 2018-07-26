@@ -1,10 +1,7 @@
 package uk.ac.excites.ucl.sapelliviewer.ui;
 
 import android.content.Context;
-import android.content.res.Resources;
 import android.graphics.Color;
-import android.graphics.PorterDuff;
-import android.support.annotation.MainThread;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -16,18 +13,13 @@ import android.widget.ImageButton;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
-import org.w3c.dom.Text;
-
 import java.util.ArrayList;
 import java.util.List;
 
 import io.reactivex.Single;
-import io.reactivex.SingleObserver;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
-import io.reactivex.disposables.Disposable;
 import io.reactivex.observers.DisposableMaybeObserver;
-import io.reactivex.observers.DisposableSingleObserver;
 import io.reactivex.schedulers.Schedulers;
 import uk.ac.excites.ucl.sapelliviewer.R;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.ProjectInfo;
@@ -46,9 +38,9 @@ public class GeoKeyProjectAdapter extends RecyclerView.Adapter<GeoKeyProjectAdap
     private final CompositeDisposable compositeDisposable;
     private Context ctx;
     private List<ProjectInfo> projects;
-    private DetailsAdapterListener onClickListener;
+    private ProjectAdapterClickListener onClickListener;
 
-    public GeoKeyProjectAdapter(Context ctx, CompositeDisposable compositeDisposable, DetailsAdapterListener listener) {
+    public GeoKeyProjectAdapter(Context ctx, CompositeDisposable compositeDisposable, ProjectAdapterClickListener listener) {
         this.ctx = ctx;
         this.projects = new ArrayList<ProjectInfo>();
         this.onClickListener = listener;
@@ -218,7 +210,7 @@ public class GeoKeyProjectAdapter extends RecyclerView.Adapter<GeoKeyProjectAdap
         }
     }
 
-    public interface DetailsAdapterListener {
+    public interface ProjectAdapterClickListener {
         void openMap(View v, int position);
 
         void syncProjectOnClick(View v, int position);

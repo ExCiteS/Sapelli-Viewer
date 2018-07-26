@@ -3,26 +3,26 @@ package uk.ac.excites.ucl.sapelliviewer.activities;
 import android.content.pm.ActivityInfo;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.util.Log;
-import android.view.LayoutInflater;
-import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
-import android.widget.ImageView;
+import android.widget.ToggleButton;
 
-import com.esri.android.map.GraphicsLayer;
-import com.esri.android.map.MapView;
-import com.esri.android.map.ags.ArcGISLocalTiledLayer;
-import com.esri.android.map.event.OnSingleTapListener;
-import com.esri.android.map.event.OnStatusChangedListener;
-import com.esri.core.geometry.Envelope;
-import com.esri.core.geometry.GeometryEngine;
-import com.esri.core.geometry.Point;
-import com.esri.core.geometry.SpatialReference;
-import com.esri.core.map.Graphic;
-import com.esri.core.symbol.SimpleMarkerSymbol;
-import com.esri.android.map.Callout;
-
+import com.esri.arcgisruntime.geometry.GeometryEngine;
+import com.esri.arcgisruntime.geometry.Point;
+import com.esri.arcgisruntime.geometry.SpatialReferences;
+import com.esri.arcgisruntime.layers.ArcGISTiledLayer;
+import com.esri.arcgisruntime.loadable.LoadStatusChangedEvent;
+import com.esri.arcgisruntime.loadable.LoadStatusChangedListener;
+import com.esri.arcgisruntime.mapping.ArcGISMap;
+import com.esri.arcgisruntime.mapping.Basemap;
+import com.esri.arcgisruntime.mapping.view.Callout;
+import com.esri.arcgisruntime.mapping.view.Graphic;
+import com.esri.arcgisruntime.mapping.view.GraphicsOverlay;
+import com.esri.arcgisruntime.mapping.view.MapView;
+import com.esri.arcgisruntime.symbology.SimpleMarkerSymbol;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -30,15 +30,18 @@ import org.json.JSONException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.observers.DisposableMaybeObserver;
 import io.reactivex.observers.DisposableSingleObserver;
 import io.reactivex.schedulers.Schedulers;
 import uk.ac.excites.ucl.sapelliviewer.R;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Contribution;
-
-import static uk.ac.excites.ucl.sapelliviewer.utils.MediaHelpers.createView;
+import uk.ac.excites.ucl.sapelliviewer.datamodel.Field;
+import uk.ac.excites.ucl.sapelliviewer.datamodel.LookUpValue;
+import uk.ac.excites.ucl.sapelliviewer.ui.FieldAdapter;
+import uk.ac.excites.ucl.sapelliviewer.ui.ValueAdapter;
+import uk.ac.excites.ucl.sapelliviewer.utils.MediaHelpers;
 
 
 /**
@@ -49,9 +52,11 @@ public class OfflineMapsActivity extends BaseMapsActivity {
     public static String IMG_PATH = "img_path";
 
 
-    private MapView map;
-    private GraphicsLayer markerLayer = new GraphicsLayer();
+    private MapView mapView;
+    private GraphicsOverlay graphicsOverlay = new GraphicsOverlay();
     private Callout callout;
+    private FieldAdapter fieldAdapter;
+    private ValueAdapter valueAdapter;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -61,18 +66,86 @@ public class OfflineMapsActivity extends BaseMapsActivity {
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
-
         setContentView(R.layout.offline_map);
-        map = (MapView) findViewById(R.id.map);
+        mapView = (MapView) findViewById(R.id.map);
+        RecyclerView fieldRecyclerView = findViewById(R.id.field_recycler_view);
+        fieldRecyclerView.setLayoutManager(new LinearLayoutManager(getApplicationContext(), LinearLayoutManager.HORIZONTAL, false));
+        RecyclerView valueRecyclerView = findViewById(R.id.value_recycler_view);
+        valueRecyclerView.setLayoutManager(new LinearLayoutManager(getApplicationContext(), LinearLayoutManager.HORIZONTAL, false));
+
+        disposables.add(
+                getFields(projectId)
+                        .toObservable().flatMapIterable(fields -> fields)
+                        .filter(field -> !field.getKey().equals("DeviceId") && !field.getKey().equals("StartTime") && !field.getKey().equals("EndTime"))
+                        .toList()
+                        .subscribeWith(new DisposableSingleObserver<List<Field>>() {
+                            @Override
+                            public void onSuccess(List<Field> fields) {
+                                fieldAdapter = new FieldAdapter(OfflineMapsActivity.this, fields, new FieldAdapter.FieldCheckedChangeListener() {
+                                    @Override
+                                    public void checkedChanged(ToggleButton buttonView, boolean isChecked, Field field) {
+
+                                        for (LookUpValue lookUpValue : valueAdapter.getAllLookUpValues()) {
+                                            if (lookUpValue.getFieldId() == field.getId())
+                                                lookUpValue.setActive(isChecked);
+                                        }
+                                        if (isChecked) {
+                                            buttonView.setBackgroundColor(Color.GREEN);
+                                        } else {
+                                            buttonView.setBackgroundColor(Color.WHITE);
+                                        }
+                                        valueAdapter.notifyDataSetChanged();
+                                    }
+                                });
+                                fieldRecyclerView.setAdapter(fieldAdapter);
+                            }
+
+                            @Override
+                            public void onError(Throwable e) {
+                                Log.e("getCategories", e.getMessage());
+                            }
+                        })
+        );
+
+        disposables.add(
+                getLookUpValues(projectId)
+                        .subscribeWith(new DisposableSingleObserver<List<LookUpValue>>() {
+                            @Override
+                            public void onSuccess(List<LookUpValue> lookUpValues) {
+                                valueAdapter = new ValueAdapter(OfflineMapsActivity.this, lookUpValues);
+                                valueRecyclerView.setAdapter(valueAdapter);
+
+                            }
+
+                            @Override
+                            public void onError(Throwable e) {
+                                Log.e("getLookupvalues", e.getMessage());
+
+                            }
+                        })
+        );
+
 
         disposables.add(
                 db.projectInfoDao().getMapPath(projectId).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
-                        .subscribeWith(new DisposableSingleObserver<String>() {
+                        .subscribeWith(new DisposableMaybeObserver<String>() {
                             @Override
                             public void onSuccess(String path) {
-                                ArcGISLocalTiledLayer tpk = new ArcGISLocalTiledLayer(path);
-                                map.addLayer(tpk);
-                                map.addLayer(markerLayer);
+                                ArcGISTiledLayer tpk = new ArcGISTiledLayer(getResources().getString(R.string.world_topo_service));
+//                                ArcGISTiledLayer tpk = new ArcGISTiledLayer(path);
+                                Basemap basemap = new Basemap(tpk);
+                                ArcGISMap map = new ArcGISMap(basemap);
+                                mapView.setMap(map);
+                                mapView.getGraphicsOverlays().clear();
+                                mapView.getGraphicsOverlays().add(graphicsOverlay);
+                                map.addLoadStatusChangedListener(new LoadStatusChangedListener() {
+                                    @Override
+                                    public void loadStatusChanged(LoadStatusChangedEvent loadStatusChangedEvent) {
+                                        if (loadStatusChangedEvent.getNewLoadStatus().name().equals("LOADED"))
+                                            getContributions(projectId).subscribe(OfflineMapsActivity.this::loadMarkers);
+                                    }
+                                });
+
                             }
 
                             @Override
@@ -80,130 +153,125 @@ public class OfflineMapsActivity extends BaseMapsActivity {
                                 Log.e("getMapPath", e.getMessage());
 
                             }
+
+                            @Override
+                            public void onComplete() {
+
+                            }
                         }));
 
 
-        map.setOnSingleTapListener(new OnSingleTapListener() {
-
-            private static final long serialVersionUID = 1L;
-
-            public void onSingleTap(float x, float y) {
-
-                if (!map.isLoaded())
-                    return;
-                int[] uids = markerLayer.getGraphicIDs(x, y, 2);
-                if (uids != null && uids.length > 0) {
-
-                    int targetId = uids[0];
-                    Graphic gr = markerLayer.getGraphic(targetId);
-                    callout = map.getCallout();
-
-                    // Sets Callout style
-                    callout.setStyle(R.layout.popup);
-
-                    // Sets custom content view to Callout
-                    callout.setContent(loadView(gr));
-                    // map.centerAt(new Point(x, y), true);
-                    callout.show(map.toMapPoint(new Point(x, y)));
-                } else {
-                    if (callout != null && callout.isShowing()) {
-                        callout.hide();
-                    }
-                }
-
-            }
-        });
-
-        // when map is initialised
-        map.setOnStatusChangedListener(new OnStatusChangedListener() {
-            private static final long serialVersionUID = 1L;
-
-            // Once map is loaded set scale
-            @Override
-            public void onStatusChanged(Object source, STATUS status) {
-                if (source == map && status == STATUS.INITIALIZED) {
-                    map.setMapBackground(Color.WHITE, Color.WHITE, 0, 0);
-                    markerLayer.removeAll();
-                    disposables.add(
-                            db.contributionDao().getContributions(projectId).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
-                                    .subscribeWith(new DisposableSingleObserver<List<Contribution>>() {
-                                        @Override
-                                        public void onSuccess(List<Contribution> contributions) {
-                                            loadMarkers(contributions);
-                                        }
-
-                                        @Override
-                                        public void onError(Throwable e) {
-                                            Log.e("getContributions", e.getMessage());
-
-                                        }
-                                    }));
-                }
-            }
-        });
+//        map.setOnSingleTapListener(new OnSingleTapListener() {
+//
+//            private static final long serialVersionUID = 1L;
+//
+//            public void onSingleTap(float x, float y) {
+//
+//                if (!map.isLoaded())
+//                    return;
+//                int[] uids = graphicsOverlay.getGraphicIDs(x, y, 2);
+//                if (uids != null && uids.length > 0) {
+//
+//                    int targetId = uids[0];
+//                    Graphic gr = graphicsOverlay.getGraphic(targetId);
+//                    callout = map.getCallout();
+//
+//                    // Sets Callout style
+//                    callout.setStyle(R.layout.popup);
+//
+//                    // Sets custom content view to Callout
+//                    callout.setContent(loadView(gr));
+//                    // map.centerAt(new Point(x, y), true);
+//                    callout.show(map.toMapPoint(new Point(x, y)));
+//                } else {
+//                    if (callout != null && callout.isShowing()) {
+//                        callout.hide();
+//                    }
+//                }
+//
+//            }
+//        });
+//
     }
 
 
     protected void loadMarkers(List<Contribution> contributions) {
-        SimpleMarkerSymbol sms = new SimpleMarkerSymbol(Color.RED, 40, SimpleMarkerSymbol.STYLE.CIRCLE);
+        SimpleMarkerSymbol sms = new SimpleMarkerSymbol(SimpleMarkerSymbol.Style.CIRCLE, Color.RED, 40);
         Map<String, Object> paths = new HashMap<String, Object>();
 
         for (Contribution contribution : contributions) {
             if (contribution.getGeometry().getType().equals("Point") && contribution.getContributionProperty() != null && contribution.getContributionProperty().getSymbol() != null) {
                 try {
-                    paths.put(IMG_PATH, "/data/data/" + getPackageName() + contribution.getContributionProperty().getSymbol());
+                    paths.put(IMG_PATH, MediaHelpers.dataPath + contribution.getContributionProperty().getSymbol());
                     JSONArray latLngCoordinates = new JSONArray(contribution.getGeometry().getCoordinates());
-                    Point pnt = new Point(latLngCoordinates.getDouble(0), latLngCoordinates.getDouble(1));
-                    Graphic graphic = new Graphic(GeometryEngine.project(pnt, SpatialReference.create(SpatialReference.WKID_WGS84), map.getSpatialReference()), sms, paths);
-                    markerLayer.addGraphic(graphic);
+                    Point pnt = (Point) GeometryEngine.project(new Point(latLngCoordinates.getDouble(0), latLngCoordinates.getDouble(1)), SpatialReferences.getWgs84());
+                    Graphic graphic = new Graphic(GeometryEngine.project(pnt, mapView.getSpatialReference()), paths, sms);
+                    graphicsOverlay.getGraphics().add(graphic);
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
             }
         }
-
-
-        if (markerLayer.getGraphicIDs() != null) {
-            Envelope point = new Envelope();
-            Envelope allPoints = new Envelope();
-            for (int i : markerLayer.getGraphicIDs()) {
-                Point p = (Point) markerLayer.getGraphic(i).getGeometry();
-                p.queryEnvelope(point);
-                allPoints.merge(point);
-            }
-            map.setExtent(allPoints, 100, false);
-
-
-        }
+//
+//        if (graphicsOverlay.getGraphicIDs() != null) {
+//            Envelope point = new Envelope();
+//            Envelope allPoints = new Envelope();
+//            for (int i : graphicsOverlay.getGraphicIDs()) {
+//                Point p = (Point) graphicsOverlay.getGraphic(i).getGeometry();
+//                p.queryEnvelope(point);
+//                allPoints.merge(point);
+//            }
+//            map.setExtent(allPoints, 100, false);
+//
+//
+//        }
     }
 
 
-    // Creates custom content view with 'Graphic' attributes
-    private View loadView(Graphic graphic) {
-        View view = LayoutInflater.from(this).inflate(R.layout.popup_layout, null);
+//    // Creates custom content view with 'Graphic' attributes
+//    private View loadView(Graphic graphic) {
+//        View view = LayoutInflater.from(this).inflate(R.layout.popup_layout, null);
+//
+//        Set<String> keys = graphic.getAttributes().keySet();
+//
+//        for (String key : keys) {
+//            if (key.equals(IMG_PATH)) {
+//                ImageView imgView = (ImageView) view.findViewById(R.id.photo_view);
+//                createView(imgView, graphic.getAttributes().get(key).toString());
+//            }
+//        }
+//
+//        return view;
+//
+//    }
 
-        Set<String> keys = graphic.getAttributes().keySet();
 
-        for (String key : keys) {
-            if (key.equals(IMG_PATH)) {
-                ImageView imgView = (ImageView) view.findViewById(R.id.photo_view);
-                createView(imgView, graphic.getAttributes().get(key).toString());
-            }
-        }
+//    public void zoomIn(View view) {
+//
+//    }
+//
+//    public void zoomOut(View view) {
+//        mapView.zoomout();
+//    }
 
-        return view;
 
+    @Override
+    protected void onPause() {
+        super.onPause();
+        mapView.pause();
     }
 
-
-    public void zoomIn(View view) {
-        map.zoomin();
+    @Override
+    protected void onResume() {
+        super.onResume();
+        mapView.resume();
     }
 
-    public void zoomOut(View view) {
-        map.zoomout();
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        mapView.dispose();
     }
-
 
 }
 

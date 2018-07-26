@@ -5,12 +5,14 @@ import android.support.v7.app.AppCompatActivity;
 
 import java.util.List;
 
-import io.reactivex.Flowable;
 import io.reactivex.Single;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.schedulers.Schedulers;
+import uk.ac.excites.ucl.sapelliviewer.datamodel.Category;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Contribution;
+import uk.ac.excites.ucl.sapelliviewer.datamodel.Field;
+import uk.ac.excites.ucl.sapelliviewer.datamodel.LookUpValue;
 import uk.ac.excites.ucl.sapelliviewer.db.AppDatabase;
 
 public class BaseMapsActivity extends AppCompatActivity {
@@ -26,9 +28,32 @@ public class BaseMapsActivity extends AppCompatActivity {
         disposables = new CompositeDisposable();
     }
 
-    public Single<List<Contribution>> getMarkers(int projectId) {
+    public Single<List<Contribution>> getContributions(int projectId) {
         return db.contributionDao().getContributions(projectId).observeOn(Schedulers.io())
                 .subscribeOn(Schedulers.io());
+    }
+
+    public Single<List<Category>> getCategories(int projectId) {
+        return db.projectInfoDao().getCategories(projectId).observeOn(Schedulers.io())
+                .subscribeOn(Schedulers.io());
+    }
+
+    public Single<List<Field>> getFields(int projectId) {
+        return db.projectInfoDao().getFieldsByProject(projectId)
+                .observeOn(Schedulers.io())
+                .subscribeOn(Schedulers.io());
+    }
+
+
+    public Single<List<LookUpValue>> getLookUpValues(int projectId) {
+        return db.projectInfoDao().getLookupValueByProject(projectId).observeOn(Schedulers.io())
+                .subscribeOn(Schedulers.io());
+    }
+
+    public Single<List<LookUpValue>> getLookUpValuesByField(int fieldId) {
+        return db.projectInfoDao().getLookupValueByField(fieldId)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread());
     }
 
     @Override
