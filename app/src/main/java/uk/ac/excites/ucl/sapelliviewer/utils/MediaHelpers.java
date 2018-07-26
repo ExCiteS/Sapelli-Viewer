@@ -3,6 +3,7 @@ package uk.ac.excites.ucl.sapelliviewer.utils;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.drawable.Drawable;
 import android.graphics.drawable.PictureDrawable;
 import android.support.v4.view.ViewCompat;
 import android.util.Log;
@@ -11,9 +12,11 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 
 import com.caverock.androidsvg.SVG;
+import com.caverock.androidsvg.SVGParseException;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -136,6 +139,20 @@ public final class MediaHelpers {
         }
 
         return view;
+    }
+
+    public static Drawable svgToDrawable(String path) {
+        if (isVectorImageFileName(path)) {
+            try {
+                return new PictureDrawable(
+                        SVG.getFromInputStream(new FileInputStream(new File(path))).renderToPicture());
+            } catch (SVGParseException e) {
+                e.printStackTrace();
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+        }
+        return null;
     }
 
     public static boolean writeFileToDisk(ResponseBody responseBody, String url) {

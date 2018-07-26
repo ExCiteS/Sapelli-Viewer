@@ -27,6 +27,8 @@ public class Field {
     private boolean textarea;
     private double maxlength;
     @Ignore
+    private boolean active = true;
+    @Ignore
     private List<LookUpValue> lookupvalues;
     private int order;
 
@@ -132,5 +134,13 @@ public class Field {
 
     public void setOrder(int order) {
         this.order = order;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
     }
 }

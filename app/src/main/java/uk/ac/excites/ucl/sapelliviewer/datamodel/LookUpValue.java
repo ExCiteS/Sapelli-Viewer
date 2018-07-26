@@ -2,6 +2,7 @@ package uk.ac.excites.ucl.sapelliviewer.datamodel;
 
 import android.arch.persistence.room.Entity;
 import android.arch.persistence.room.ForeignKey;
+import android.arch.persistence.room.Ignore;
 import android.arch.persistence.room.PrimaryKey;
 
 /**
@@ -14,6 +15,8 @@ public class LookUpValue {
     private int fieldId;
     private String name;
     private String symbol;
+    @Ignore
+    private boolean active = true;
 
     public int getId() {
         return id;
@@ -45,5 +48,13 @@ public class LookUpValue {
 
     public void setSymbol(String symbol) {
         this.symbol = symbol;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
     }
 }

@@ -41,11 +41,8 @@ import io.reactivex.observers.DisposableCompletableObserver;
 import io.reactivex.observers.DisposableObserver;
 import io.reactivex.observers.DisposableSingleObserver;
 import io.reactivex.schedulers.Schedulers;
-import okhttp3.ResponseBody;
 import uk.ac.excites.ucl.sapelliviewer.R;
-import uk.ac.excites.ucl.sapelliviewer.datamodel.Contribution;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.ContributionProperty;
-import uk.ac.excites.ucl.sapelliviewer.datamodel.Document;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.ProjectInfo;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.ProjectProperties;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.UserInfo;
@@ -56,8 +53,6 @@ import uk.ac.excites.ucl.sapelliviewer.service.RetrofitBuilder;
 import uk.ac.excites.ucl.sapelliviewer.ui.GeoKeyProjectAdapter;
 import uk.ac.excites.ucl.sapelliviewer.utils.NoConnectivityException;
 import uk.ac.excites.ucl.sapelliviewer.utils.TokenManager;
-
-import static uk.ac.excites.ucl.sapelliviewer.utils.MediaHelpers.writeFileToDisk;
 
 public class SettingsActivity extends AppCompatActivity {
 
@@ -86,8 +81,8 @@ public class SettingsActivity extends AppCompatActivity {
         tokenManager = TokenManager.getInstance();
         disposables = new CompositeDisposable();
         requestsWithAuth = RetrofitBuilder.createServiceWithAuth(GeoKeyRequests.class, tokenManager);
-        db = AppDatabase.getAppDatabase(getApplicationContext());
-        geoKeyclient = new GeoKeyClient(getApplicationContext());
+        db = AppDatabase.getAppDatabase(SettingsActivity.this);
+        geoKeyclient = new GeoKeyClient(SettingsActivity.this);
         setContentView(R.layout.activity_settings);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         Toolbar toolbar = (Toolbar) findViewById(R.id.custom_toolbar);
@@ -99,7 +94,7 @@ public class SettingsActivity extends AppCompatActivity {
         recyclerView.setHasFixedSize(true);
         recyclerView.setItemAnimator(null);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        projectAdapter = new GeoKeyProjectAdapter(getApplicationContext(), disposables, new GeoKeyProjectAdapter.DetailsAdapterListener() {
+        projectAdapter = new GeoKeyProjectAdapter(SettingsActivity.this, disposables, new GeoKeyProjectAdapter.ProjectAdapterClickListener() {
             @Override
             public void openMap(View v, int position) {
                 openMapView(projectAdapter.getProject(position).getId());
