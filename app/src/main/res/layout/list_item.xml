@@ -68,7 +68,7 @@
                 android:textColor="@color/cardview_light_background" />
 
 
-            <android.support.v7.widget.AppCompatImageButton
+            <android.support.v7.widget.AppCompatImageView
                 android:id="@+id/sync_project"
                 android:layout_width="32dp"
                 android:layout_height="32dp"
@@ -76,7 +76,7 @@
                 android:layout_toLeftOf="@id/open_map"
                 app:srcCompat="@drawable/sync" />
 
-            <android.support.v7.widget.AppCompatImageButton
+            <android.support.v7.widget.AppCompatImageView
                 android:id="@+id/open_map"
                 android:layout_width="32dp"
                 android:layout_height="32dp"

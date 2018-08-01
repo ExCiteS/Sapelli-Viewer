@@ -1,8 +1,8 @@
 package uk.ac.excites.ucl.sapelliviewer.ui;
 
 import android.content.Context;
-import android.graphics.Color;
 import android.support.annotation.NonNull;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -10,7 +10,6 @@ import android.view.ViewGroup;
 import android.widget.CompoundButton;
 import android.widget.ToggleButton;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import uk.ac.excites.ucl.sapelliviewer.R;
@@ -19,7 +18,7 @@ import uk.ac.excites.ucl.sapelliviewer.datamodel.Field;
 public class FieldAdapter extends RecyclerView.Adapter<FieldAdapter.FieldViewHolder> {
 
     private Context context;
-    private List<Field> fields = new ArrayList();
+    private List<Field> fields;
     private FieldCheckedChangeListener listener;
 
     public FieldAdapter(Context context, List<Field> fields, FieldCheckedChangeListener fieldCheckedChangeListener) {
@@ -41,7 +40,7 @@ public class FieldAdapter extends RecyclerView.Adapter<FieldAdapter.FieldViewHol
         holder.field.setTextOff(fields.get(position).getName());
         holder.field.setTextOn(fields.get(position).getName());
         holder.field.setChecked(true);
-        holder.field.setBackgroundColor(Color.GREEN);
+        holder.field.setBackgroundColor(ContextCompat.getColor(context, R.color.colorPrimary));
     }
 
     @Override

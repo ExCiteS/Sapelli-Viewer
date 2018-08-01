@@ -14,6 +14,7 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.app.AppCompatDelegate;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
@@ -24,11 +25,13 @@ import android.view.View;
 import android.view.WindowManager;
 import android.view.animation.Animation;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.Toast;
 
-import com.nbsp.materialfilepicker.MaterialFilePicker;
-import com.nbsp.materialfilepicker.ui.FilePickerActivity;
 
+import com.obsez.android.lib.filechooser.ChooserDialog;
+
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -67,7 +70,7 @@ public class SettingsActivity extends AppCompatActivity {
     private CompositeDisposable disposables;
     private AppDatabase db;
     private GeoKeyProjectAdapter projectAdapter;
-    private ImageButton clickedButton;
+    private ImageView clickedButton;
     private ObjectAnimator rotator;
     private MenuItem nameItem;
     private List<ContributionProperty> contributionProperties = new ArrayList<ContributionProperty>();
@@ -78,6 +81,7 @@ public class SettingsActivity extends AppCompatActivity {
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        AppCompatDelegate.setCompatVectorFromResourcesEnabled(true);
         tokenManager = TokenManager.getInstance();
         disposables = new CompositeDisposable();
         requestsWithAuth = RetrofitBuilder.createServiceWithAuth(GeoKeyRequests.class, tokenManager);
@@ -102,7 +106,7 @@ public class SettingsActivity extends AppCompatActivity {
 
             @Override
             public void syncProjectOnClick(View v, int position) {
-                clickedButton = (ImageButton) v;
+                clickedButton = (ImageView) v;
                 clickedButton.getDrawable().mutate().setColorFilter(Color.parseColor("#000000"), PorterDuff.Mode.SRC_IN);
                 getProject(projectAdapter.getProject(position));
                 rotator = ObjectAnimator.ofFloat(clickedButton, View.ROTATION, 0f, -360f);
@@ -329,38 +333,70 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     private void openFilePicker() {
-        new MaterialFilePicker()
-                .withTitle(getString(R.string.pick_tpk))
-                .withActivity(this)
-                .withPath(String.valueOf(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)))
-                .withRequestCode(FILE_PICKER_REQUEST_CODE)
-                .withFilter(Pattern.compile(".*\\.tpk$")) // Filtering files and directories by file name using regexp
-                .withHiddenFiles(true) // Show hidden files and folders
-                .start();
+
+        new ChooserDialog().with(this)
+                .withResources(R.string.choose_directory, R.string.title_choose, R.string.dialog_cancel)
+                .withFilter(true, false)
+                .withStartFile(String.valueOf(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)))
+                .withChosenListener(new ChooserDialog.Result() {
+                    @Override
+                    public void onChoosePath(String path, File pathFile) {
+                        ProjectProperties projectProperties = new ProjectProperties(projectAdapter.getProject(mapPathPosition).getId(), path);
+                        disposables.add(
+                                Completable.fromAction(() -> db.projectInfoDao().insertProjectProperties(projectProperties)).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
+                                        .subscribeWith(new DisposableCompletableObserver() {
+                                            @Override
+                                            public void onComplete() {
+                                                projectAdapter.notifyItemChanged(mapPathPosition);
+                                            }
+
+                                            @Override
+                                            public void onError(Throwable e) {
+                                                Log.e("setMapPath", e.getMessage());
+                                            }
+                                        }));
+                    }
+                })
+                .build()
+                .show();
+
+//        new MaterialFilePicker()
+//                .withTitle(getString(R.string.pick_tpk))
+//                .withActivity(this)
+//                .withPath(String.valueOf(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)))
+//                .withRequestCode(FILE_PICKER_REQUEST_CODE)
+////                .withFilter(Pattern.compile(".*\\.tpk$")) // Filtering files and directories by file name using regexp
+////                .withFilter(Pattern.compile(".*\\.tpk$")) // Filtering files and directories by file name using regexp
+//                .withHiddenFiles(true) // Show hidden files and folders
+//                .start();
+
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == FILE_PICKER_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
-            if (data != null) {
-                String filePath = data.getStringExtra(FilePickerActivity.RESULT_FILE_PATH);
-                ProjectProperties projectProperties = new ProjectProperties(projectAdapter.getProject(mapPathPosition).getId(), filePath);
 
-                disposables.add(
-                        Completable.fromAction(() -> db.projectInfoDao().insertProjectProperties(projectProperties)).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
-                                .subscribeWith(new DisposableCompletableObserver() {
-                                    @Override
-                                    public void onComplete() {
-                                        projectAdapter.notifyItemChanged(mapPathPosition);
-                                    }
-
-                                    @Override
-                                    public void onError(Throwable e) {
-                                        Log.e("setMapPath", e.getMessage());
-                                    }
-                                }));
-            }
-        }
-    }
+//
+//
+//    @Override
+//    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+//        super.onActivityResult(requestCode, resultCode, data);
+//        if (requestCode == FILE_PICKER_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
+//            if (data != null) {
+//                String filePath = data.getStringExtra(FilePickerActivity.RESULT_FILE_PATH);
+//                ProjectProperties projectProperties = new ProjectProperties(projectAdapter.getProject(mapPathPosition).getId(), filePath);
+//
+//                disposables.add(
+//                        Completable.fromAction(() -> db.projectInfoDao().insertProjectProperties(projectProperties)).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
+//                                .subscribeWith(new DisposableCompletableObserver() {
+//                                    @Override
+//                                    public void onComplete() {
+//                                        projectAdapter.notifyItemChanged(mapPathPosition);
+//                                    }
+//
+//                                    @Override
+//                                    public void onError(Throwable e) {
+//                                        Log.e("setMapPath", e.getMessage());
+//                                    }
+//                                }));
+//            }
+//        }
+//    }
 }
