@@ -155,44 +155,44 @@ public final class MediaHelpers {
         return null;
     }
 
-    public static boolean writeFileToDisk(ResponseBody responseBody, String url) {
+    public static void writeFileToDisk(ResponseBody responseBody, String url) {
+
+        String fileName = url.split("/")[url.split("/").length - 1];
+        String subPath = url.replace(fileName, "");
+
+        new File(dataPath + subPath).mkdirs();
+        File destinationFile = new File(dataPath + subPath + fileName);
+
+
         try {
+            copyFile(responseBody.byteStream(), new FileOutputStream(destinationFile));
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
 
-            String fileName = url.split("/")[url.split("/").length - 1];
-            String subPath = url.replace(fileName, "");
 
-            new File(dataPath + subPath).mkdirs();
-            File destinationFile = new File(dataPath + subPath + fileName);
-
-            InputStream inputStream = null;
-            OutputStream outputStream = null;
-
+    public static void copyFile(InputStream in, OutputStream out) {
+        try {
             try {
                 byte[] fileReader = new byte[4096];
-
-                inputStream = responseBody.byteStream();
-                outputStream = new FileOutputStream(destinationFile);
-
                 while (true) {
-                    int read = inputStream.read(fileReader);
+                    int read = in.read(fileReader);
                     if (read == -1)
                         break;
-                    outputStream.write(fileReader, 0, read);
+                    out.write(fileReader, 0, read);
                 }
-
-                outputStream.flush();
-                return true;
+                out.flush();
             } catch (IOException e) {
-                Log.e("File download", e.getMessage());
-                return false;
+                Log.e("copy file", e.getMessage());
             } finally {
-                if (inputStream != null)
-                    inputStream.close();
-                if (outputStream != null)
-                    outputStream.flush();
+                if (in != null)
+                    in.close();
+                if (out != null)
+                    out.flush();
             }
         } catch (IOException e) {
-            return false;
+            Log.e("copy file", e.getMessage());
         }
     }
 

@@ -11,42 +11,54 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_above="@id/value_recycler_view"
-        android:layout_marginBottom="-24dp">
+        android:layout_marginBottom="-24dp"></com.esri.arcgisruntime.mapping.view.MapView>
 
-    </com.esri.arcgisruntime.mapping.view.MapView>
+    <ImageButton
+        android:id="@+id/zoom_in"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentRight="true"
+        android:layout_alignTop="@+id/map"
+        android:layout_marginRight="10dp"
+        android:layout_marginTop="10dp"
+        android:onClick="zoomIn"
+        android:padding="3dp"
+        app:srcCompat="@drawable/tree_large" />
 
-    <!--<ImageButton-->
-    <!--android:id="@+id/zoom_in"-->
-    <!--android:layout_width="80dp"-->
-    <!--android:layout_height="80dp"-->
-    <!--android:layout_alignParentEnd="true"-->
-    <!--android:layout_alignParentRight="true"-->
-    <!--android:layout_alignTop="@+id/map"-->
-    <!--android:layout_marginRight="10dp"-->
-    <!--android:layout_marginTop="10dp"-->
-    <!--android:onClick="zoomIn"-->
-    <!--android:padding="3dp"-->
-    <!--app:srcCompat="@drawable/tree_large" />-->
+    <ImageButton
+        android:id="@+id/zoom_out"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:layout_alignEnd="@+id/zoom_in"
+        android:layout_alignLeft="@+id/zoom_in"
+        android:layout_alignRight="@+id/zoom_in"
+        android:layout_alignStart="@+id/zoom_in"
+        android:layout_below="@+id/zoom_in"
+        android:layout_marginTop="5dp"
+        android:onClick="zoomOut"
+        android:padding="3dp"
+        app:srcCompat="@drawable/tree_small" />
 
-    <!--<ImageButton-->
-    <!--android:layout_width="80dp"-->
-    <!--android:layout_height="80dp"-->
-    <!--android:layout_alignEnd="@+id/zoom_in"-->
-    <!--android:layout_alignLeft="@+id/zoom_in"-->
-    <!--android:layout_alignRight="@+id/zoom_in"-->
-    <!--android:layout_alignStart="@+id/zoom_in"-->
-    <!--android:layout_below="@+id/zoom_in"-->
-    <!--android:layout_marginTop="5dp"-->
-    <!--android:onClick="zoomOut"-->
-    <!--android:padding="3dp"-->
-    <!--app:srcCompat="@drawable/tree_small" />-->
+
+    <ImageButton
+        android:id="@+id/rotate_north_btn"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:layout_alignEnd="@+id/zoom_in"
+        android:layout_alignStart="@+id/zoom_in"
+        android:layout_below="@+id/zoom_out"
+        android:layout_marginTop="5dp"
+        android:contentDescription="@string/content_desc_rotate_north"
+        android:onClick="rotateNorth"
+        app:srcCompat="@android:drawable/title_bar_tall" />
 
     <android.support.v7.widget.RecyclerView
         android:id="@+id/value_recycler_view"
         android:layout_width="match_parent"
-        android:background="@color/colorPrimaryDark"
         android:layout_height="wrap_content"
         android:layout_above="@id/field_recycler_view"
+        android:background="@color/background_dark"
         android:orientation="horizontal"></android.support.v7.widget.RecyclerView>
 
     <android.support.v7.widget.RecyclerView
@@ -54,5 +66,6 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
+        android:background="@color/background_light"
         android:orientation="horizontal"></android.support.v7.widget.RecyclerView>
 </RelativeLayout>

@@ -20,4 +20,10 @@
     <string name="pick_tpk">Select a map tile package</string>
     <string name="choose_map_path">Choose a map path</string>
     <string name="world_topo_service">http://services.arcgisonline.com/arcgis/rest/services/World_Topo_Map/MapServer</string>
+    <string name="world_imagery_service">https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer</string>
+    <string name="content_desc_rotate_north">Align map to north direction</string>
+    <string name="content_desc_zoom_out">Zoom out</string>
+    <string name="content_desc_zoom_in">Zoom in</string>
+    <string name="choose_directory">Choose directory with raster files</string>
+    <string name="blank_map">blank.vtpk</string>
 </resources>

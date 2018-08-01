@@ -10,6 +10,7 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageButton;
 
+import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
@@ -159,8 +160,8 @@ public class GeoKeyProjectAdapter extends RecyclerView.Adapter<GeoKeyProjectAdap
 
         RelativeLayout cardLayout;
         TextView projectName;
-        ImageButton openMapButton;
-        ImageButton syncProjectButton;
+        ImageView openMapButton;
+        ImageView syncProjectButton;
         TextView contributionsTxt;
         TextView mediaTxt;
         TextView activeTxt;
@@ -169,15 +170,15 @@ public class GeoKeyProjectAdapter extends RecyclerView.Adapter<GeoKeyProjectAdap
 
         ProjectViewHolder(View itemView) {
             super(itemView);
-            projectName = (TextView) itemView.findViewById(R.id.list_item_text);
-            cardLayout = (RelativeLayout) itemView.findViewById(R.id.card);
-            openMapButton = (ImageButton) itemView.findViewById(R.id.open_map);
-            syncProjectButton = (ImageButton) itemView.findViewById(R.id.sync_project);
-            contributionsTxt = (TextView) itemView.findViewById(R.id.txt_contributions);
-            btnMapPath = (Button) itemView.findViewById(R.id.btn_map_path);
-            mapPathTxt = (TextView) itemView.findViewById(R.id.txt_map_path);
-            mediaTxt = (TextView) itemView.findViewById(R.id.txt_media);
-            activeTxt = (TextView) itemView.findViewById(R.id.active_txt);
+            projectName = itemView.findViewById(R.id.list_item_text);
+            cardLayout = itemView.findViewById(R.id.card);
+            openMapButton = itemView.findViewById(R.id.open_map);
+            syncProjectButton = itemView.findViewById(R.id.sync_project);
+            contributionsTxt = itemView.findViewById(R.id.txt_contributions);
+            btnMapPath = itemView.findViewById(R.id.btn_map_path);
+            mapPathTxt = itemView.findViewById(R.id.txt_map_path);
+            mediaTxt = itemView.findViewById(R.id.txt_media);
+            activeTxt = itemView.findViewById(R.id.active_txt);
 
 
             openMapButton.setOnClickListener(new View.OnClickListener() {
