@@ -16,6 +16,17 @@ public class LookUpValue {
     private String name;
     private String symbol;
     @Ignore
+    private boolean visible = true;
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
+    }
+
+    @Ignore
     private boolean active = true;
 
     public int getId() {
@@ -50,11 +61,11 @@ public class LookUpValue {
         this.symbol = symbol;
     }
 
-    public boolean isActive() {
-        return active;
+    public boolean isVisible() {
+        return visible;
     }
 
-    public void setActive(boolean active) {
-        this.active = active;
+    public void setVisible(boolean visible) {
+        this.visible = visible;
     }
 }

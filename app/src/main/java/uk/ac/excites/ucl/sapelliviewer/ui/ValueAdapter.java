@@ -2,6 +2,7 @@ package uk.ac.excites.ucl.sapelliviewer.ui;
 
 import android.content.Context;
 import android.support.annotation.NonNull;
+import android.support.v4.content.res.ResourcesCompat;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -21,12 +22,14 @@ public class ValueAdapter extends RecyclerView.Adapter<ValueAdapter.ValueViewHol
 
     private Context context;
     private List<LookUpValue> lookUpValues;
-    private ValueAdapterClickListener onClickListener; // TODO: implement
+    private ValueAdapterClickListener listener; // TODO: implement
 
 
-    public ValueAdapter(Context context, List<LookUpValue> lookUpValues) {
+    public ValueAdapter(Context context, List<LookUpValue> lookUpValues, ValueAdapterClickListener listener) {
         this.context = context;
         this.lookUpValues = lookUpValues;
+        this.listener = listener;
+
     }
 
     @NonNull
@@ -40,7 +43,7 @@ public class ValueAdapter extends RecyclerView.Adapter<ValueAdapter.ValueViewHol
     @Override
     public void onBindViewHolder(@NonNull ValueViewHolder holder, int position) {
 
-        List<LookUpValue> values = getFilteredLookupValues();
+        List<LookUpValue> values = getVisibleLookupValues();
         String path = MediaHelpers.dataPath + values.get(position).getSymbol();
         if (MediaHelpers.isRasterImageFileName(path)) {
             Glide.with(context)
@@ -53,22 +56,36 @@ public class ValueAdapter extends RecyclerView.Adapter<ValueAdapter.ValueViewHol
                     .load(MediaHelpers.svgToDrawable(path))
                     .into(holder.valueImage);
         }
+
+        if (values.get(position).isActive())
+            holder.valueFrame.setBackgroundColor(ResourcesCompat.getColor(context.getResources(), R.color.colorPrimary, null));
+        else
+            holder.valueFrame.setBackgroundColor(ResourcesCompat.getColor(context.getResources(), R.color.background_dark, null));
     }
 
 
     @Override
     public int getItemCount() {
-        return getFilteredLookupValues().size();
+        return getVisibleLookupValues().size();
     }
 
     public List<LookUpValue> getAllLookUpValues() {
         return lookUpValues;
     }
 
-    private List<LookUpValue> getFilteredLookupValues() {
+    private List<LookUpValue> getVisibleLookupValues() {
         List<LookUpValue> filteredList = new ArrayList<>();
         for (LookUpValue value : lookUpValues) {
-            if (value.isActive())
+            if (value.isVisible())
+                filteredList.add(value);
+        }
+        return filteredList;
+    }
+
+    public List<LookUpValue> getVisibleAndActiveLookupValues() {
+        List<LookUpValue> filteredList = new ArrayList<>();
+        for (LookUpValue value : lookUpValues) {
+            if (value.isVisible() && value.isActive())
                 filteredList.add(value);
         }
         return filteredList;
@@ -76,15 +93,24 @@ public class ValueAdapter extends RecyclerView.Adapter<ValueAdapter.ValueViewHol
 
     class ValueViewHolder extends RecyclerView.ViewHolder {
         ImageView valueImage;
+        View valueFrame;
 
         ValueViewHolder(View itemView) {
             super(itemView);
+            valueFrame = itemView.findViewById(R.id.value_frame);
             valueImage = itemView.findViewById(R.id.value_image);
+            valueImage.setOnClickListener(new ImageView.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    listener.onClick(v, getVisibleLookupValues().get(getAdapterPosition()));
+                }
+            });
         }
     }
 
     public interface ValueAdapterClickListener {
-        void onClick(View v, int position);
+        void onClick(View v, LookUpValue value);
 
     }
 }
+
