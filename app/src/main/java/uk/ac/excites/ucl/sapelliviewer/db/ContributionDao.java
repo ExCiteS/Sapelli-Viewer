@@ -28,6 +28,12 @@ public interface ContributionDao {
     @Query("SELECT * FROM contribution where projectId = :projectId")
     Single<List<Contribution>> getContributions(int projectId);
 
+    @Query("SELECT DISTINCT Contribution.* FROM LookUpValue JOIN ContributionProperty ON LookUpValue.name = ContributionProperty.value AND LookUpValue.symbol = ContributionProperty.symbol JOIN Contribution ON ContributionProperty.contributionId = Contribution.id WHERE LookUpValue.id = :valueID;")
+    Single<List<Contribution>> getContributionsByValue(int valueID);
+
+    @Query("SELECT DISTINCT Contribution.* FROM LookUpValue JOIN ContributionProperty ON LookUpValue.name = ContributionProperty.value AND LookUpValue.symbol = ContributionProperty.symbol JOIN Contribution ON ContributionProperty.contributionId = Contribution.id WHERE LookUpValue.id IN (:valueIDs);")
+    Single<List<Contribution>> getContributionsByValues(List<Integer> valueIDs);
+
     /* CONTRIBUTION PROPERTIES*/
     @Insert(onConflict = OnConflictStrategy.REPLACE)
 //    void insertContributionProperties(List<ContributionProperty> contributionProperty);
@@ -37,11 +43,11 @@ public interface ContributionDao {
     void insertContributionProperties(List<ContributionProperty> contributionProperties);
 
 
-
     @Query("SELECT * FROM contributionProperty where contributionId = :contributionId")
     Single<List<ContributionProperty>> getContributionsProperties(int contributionId);
 
     /* MEDIA FILES */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertMediaFile(Document mediaFile);
+
 }

@@ -5,6 +5,7 @@ import android.support.v7.app.AppCompatActivity;
 
 import java.util.List;
 
+import io.reactivex.Maybe;
 import io.reactivex.Single;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
@@ -55,6 +56,17 @@ public class BaseMapsActivity extends AppCompatActivity {
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread());
     }
+
+    public Single<List<Contribution>> getContributionsByValues(List<Integer> valueIDs) {
+        return db.contributionDao().getContributionsByValues(valueIDs)
+                .subscribeOn(Schedulers.io());
+    }
+
+    public Maybe<List<Contribution>> getContributionsByValue(int valueID) {
+        return db.contributionDao().getContributionsByValue(valueID).filter(contributions -> !contributions.isEmpty())
+                .subscribeOn(Schedulers.io());
+    }
+
 
     @Override
     protected void onDestroy() {

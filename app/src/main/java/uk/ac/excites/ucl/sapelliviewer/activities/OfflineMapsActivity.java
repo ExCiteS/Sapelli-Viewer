@@ -3,7 +3,6 @@ package uk.ac.excites.ucl.sapelliviewer.activities;
 import android.content.pm.ActivityInfo;
 import android.graphics.Color;
 import android.os.Bundle;
-import android.os.Environment;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -13,7 +12,6 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.widget.ToggleButton;
 
-import com.esri.arcgisruntime.geometry.Envelope;
 import com.esri.arcgisruntime.geometry.GeometryEngine;
 import com.esri.arcgisruntime.geometry.Point;
 import com.esri.arcgisruntime.geometry.PointCollection;
@@ -40,13 +38,11 @@ import org.json.JSONException;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import io.reactivex.Observable;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.observers.DisposableMaybeObserver;
 import io.reactivex.observers.DisposableSingleObserver;
@@ -55,7 +51,6 @@ import uk.ac.excites.ucl.sapelliviewer.R;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Contribution;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Field;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.LookUpValue;
-import uk.ac.excites.ucl.sapelliviewer.datamodel.Project;
 import uk.ac.excites.ucl.sapelliviewer.ui.FieldAdapter;
 import uk.ac.excites.ucl.sapelliviewer.ui.ValueAdapter;
 import uk.ac.excites.ucl.sapelliviewer.utils.MediaHelpers;
@@ -106,7 +101,7 @@ public class OfflineMapsActivity extends BaseMapsActivity {
 
                                         for (LookUpValue lookUpValue : valueAdapter.getAllLookUpValues()) {
                                             if (lookUpValue.getFieldId() == field.getId())
-                                                lookUpValue.setActive(isChecked);
+                                                lookUpValue.setVisible(isChecked);
                                         }
                                         if (isChecked) {
                                             buttonView.setBackgroundColor(ContextCompat.getColor(OfflineMapsActivity.this, R.color.colorPrimary));
@@ -114,6 +109,8 @@ public class OfflineMapsActivity extends BaseMapsActivity {
                                             buttonView.setBackgroundColor(Color.WHITE);
                                         }
                                         valueAdapter.notifyDataSetChanged();
+                                        loadMarkers();
+
                                     }
                                 });
                                 fieldRecyclerView.setAdapter(fieldAdapter);
@@ -131,7 +128,12 @@ public class OfflineMapsActivity extends BaseMapsActivity {
                         .subscribeWith(new DisposableSingleObserver<List<LookUpValue>>() {
                             @Override
                             public void onSuccess(List<LookUpValue> lookUpValues) {
-                                valueAdapter = new ValueAdapter(OfflineMapsActivity.this, lookUpValues);
+                                valueAdapter = new ValueAdapter(OfflineMapsActivity.this, lookUpValues, new ValueAdapter.ValueAdapterClickListener() {
+                                    @Override
+                                    public void onClick(View v, LookUpValue value) {
+                                        selectValue(value);
+                                    }
+                                });
                                 valueRecyclerView.setAdapter(valueAdapter);
 
                             }
@@ -164,7 +166,7 @@ public class OfflineMapsActivity extends BaseMapsActivity {
                                 ArcGISVectorTiledLayer vtpk = new ArcGISVectorTiledLayer(MediaHelpers.dataPath + File.separator + getString(R.string.blank_map));
                                 ArcGISMap map = new ArcGISMap(new Basemap(vtpk));
                                 mapView.setMap(map);
-                                disposables.add(getContributions(projectId).subscribe(OfflineMapsActivity.this::loadMarkers));
+                                disposables.add(getContributions(projectId).subscribe(OfflineMapsActivity.this::showMarkers));
                             }
                         }));
 
@@ -203,8 +205,25 @@ public class OfflineMapsActivity extends BaseMapsActivity {
 
     }
 
+    public void selectValue(LookUpValue value) {
+        value.setActive(!value.isActive());
+        valueAdapter.notifyDataSetChanged();
+        getContributionsByValue(value.getId())
+                .doOnSuccess(contributions -> loadMarkers()).subscribe();
+    }
 
-    protected void loadMarkers(List<Contribution> contributions) {
+    protected void loadMarkers() {
+        disposables.add(
+                Observable.just(valueAdapter.getVisibleAndActiveLookupValues())
+                        .flatMap(Observable::fromIterable)
+                        .map(LookUpValue::getId)
+                        .toList()
+                        .flatMap(this::getContributionsByValues)
+                        .subscribe(this::showMarkers));
+    }
+
+
+    protected void showMarkers(List<Contribution> contributions) {
         GraphicsOverlay graphicsOverlay = new GraphicsOverlay();
         SimpleMarkerSymbol sms = new SimpleMarkerSymbol(SimpleMarkerSymbol.Style.CIRCLE, Color.RED, 40);
         Map<String, Object> paths = new HashMap<String, Object>();
@@ -309,7 +328,7 @@ public class OfflineMapsActivity extends BaseMapsActivity {
                             @Override
                             public void loadStatusChanged(LoadStatusChangedEvent loadStatusChangedEvent) {
                                 if (loadStatusChangedEvent.getNewLoadStatus().name().equals("LOADED"))
-                                    getContributions(projectId).subscribe(contributions -> OfflineMapsActivity.this.loadMarkers(contributions));
+                                    getContributions(projectId).subscribe(contributions -> OfflineMapsActivity.this.showMarkers(contributions));
                             }
                         });
                     }
