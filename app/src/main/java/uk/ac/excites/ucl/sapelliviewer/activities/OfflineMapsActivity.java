@@ -32,13 +32,16 @@ import com.esri.arcgisruntime.mapping.view.MapView;
 import com.esri.arcgisruntime.raster.AddRastersParameters;
 import com.esri.arcgisruntime.raster.MosaicDatasetRaster;
 import com.esri.arcgisruntime.symbology.SimpleMarkerSymbol;
+import com.esri.arcgisruntime.util.ListenableList;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -61,7 +64,7 @@ import uk.ac.excites.ucl.sapelliviewer.utils.MediaHelpers;
  */
 public class OfflineMapsActivity extends BaseMapsActivity {
     // static variables
-    public static String IMG_PATH = "img_path";
+    public static String CONTRIBUTION_ID = "contribution_id";
     public static String DB_NAME = "/mosaicdb.sqlite";
     public static String RASTER_NAME = "raster";
 
@@ -208,8 +211,7 @@ public class OfflineMapsActivity extends BaseMapsActivity {
     public void selectValue(LookUpValue value) {
         value.setActive(!value.isActive());
         valueAdapter.notifyDataSetChanged();
-        getContributionsByValue(value.getId())
-                .doOnSuccess(contributions -> loadMarkers()).subscribe();
+        loadMarkers();
     }
 
     protected void loadMarkers() {
@@ -219,24 +221,55 @@ public class OfflineMapsActivity extends BaseMapsActivity {
                         .map(LookUpValue::getId)
                         .toList()
                         .flatMap(this::getContributionsByValues)
-                        .subscribe(this::showMarkers));
+                        .subscribe(this::updateMarkers));
+    }
+
+    protected void updateMarkers(List<Contribution> contributions) {
+        ListenableList<Graphic> graphicsDisplayed = mapView.getGraphicsOverlays().get(0).getGraphics();
+        List<Graphic> graphicsToRemove = new ArrayList<>();
+        Iterator contributionIterator;
+        
+
+        boolean graphicCanStay = false;
+        for (Graphic graphic : graphicsDisplayed) {
+            contributionIterator = contributions.iterator();
+            while (contributionIterator.hasNext()) {
+                Contribution contribution = (Contribution) contributionIterator.next();
+                if (contribution.getId() == (Integer) graphic.getAttributes().get(CONTRIBUTION_ID)) {
+                    contributionIterator.remove();
+                    graphicCanStay = true;
+                }
+            }
+            if (!graphicCanStay)
+                graphicsToRemove.add(graphic);
+            graphicCanStay = false;
+        }
+
+        graphicsDisplayed.removeAll(graphicsToRemove);
+        showMarkers(contributions);
     }
 
 
     protected void showMarkers(List<Contribution> contributions) {
-        GraphicsOverlay graphicsOverlay = new GraphicsOverlay();
-        SimpleMarkerSymbol sms = new SimpleMarkerSymbol(SimpleMarkerSymbol.Style.CIRCLE, Color.RED, 40);
-        Map<String, Object> paths = new HashMap<String, Object>();
-        PointCollection maarkerLocations = new PointCollection(mapView.getSpatialReference());
+        GraphicsOverlay graphicsOverlay;
+        if (mapView.getGraphicsOverlays().isEmpty()) {
+            graphicsOverlay = new GraphicsOverlay();
+            mapView.getGraphicsOverlays().add(graphicsOverlay);
+        } else {
+            graphicsOverlay = mapView.getGraphicsOverlays().get(0);
+
+        }
+
+        SimpleMarkerSymbol sms = new SimpleMarkerSymbol(SimpleMarkerSymbol.Style.CIRCLE, Color.RED, 20);
+        Map<String, Object> contributionId = new HashMap<String, Object>();
         for (Contribution contribution : contributions) {
             if (contribution.getGeometry().getType().equals("Point") && contribution.getContributionProperty() != null && contribution.getContributionProperty().getSymbol() != null) {
                 try {
-                    paths.put(IMG_PATH, MediaHelpers.dataPath + contribution.getContributionProperty().getSymbol());
+                    contributionId.put(CONTRIBUTION_ID, contribution.getId());
                     JSONArray latLngCoordinates = new JSONArray(contribution.getGeometry().getCoordinates());
                     Point pnt = (Point) GeometryEngine.project(new Point(latLngCoordinates.getDouble(0), latLngCoordinates.getDouble(1)), SpatialReferences.getWgs84());
                     pnt = (Point) GeometryEngine.project(pnt, mapView.getSpatialReference());
-                    maarkerLocations.add(pnt);
-                    Graphic graphic = new Graphic(pnt, paths, sms);
+                    Graphic graphic = new Graphic(pnt, contributionId, sms);
                     graphicsOverlay.getGraphics().add(graphic);
                 } catch (JSONException e) {
                     e.printStackTrace();
@@ -244,12 +277,16 @@ public class OfflineMapsActivity extends BaseMapsActivity {
             }
         }
         try {
-            mapView.setViewpointGeometryAsync(new Polygon(maarkerLocations).getExtent(), 70);
+            if (graphicsOverlay.getGraphics().size() > 1)
+                mapView.setViewpointGeometryAsync(graphicsOverlay.getExtent(), 70);
+            else if (graphicsOverlay.getGraphics().size() == 1)
+                mapView.setViewpointCenterAsync(graphicsOverlay.getExtent().getCenter(), 3000);
+//            mapView.setViewpointGeometryAsync(new Polygon(maarkerLocations).getExtent(), 70);
         } catch (Exception e) {
             Log.e("Set Viewpoint", e.getMessage());
         }
-        mapView.getGraphicsOverlays().clear();
-        mapView.getGraphicsOverlays().add(graphicsOverlay);
+//        mapView.getGraphicsOverlays().clear();
+//        mapView.getGraphicsOverlays().add(graphicsOverlay);
 
     }
 
