@@ -29,6 +29,10 @@ public class BaseMapsActivity extends AppCompatActivity {
         disposables = new CompositeDisposable();
     }
 
+    public int getProjectId() {
+        return projectId;
+    }
+
     public Single<List<Contribution>> getContributions(int projectId) {
         return db.contributionDao().getContributions(projectId).observeOn(Schedulers.io())
                 .subscribeOn(Schedulers.io());

@@ -56,6 +56,7 @@ import uk.ac.excites.ucl.sapelliviewer.datamodel.Field;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.LookUpValue;
 import uk.ac.excites.ucl.sapelliviewer.ui.FieldAdapter;
 import uk.ac.excites.ucl.sapelliviewer.ui.ValueAdapter;
+import uk.ac.excites.ucl.sapelliviewer.ui.ValueController;
 import uk.ac.excites.ucl.sapelliviewer.utils.MediaHelpers;
 
 
@@ -72,7 +73,6 @@ public class OfflineMapsActivity extends BaseMapsActivity {
     private MapView mapView;
     private Callout callout;
     private FieldAdapter fieldAdapter;
-    private ValueAdapter valueAdapter;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -85,69 +85,9 @@ public class OfflineMapsActivity extends BaseMapsActivity {
         setContentView(R.layout.offline_map);
         mapView = (MapView) findViewById(R.id.map);
         copyBlankMap();
-        RecyclerView fieldRecyclerView = findViewById(R.id.field_recycler_view);
-        fieldRecyclerView.setLayoutManager(new LinearLayoutManager(getApplicationContext(), LinearLayoutManager.HORIZONTAL, false));
-        RecyclerView valueRecyclerView = findViewById(R.id.value_recycler_view);
-        valueRecyclerView.setLayoutManager(new LinearLayoutManager(getApplicationContext(), LinearLayoutManager.HORIZONTAL, false));
 
-        disposables.add(
-                getFields(projectId)
-                        .toObservable().flatMapIterable(fields -> fields)
-                        .filter(field -> !field.getKey().equals("DeviceId") && !field.getKey().equals("StartTime") && !field.getKey().equals("EndTime"))
-                        .toList()
-                        .subscribeWith(new DisposableSingleObserver<List<Field>>() {
-                            @Override
-                            public void onSuccess(List<Field> fields) {
-                                fieldAdapter = new FieldAdapter(OfflineMapsActivity.this, fields, new FieldAdapter.FieldCheckedChangeListener() {
-                                    @Override
-                                    public void checkedChanged(ToggleButton buttonView, boolean isChecked, Field field) {
-
-                                        for (LookUpValue lookUpValue : valueAdapter.getAllLookUpValues()) {
-                                            if (lookUpValue.getFieldId() == field.getId())
-                                                lookUpValue.setVisible(isChecked);
-                                        }
-                                        if (isChecked) {
-                                            buttonView.setBackgroundColor(ContextCompat.getColor(OfflineMapsActivity.this, R.color.colorPrimary));
-                                        } else {
-                                            buttonView.setBackgroundColor(Color.WHITE);
-                                        }
-                                        valueAdapter.notifyDataSetChanged();
-                                        loadMarkers();
-
-                                    }
-                                });
-                                fieldRecyclerView.setAdapter(fieldAdapter);
-                            }
-
-                            @Override
-                            public void onError(Throwable e) {
-                                Log.e("getCategories", e.getMessage());
-                            }
-                        })
-        );
-
-        disposables.add(
-                getLookUpValues(projectId)
-                        .subscribeWith(new DisposableSingleObserver<List<LookUpValue>>() {
-                            @Override
-                            public void onSuccess(List<LookUpValue> lookUpValues) {
-                                valueAdapter = new ValueAdapter(OfflineMapsActivity.this, lookUpValues, new ValueAdapter.ValueAdapterClickListener() {
-                                    @Override
-                                    public void onClick(View v, LookUpValue value) {
-                                        selectValue(value);
-                                    }
-                                });
-                                valueRecyclerView.setAdapter(valueAdapter);
-
-                            }
-
-                            @Override
-                            public void onError(Throwable e) {
-                                Log.e("getLookupvalues", e.getMessage());
-
-                            }
-                        })
-        );
+        new ValueController(this, findViewById(R.id.value_recycler_view), disposables)
+                .addFieldController(findViewById(R.id.field_recycler_view)); // ValueController should also work without Fields
 
 
         disposables.add(
@@ -161,15 +101,13 @@ public class OfflineMapsActivity extends BaseMapsActivity {
                             @Override
                             public void onError(Throwable e) {
                                 Log.e("getMapPath", e.getMessage());
-
                             }
 
                             @Override
                             public void onComplete() {
                                 ArcGISVectorTiledLayer vtpk = new ArcGISVectorTiledLayer(MediaHelpers.dataPath + File.separator + getString(R.string.blank_map));
-                                ArcGISMap map = new ArcGISMap(new Basemap(vtpk));
-                                mapView.setMap(map);
-                                disposables.add(getContributions(projectId).subscribe(OfflineMapsActivity.this::showMarkers));
+                                mapView.setMap(new ArcGISMap(new Basemap(vtpk)));
+                                disposables.add(getContributions(projectId).subscribe(OfflineMapsActivity.this::showMarkers)); // initially load all markers
                             }
                         }));
 
@@ -208,31 +146,17 @@ public class OfflineMapsActivity extends BaseMapsActivity {
 
     }
 
-    public void selectValue(LookUpValue value) {
-        value.setActive(!value.isActive());
-        valueAdapter.notifyDataSetChanged();
-        loadMarkers();
-    }
 
-    protected void loadMarkers() {
-        disposables.add(
-                Observable.just(valueAdapter.getVisibleAndActiveLookupValues())
-                        .flatMap(Observable::fromIterable)
-                        .map(LookUpValue::getId)
-                        .toList()
-                        .flatMap(this::getContributionsByValues)
-                        .subscribe(this::updateMarkers));
-    }
-
-    protected void updateMarkers(List<Contribution> contributions) {
-        ListenableList<Graphic> graphicsDisplayed = mapView.getGraphicsOverlays().get(0).getGraphics();
-        List<Graphic> graphicsToRemove = new ArrayList<>();
+    public void updateMarkers(List<Contribution> contributionsToDisplay) {
         Iterator contributionIterator;
-        
+        Iterator graphicsIterator;
+        boolean graphicCanStay;
 
-        boolean graphicCanStay = false;
-        for (Graphic graphic : graphicsDisplayed) {
-            contributionIterator = contributions.iterator();
+        graphicsIterator = mapView.getGraphicsOverlays().get(0).getGraphics().iterator();
+        while (graphicsIterator.hasNext()) {
+            graphicCanStay = false;
+            Graphic graphic = (Graphic) graphicsIterator.next();
+            contributionIterator = contributionsToDisplay.iterator();
             while (contributionIterator.hasNext()) {
                 Contribution contribution = (Contribution) contributionIterator.next();
                 if (contribution.getId() == (Integer) graphic.getAttributes().get(CONTRIBUTION_ID)) {
@@ -241,12 +165,9 @@ public class OfflineMapsActivity extends BaseMapsActivity {
                 }
             }
             if (!graphicCanStay)
-                graphicsToRemove.add(graphic);
-            graphicCanStay = false;
+                graphicsIterator.remove();
         }
-
-        graphicsDisplayed.removeAll(graphicsToRemove);
-        showMarkers(contributions);
+        showMarkers(contributionsToDisplay);
     }
 
 
@@ -285,8 +206,6 @@ public class OfflineMapsActivity extends BaseMapsActivity {
         } catch (Exception e) {
             Log.e("Set Viewpoint", e.getMessage());
         }
-//        mapView.getGraphicsOverlays().clear();
-//        mapView.getGraphicsOverlays().add(graphicsOverlay);
 
     }
 
