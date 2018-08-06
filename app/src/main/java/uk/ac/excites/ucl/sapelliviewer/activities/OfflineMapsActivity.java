@@ -1,8 +1,10 @@
 package uk.ac.excites.ucl.sapelliviewer.activities;
 
+import android.content.Context;
 import android.content.pm.ActivityInfo;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.support.v4.app.FragmentActivity;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -47,6 +49,7 @@ import java.util.Map;
 
 import io.reactivex.Observable;
 import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.observers.DisposableMaybeObserver;
 import io.reactivex.observers.DisposableSingleObserver;
 import io.reactivex.schedulers.Schedulers;
@@ -54,6 +57,7 @@ import uk.ac.excites.ucl.sapelliviewer.R;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Contribution;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Field;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.LookUpValue;
+import uk.ac.excites.ucl.sapelliviewer.db.AppDatabase;
 import uk.ac.excites.ucl.sapelliviewer.ui.FieldAdapter;
 import uk.ac.excites.ucl.sapelliviewer.ui.ValueAdapter;
 import uk.ac.excites.ucl.sapelliviewer.ui.ValueController;
@@ -63,7 +67,7 @@ import uk.ac.excites.ucl.sapelliviewer.utils.MediaHelpers;
 /**
  * Created by julia
  */
-public class OfflineMapsActivity extends BaseMapsActivity {
+public class OfflineMapsActivity extends FragmentActivity {
     // static variables
     public static String CONTRIBUTION_ID = "contribution_id";
     public static String DB_NAME = "/mosaicdb.sqlite";
@@ -73,6 +77,9 @@ public class OfflineMapsActivity extends BaseMapsActivity {
     private MapView mapView;
     private Callout callout;
     private FieldAdapter fieldAdapter;
+    private AppDatabase db;
+    private int projectId;
+    private CompositeDisposable disposables;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -83,6 +90,9 @@ public class OfflineMapsActivity extends BaseMapsActivity {
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         setContentView(R.layout.offline_map);
+        db = AppDatabase.getAppDatabase(getApplicationContext());
+        projectId = getIntent().getIntExtra(SettingsActivity.PROJECT_ID, 0);
+        disposables = new CompositeDisposable();
         mapView = (MapView) findViewById(R.id.map);
         copyBlankMap();
 
@@ -107,7 +117,8 @@ public class OfflineMapsActivity extends BaseMapsActivity {
                             public void onComplete() {
                                 ArcGISVectorTiledLayer vtpk = new ArcGISVectorTiledLayer(MediaHelpers.dataPath + File.separator + getString(R.string.blank_map));
                                 mapView.setMap(new ArcGISMap(new Basemap(vtpk)));
-                                disposables.add(getContributions(projectId).subscribe(OfflineMapsActivity.this::showMarkers)); // initially load all markers
+                                disposables.add(db.contributionDao().getContributions(projectId).observeOn(Schedulers.io())
+                                        .subscribeOn(Schedulers.io()).subscribe(OfflineMapsActivity.this::showMarkers)); // initially load all markers
                             }
                         }));
 
@@ -258,6 +269,7 @@ public class OfflineMapsActivity extends BaseMapsActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        disposables.clear();
         mapView.dispose();
     }
 
@@ -284,7 +296,8 @@ public class OfflineMapsActivity extends BaseMapsActivity {
                             @Override
                             public void loadStatusChanged(LoadStatusChangedEvent loadStatusChangedEvent) {
                                 if (loadStatusChangedEvent.getNewLoadStatus().name().equals("LOADED"))
-                                    getContributions(projectId).subscribe(contributions -> OfflineMapsActivity.this.showMarkers(contributions));
+                                    disposables.add(db.contributionDao().getContributions(projectId).observeOn(Schedulers.io())
+                                            .subscribeOn(Schedulers.io()).subscribe(OfflineMapsActivity.this::showMarkers));
                             }
                         });
                     }
@@ -305,6 +318,9 @@ public class OfflineMapsActivity extends BaseMapsActivity {
 
     }
 
+    public Context getContext() {
+        return OfflineMapsActivity.this;
+    }
 }
 
 

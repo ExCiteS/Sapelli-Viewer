@@ -1,5 +1,6 @@
 package uk.ac.excites.ucl.sapelliviewer.ui;
 
+import android.content.Context;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
@@ -23,10 +24,10 @@ public class ValueController extends DatabaseClient {
 
 
     public ValueController(OfflineMapsActivity mapActivity, RecyclerView valueRecyclerView, CompositeDisposable disposables) {
-        super(mapActivity.getApplicationContext());
+        super(mapActivity.getContext());
         this.mapsActivity = mapActivity;
         this.valueRecyclerView = valueRecyclerView;
-        valueRecyclerView.setLayoutManager(new LinearLayoutManager(mapActivity.getApplicationContext(), LinearLayoutManager.HORIZONTAL, false));
+        valueRecyclerView.setLayoutManager(new LinearLayoutManager(mapActivity.getContext(), LinearLayoutManager.HORIZONTAL, false));
         this.disposables = disposables;
         getValueAdapter();
     }
@@ -37,14 +38,14 @@ public class ValueController extends DatabaseClient {
                         .subscribeWith(new DisposableSingleObserver<List<LookUpValue>>() {
                             @Override
                             public void onSuccess(List<LookUpValue> lookUpValues) {
-                                valueAdapter = new ValueAdapter(mapsActivity.getApplicationContext(), lookUpValues, (v, value) -> {
+                                valueAdapter = new ValueAdapter(mapsActivity.getContext(), lookUpValues, (v, value) -> {
                                     value.setActive(!value.isActive());
                                     valueAdapter.notifyDataSetChanged();
                                     loadMarkers(valueAdapter.getVisibleAndActiveLookupValues()).subscribe(contributions -> updateMarkers(contributions));
                                 });
                                 valueRecyclerView.setAdapter(valueAdapter);
                                 if (fieldRecyclerView != null)
-                                    new FieldController(mapsActivity.getApplicationContext(), fieldRecyclerView, ValueController.this, mapsActivity.getProjectId(), disposables);
+                                    new FieldController(mapsActivity.getContext(), fieldRecyclerView, ValueController.this, mapsActivity.getProjectId(), disposables);
 
                             }
 
@@ -57,7 +58,7 @@ public class ValueController extends DatabaseClient {
 
     public void addFieldController(RecyclerView recyclerView) {
         this.fieldRecyclerView = recyclerView;
-        fieldRecyclerView.setLayoutManager(new LinearLayoutManager(mapsActivity.getApplicationContext(), LinearLayoutManager.HORIZONTAL, false));
+        fieldRecyclerView.setLayoutManager(new LinearLayoutManager(mapsActivity.getContext(), LinearLayoutManager.HORIZONTAL, false));
     }
 
     public ValueAdapter getAdapter() {
@@ -67,4 +68,5 @@ public class ValueController extends DatabaseClient {
     public void updateMarkers(List<Contribution> contributions) {
         mapsActivity.updateMarkers(contributions);
     }
+
 }
