@@ -22,6 +22,7 @@ import android.view.WindowManager;
 import android.view.animation.AccelerateInterpolator;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.FrameLayout;
+import android.widget.RelativeLayout;
 
 import com.esri.arcgisruntime.concurrent.ListenableFuture;
 import com.esri.arcgisruntime.data.QueryParameters;
@@ -139,6 +140,7 @@ public class OfflineMapsActivity extends AppCompatActivity implements DetailsFra
                                            // get the screen point where user tapped
                                            android.graphics.Point clickedPoint = new android.graphics.Point((int) e.getX(), (int) e.getY());
 
+
                                            // identify graphics on the graphics overlay
                                            final ListenableFuture<IdentifyGraphicsOverlayResult> identifyGraphic = mapView.identifyGraphicsOverlayAsync(mapView.getGraphicsOverlays().get(0), clickedPoint, 10.0, false, 1);
                                            identifyGraphic.addDoneListener(new Runnable() {
@@ -150,6 +152,9 @@ public class OfflineMapsActivity extends AppCompatActivity implements DetailsFra
                                                        if (!grOverlayResult.getGraphics().isEmpty()) {
                                                            Graphic graphic = grOverlayResult.getGraphics().get(0);
                                                            displayDetails((Integer) graphic.getAttributes().get(CONTRIBUTION_ID));
+                                                           mapView.getGraphicsOverlays().get(0).clearSelection();
+                                                           graphic.setSelected(true);
+//                                                           mapView.setViewpointCenterAsync(new Point(((Point) graphic.getGeometry()).getX(), ((Point) graphic.getGeometry()).getY()));
                                                        }
                                                    } catch (InterruptedException | ExecutionException ie) {
                                                        Log.e("getGraphic", ie.getMessage());
@@ -180,8 +185,11 @@ public class OfflineMapsActivity extends AppCompatActivity implements DetailsFra
                     graphicCanStay = true;
                 }
             }
-            if (!graphicCanStay)
+            if (!graphicCanStay) {
+                if (graphic.isSelected())
+                    closeFragment();
                 graphicsIterator.remove();
+            }
         }
         showMarkers(contributionsToDisplay);
     }
@@ -218,30 +226,11 @@ public class OfflineMapsActivity extends AppCompatActivity implements DetailsFra
                 mapView.setViewpointGeometryAsync(graphicsOverlay.getExtent(), 70);
             else if (graphicsOverlay.getGraphics().size() == 1)
                 mapView.setViewpointCenterAsync(graphicsOverlay.getExtent().getCenter(), 3000);
-//            mapView.setViewpointGeometryAsync(new Polygon(maarkerLocations).getExtent(), 70);
         } catch (Exception e) {
             Log.e("Set Viewpoint", e.getMessage());
         }
 
     }
-
-
-//    // Creates custom content view with 'Graphic' attributes
-//    private View loadView(Graphic graphic) {
-//        View view = LayoutInflater.from(this).inflate(R.layout.popup_layout, null);
-//
-//        Set<String> keys = graphic.getAttributes().keySet();
-//
-//        for (String key : keys) {
-//            if (key.equals(IMG_PATH)) {
-//                ImageView imgView = (ImageView) view.findViewById(R.id.photo_view);
-//                createView(imgView, graphic.getAttributes().get(key).toString());
-//            }
-//        }
-//
-//        return view;
-//
-//    }
 
 
     public void zoomIn(View view) {
@@ -337,11 +326,9 @@ public class OfflineMapsActivity extends AppCompatActivity implements DetailsFra
         if (shownFragment != null && shownFragment.isVisible()) {
             if (shownFragment.getContributionId() != contributionId) {
                 DetailsFragment detailsFragment = DetailsFragment.newInstance(contributionId);
-                fragmentManager.popBackStack();
                 fragmentManager
                         .beginTransaction()
-                        .setCustomAnimations(R.anim.slide_from_left, R.anim.slide_to_left, R.anim.slide_from_left, R.anim.slide_to_left)
-                        .addToBackStack(null)
+//                        .addToBackStack(null)
                         .replace(R.id.fragment_container, detailsFragment, DETAILS_FRAGMENT)
                         .commit();
             }
@@ -349,18 +336,36 @@ public class OfflineMapsActivity extends AppCompatActivity implements DetailsFra
             DetailsFragment detailsFragment = DetailsFragment.newInstance(contributionId);
             fragmentManager
                     .beginTransaction()
-                    .setCustomAnimations(R.anim.slide_from_left, R.anim.slide_to_left, R.anim.slide_from_left, R.anim.slide_to_left)
-                    .addToBackStack(null)
                     .add(R.id.fragment_container, detailsFragment, DETAILS_FRAGMENT)
                     .commit();
+            final RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT);
+            params.addRule(RelativeLayout.RIGHT_OF, R.id.fragment_container);
+            params.addRule(RelativeLayout.ABOVE, R.id.value_recycler_view);
+            params.setMargins(0, 0, 0, -24);
+            mapView.setLayoutParams(params);
         }
-
     }
 
 
     @Override
     public void onFragmentInteraction() {
-        onBackPressed();
+        closeFragment();
+    }
+
+    public void closeFragment() {
+
+        DetailsFragment shownFragment = (DetailsFragment) getSupportFragmentManager().findFragmentByTag(DETAILS_FRAGMENT);
+        FragmentManager fragmentManager = getSupportFragmentManager();
+        if (shownFragment != null && shownFragment.isVisible()) {
+            fragmentManager.beginTransaction().remove(shownFragment).commit();
+        }
+
+        final RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT);
+        params.addRule(RelativeLayout.ABOVE, R.id.value_recycler_view);
+        params.setMargins(0, 0, 0, -24);
+
+        mapView.setLayoutParams(params);
+        mapView.getGraphicsOverlays().get(0).clearSelection();
     }
 
 

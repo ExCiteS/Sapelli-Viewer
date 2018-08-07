@@ -46,7 +46,6 @@ public class ValueController extends DatabaseClient {
                                 valueRecyclerView.setAdapter(valueAdapter);
                                 if (fieldRecyclerView != null)
                                     new FieldController(mapsActivity.getContext(), fieldRecyclerView, ValueController.this, mapsActivity.getProjectId(), disposables);
-
                             }
 
                             @Override
