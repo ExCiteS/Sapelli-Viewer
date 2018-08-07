@@ -1,23 +1,33 @@
 package uk.ac.excites.ucl.sapelliviewer.activities;
 
+import android.annotation.SuppressLint;
+import android.app.Fragment;
 import android.content.Context;
 import android.content.pm.ActivityInfo;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.support.transition.CircularPropagation;
+import android.support.transition.Explode;
+import android.support.transition.Slide;
 import android.support.v4.app.FragmentActivity;
-import android.support.v4.content.ContextCompat;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
+import android.support.v4.app.FragmentManager;
+import android.support.v4.app.FragmentTransaction;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
-import android.widget.ToggleButton;
+import android.view.animation.AccelerateInterpolator;
+import android.view.animation.DecelerateInterpolator;
+import android.widget.FrameLayout;
 
+import com.esri.arcgisruntime.concurrent.ListenableFuture;
+import com.esri.arcgisruntime.data.QueryParameters;
+import com.esri.arcgisruntime.geometry.Envelope;
 import com.esri.arcgisruntime.geometry.GeometryEngine;
 import com.esri.arcgisruntime.geometry.Point;
-import com.esri.arcgisruntime.geometry.PointCollection;
-import com.esri.arcgisruntime.geometry.Polygon;
 import com.esri.arcgisruntime.geometry.SpatialReferences;
 import com.esri.arcgisruntime.layers.ArcGISVectorTiledLayer;
 import com.esri.arcgisruntime.layers.RasterLayer;
@@ -28,38 +38,35 @@ import com.esri.arcgisruntime.mapping.ArcGISMap;
 import com.esri.arcgisruntime.mapping.Basemap;
 import com.esri.arcgisruntime.mapping.Viewpoint;
 import com.esri.arcgisruntime.mapping.view.Callout;
+import com.esri.arcgisruntime.mapping.view.DefaultMapViewOnTouchListener;
 import com.esri.arcgisruntime.mapping.view.Graphic;
 import com.esri.arcgisruntime.mapping.view.GraphicsOverlay;
+import com.esri.arcgisruntime.mapping.view.IdentifyGraphicsOverlayResult;
 import com.esri.arcgisruntime.mapping.view.MapView;
 import com.esri.arcgisruntime.raster.AddRastersParameters;
 import com.esri.arcgisruntime.raster.MosaicDatasetRaster;
 import com.esri.arcgisruntime.symbology.SimpleMarkerSymbol;
-import com.esri.arcgisruntime.util.ListenableList;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
-import io.reactivex.Observable;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.observers.DisposableMaybeObserver;
-import io.reactivex.observers.DisposableSingleObserver;
 import io.reactivex.schedulers.Schedulers;
 import uk.ac.excites.ucl.sapelliviewer.R;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Contribution;
-import uk.ac.excites.ucl.sapelliviewer.datamodel.Field;
-import uk.ac.excites.ucl.sapelliviewer.datamodel.LookUpValue;
 import uk.ac.excites.ucl.sapelliviewer.db.AppDatabase;
+import uk.ac.excites.ucl.sapelliviewer.ui.DetailsFragment;
 import uk.ac.excites.ucl.sapelliviewer.ui.FieldAdapter;
-import uk.ac.excites.ucl.sapelliviewer.ui.ValueAdapter;
 import uk.ac.excites.ucl.sapelliviewer.ui.ValueController;
 import uk.ac.excites.ucl.sapelliviewer.utils.MediaHelpers;
 
@@ -67,8 +74,8 @@ import uk.ac.excites.ucl.sapelliviewer.utils.MediaHelpers;
 /**
  * Created by julia
  */
-public class OfflineMapsActivity extends FragmentActivity {
-    // static variables
+public class OfflineMapsActivity extends AppCompatActivity implements DetailsFragment.OnFragmentInteractionListener {
+    private static final String DETAILS_FRAGMENT = "detailsFragment";
     public static String CONTRIBUTION_ID = "contribution_id";
     public static String DB_NAME = "/mosaicdb.sqlite";
     public static String RASTER_NAME = "raster";
@@ -81,6 +88,8 @@ public class OfflineMapsActivity extends FragmentActivity {
     private int projectId;
     private CompositeDisposable disposables;
 
+
+    @SuppressLint("ClickableViewAccessibility")
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -123,38 +132,34 @@ public class OfflineMapsActivity extends FragmentActivity {
                         }));
 
 
-//        map.setOnSingleTapListener(new OnSingleTapListener() {
-//
-//            private static final long serialVersionUID = 1L;
-//
-//            public void onSingleTap(float x, float y) {
-//
-//                if (!map.isLoaded())
-//                    return;
-//                int[] uids = graphicsOverlay.getGraphicIDs(x, y, 2);
-//                if (uids != null && uids.length > 0) {
-//
-//                    int targetId = uids[0];
-//                    Graphic gr = graphicsOverlay.getGraphic(targetId);
-//                    callout = map.getCallout();
-//
-//                    // Sets Callout style
-//                    callout.setStyle(R.layout.popup);
-//
-//                    // Sets custom content view to Callout
-//                    callout.setContent(loadView(gr));
-//                    // map.centerAt(new Point(x, y), true);
-//                    callout.show(map.toMapPoint(new Point(x, y)));
-//                } else {
-//                    if (callout != null && callout.isShowing()) {
-//                        callout.hide();
-//                    }
-//                }
-//
-//            }
-//        });
-//
+        mapView.setOnTouchListener(new DefaultMapViewOnTouchListener(this, mapView) {
+                                       @Override
+                                       public boolean onSingleTapConfirmed(MotionEvent e) {
 
+                                           // get the screen point where user tapped
+                                           android.graphics.Point clickedPoint = new android.graphics.Point((int) e.getX(), (int) e.getY());
+
+                                           // identify graphics on the graphics overlay
+                                           final ListenableFuture<IdentifyGraphicsOverlayResult> identifyGraphic = mapView.identifyGraphicsOverlayAsync(mapView.getGraphicsOverlays().get(0), clickedPoint, 10.0, false, 1);
+                                           identifyGraphic.addDoneListener(new Runnable() {
+                                               @Override
+                                               public void run() {
+                                                   try {
+                                                       IdentifyGraphicsOverlayResult grOverlayResult = identifyGraphic.get();
+                                                       // get the list of graphics returned by identify graphic overlay
+                                                       if (!grOverlayResult.getGraphics().isEmpty()) {
+                                                           Graphic graphic = grOverlayResult.getGraphics().get(0);
+                                                           displayDetails((Integer) graphic.getAttributes().get(CONTRIBUTION_ID));
+                                                       }
+                                                   } catch (InterruptedException | ExecutionException ie) {
+                                                       Log.e("getGraphic", ie.getMessage());
+                                                   }
+                                               }
+                                           });
+                                           return super.onSingleTapConfirmed(e);
+                                       }
+                                   }
+        );
     }
 
 
@@ -321,6 +326,44 @@ public class OfflineMapsActivity extends FragmentActivity {
     public Context getContext() {
         return OfflineMapsActivity.this;
     }
+
+    public int getProjectId() {
+        return projectId;
+    }
+
+    public void displayDetails(int contributionId) {
+        DetailsFragment shownFragment = (DetailsFragment) getSupportFragmentManager().findFragmentByTag(DETAILS_FRAGMENT);
+        FragmentManager fragmentManager = getSupportFragmentManager();
+        if (shownFragment != null && shownFragment.isVisible()) {
+            if (shownFragment.getContributionId() != contributionId) {
+                DetailsFragment detailsFragment = DetailsFragment.newInstance(contributionId);
+                fragmentManager.popBackStack();
+                fragmentManager
+                        .beginTransaction()
+                        .setCustomAnimations(R.anim.slide_from_left, R.anim.slide_to_left, R.anim.slide_from_left, R.anim.slide_to_left)
+                        .addToBackStack(null)
+                        .replace(R.id.fragment_container, detailsFragment, DETAILS_FRAGMENT)
+                        .commit();
+            }
+        } else {
+            DetailsFragment detailsFragment = DetailsFragment.newInstance(contributionId);
+            fragmentManager
+                    .beginTransaction()
+                    .setCustomAnimations(R.anim.slide_from_left, R.anim.slide_to_left, R.anim.slide_from_left, R.anim.slide_to_left)
+                    .addToBackStack(null)
+                    .add(R.id.fragment_container, detailsFragment, DETAILS_FRAGMENT)
+                    .commit();
+        }
+
+    }
+
+
+    @Override
+    public void onFragmentInteraction() {
+        onBackPressed();
+    }
+
+
 }
 
 
