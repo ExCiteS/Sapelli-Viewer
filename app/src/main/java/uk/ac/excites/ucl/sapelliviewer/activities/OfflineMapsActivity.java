@@ -25,6 +25,7 @@ import android.widget.FrameLayout;
 import android.widget.RelativeLayout;
 
 import com.esri.arcgisruntime.concurrent.ListenableFuture;
+import com.esri.arcgisruntime.data.Geodatabase;
 import com.esri.arcgisruntime.data.QueryParameters;
 import com.esri.arcgisruntime.geometry.Envelope;
 import com.esri.arcgisruntime.geometry.GeometryEngine;
@@ -61,7 +62,6 @@ import java.util.concurrent.ExecutionException;
 
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
-import io.reactivex.observers.DisposableMaybeObserver;
 import io.reactivex.schedulers.Schedulers;
 import uk.ac.excites.ucl.sapelliviewer.R;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Contribution;
@@ -88,6 +88,7 @@ public class OfflineMapsActivity extends AppCompatActivity implements DetailsFra
     private AppDatabase db;
     private int projectId;
     private CompositeDisposable disposables;
+    private ArcGISMap map;
 
 
     @SuppressLint("ClickableViewAccessibility")
@@ -109,28 +110,25 @@ public class OfflineMapsActivity extends AppCompatActivity implements DetailsFra
         new ValueController(this, findViewById(R.id.value_recycler_view), disposables)
                 .addFieldController(findViewById(R.id.field_recycler_view)); // ValueController should also work without Fields
 
+        /* Load Vector base map*/
+        ArcGISVectorTiledLayer vtpk = new ArcGISVectorTiledLayer(MediaHelpers.dataPath + File.separator + getString(R.string.blank_map));
+        map = new ArcGISMap(new Basemap(vtpk));
+        // Listener on change in map load status
+        map.addLoadStatusChangedListener(new LoadStatusChangedListener() {
+            @Override
+            public void loadStatusChanged(LoadStatusChangedEvent loadStatusChangedEvent) {
+                String mapLoadStatus = loadStatusChangedEvent.getNewLoadStatus().name();
+                // map load status can be any of LOADING, FAILED_TO_LOAD, NOT_LOADED or LOADED
+                switch (mapLoadStatus) {
+                    case "LOADED":
+                        disposables.add(db.contributionDao().getContributions(projectId).observeOn(Schedulers.io()).subscribeOn(Schedulers.io()).subscribe(OfflineMapsActivity.this::showMarkers)); // initially load all markers
+                        disposables.add(db.projectInfoDao().getMapPath(projectId).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe(OfflineMapsActivity.this::createMosaicDataset));
 
-        disposables.add(
-                db.projectInfoDao().getMapPath(projectId).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
-                        .subscribeWith(new DisposableMaybeObserver<String>() {
-                            @Override
-                            public void onSuccess(String path) {
-                                createMosaicDataset(path);
-                            }
-
-                            @Override
-                            public void onError(Throwable e) {
-                                Log.e("getMapPath", e.getMessage());
-                            }
-
-                            @Override
-                            public void onComplete() {
-                                ArcGISVectorTiledLayer vtpk = new ArcGISVectorTiledLayer(MediaHelpers.dataPath + File.separator + getString(R.string.blank_map));
-                                mapView.setMap(new ArcGISMap(new Basemap(vtpk)));
-                                disposables.add(db.contributionDao().getContributions(projectId).observeOn(Schedulers.io())
-                                        .subscribeOn(Schedulers.io()).subscribe(OfflineMapsActivity.this::showMarkers)); // initially load all markers
-                            }
-                        }));
+                        break;
+                }
+            }
+        });
+        mapView.setMap(map);
 
 
         mapView.setOnTouchListener(new DefaultMapViewOnTouchListener(this, mapView) {
@@ -221,14 +219,7 @@ public class OfflineMapsActivity extends AppCompatActivity implements DetailsFra
                 }
             }
         }
-        try {
-            if (graphicsOverlay.getGraphics().size() > 1)
-                mapView.setViewpointGeometryAsync(graphicsOverlay.getExtent(), 70);
-            else if (graphicsOverlay.getGraphics().size() == 1)
-                mapView.setViewpointCenterAsync(graphicsOverlay.getExtent().getCenter(), 3000);
-        } catch (Exception e) {
-            Log.e("Set Viewpoint", e.getMessage());
-        }
+
 
     }
 
@@ -258,6 +249,7 @@ public class OfflineMapsActivity extends AppCompatActivity implements DetailsFra
     protected void onResume() {
         super.onResume();
         mapView.resume();
+//        showRasters();
     }
 
     @Override
@@ -269,37 +261,47 @@ public class OfflineMapsActivity extends AppCompatActivity implements DetailsFra
 
 
     public void createMosaicDataset(String rasterPath) {
-//        // create a new mobile mosaic dataset
-        MosaicDatasetRaster mosaicDatasetRaster = MosaicDatasetRaster
-                .create(MediaHelpers.dataPath + DB_NAME, RASTER_NAME, SpatialReferences.getWebMercator());
+        map.getOperationalLayers().clear();
+        MosaicDatasetRaster mosaicDatasetRaster;
+        mosaicDatasetRaster = MosaicDatasetRaster.create(MediaHelpers.dataPath + DB_NAME, RASTER_NAME, SpatialReferences.getWebMercator());
+        mosaicDatasetRaster.loadAsync();
+        mosaicDatasetRaster.addDoneLoadingListener(new Runnable() {
+            @Override
+            public void run() {
+                if (mosaicDatasetRaster.getLoadStatus() == LoadStatus.LOADED) {
+                    Log.d("CREATED", "successful");
+                    AddRastersParameters parameters = new AddRastersParameters();
+                    parameters.setInputDirectory(rasterPath);
+                    mosaicDatasetRaster.addRastersAsync(parameters).addDoneListener(new Runnable() {
 
-        // add some raster files to the mobile mosaic dataset
-        mosaicDatasetRaster.addDoneLoadingListener(() -> {
-            if (mosaicDatasetRaster.getLoadStatus() == LoadStatus.LOADED) {
-                AddRastersParameters parameters = new AddRastersParameters();
-                parameters.setInputDirectory(rasterPath);
-                mosaicDatasetRaster.addRastersAsync(parameters).addDoneListener(new Runnable() {
-                    @Override
-                    public void run() {
-                        MosaicDatasetRaster mosaicDatasetRaster = new MosaicDatasetRaster(MediaHelpers.dataPath + DB_NAME, RASTER_NAME);
-                        RasterLayer mosaicDatasetRasterLayer = new RasterLayer(mosaicDatasetRaster);
-                        Basemap basemap = new Basemap(mosaicDatasetRasterLayer);
-                        ArcGISMap map = new ArcGISMap(basemap);
-                        mapView.setMap(map);
-                        map.addLoadStatusChangedListener(new LoadStatusChangedListener() {
-                            @Override
-                            public void loadStatusChanged(LoadStatusChangedEvent loadStatusChangedEvent) {
-                                if (loadStatusChangedEvent.getNewLoadStatus().name().equals("LOADED"))
-                                    disposables.add(db.contributionDao().getContributions(projectId).observeOn(Schedulers.io())
-                                            .subscribeOn(Schedulers.io()).subscribe(OfflineMapsActivity.this::showMarkers));
+                        @Override
+                        public void run() {
+                            if (mosaicDatasetRaster.getLoadStatus() == LoadStatus.LOADED) {
+                                showRasters();
+                            } else if (mosaicDatasetRaster.getLoadStatus() == LoadStatus.FAILED_TO_LOAD) {
+                                Log.e("FAILED TO LOAD", mosaicDatasetRaster.getLoadError().getAdditionalMessage());
                             }
-                        });
-                    }
-                });
+                        }
+                    });
+                } else if (mosaicDatasetRaster.getLoadStatus() == LoadStatus.FAILED_TO_LOAD) {
+                    Log.e("FAILED TO LOAD", mosaicDatasetRaster.getLoadError().getAdditionalMessage());
+                    mosaicDatasetRaster.retryLoadAsync();
+                }
             }
         });
-        mosaicDatasetRaster.loadAsync();
     }
+
+    public void showRasters() {
+        if (!(new File(MediaHelpers.dataPath + DB_NAME).exists())) {
+            disposables.add(db.projectInfoDao().getMapPath(projectId).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe(OfflineMapsActivity.this::createMosaicDataset));
+        } else {
+            MosaicDatasetRaster mosaicDatasetRaster = new MosaicDatasetRaster(MediaHelpers.dataPath + DB_NAME, RASTER_NAME);
+            RasterLayer mosaicDatasetRasterLayer = new RasterLayer(mosaicDatasetRaster);
+            map.getOperationalLayers().add(mosaicDatasetRasterLayer);
+            Log.e("LAYERS", "SHOWN");
+        }
+    }
+
 
     public void copyBlankMap() {
         try {
@@ -328,7 +330,6 @@ public class OfflineMapsActivity extends AppCompatActivity implements DetailsFra
                 DetailsFragment detailsFragment = DetailsFragment.newInstance(contributionId);
                 fragmentManager
                         .beginTransaction()
-//                        .addToBackStack(null)
                         .replace(R.id.fragment_container, detailsFragment, DETAILS_FRAGMENT)
                         .commit();
             }
@@ -353,7 +354,6 @@ public class OfflineMapsActivity extends AppCompatActivity implements DetailsFra
     }
 
     public void closeFragment() {
-
         DetailsFragment shownFragment = (DetailsFragment) getSupportFragmentManager().findFragmentByTag(DETAILS_FRAGMENT);
         FragmentManager fragmentManager = getSupportFragmentManager();
         if (shownFragment != null && shownFragment.isVisible()) {
@@ -363,7 +363,6 @@ public class OfflineMapsActivity extends AppCompatActivity implements DetailsFra
         final RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT);
         params.addRule(RelativeLayout.ABOVE, R.id.value_recycler_view);
         params.setMargins(0, 0, 0, -24);
-
         mapView.setLayoutParams(params);
         mapView.getGraphicsOverlays().get(0).clearSelection();
     }
