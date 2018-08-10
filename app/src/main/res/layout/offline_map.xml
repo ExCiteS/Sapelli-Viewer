@@ -18,7 +18,7 @@
 
     <FrameLayout
         android:id="@+id/fragment_container"
-        android:layout_width="300dp"
+        android:layout_width="230dp"
         android:layout_height="match_parent"
         android:layout_above="@id/value_recycler_view"
         tools:layout="@layout/fragment_details" />

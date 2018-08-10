@@ -22,7 +22,7 @@ public class ValueAdapter extends RecyclerView.Adapter<ValueAdapter.ValueViewHol
 
     private Context context;
     private List<LookUpValue> lookUpValues;
-    private ValueAdapterClickListener listener; // TODO: implement
+    private ValueAdapterClickListener listener;
 
 
     public ValueAdapter(Context context, List<LookUpValue> lookUpValues, ValueAdapterClickListener listener) {

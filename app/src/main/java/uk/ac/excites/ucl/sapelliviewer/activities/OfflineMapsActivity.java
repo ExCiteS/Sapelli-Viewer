@@ -206,7 +206,7 @@ public class OfflineMapsActivity extends AppCompatActivity implements DetailsFra
         SimpleMarkerSymbol sms = new SimpleMarkerSymbol(SimpleMarkerSymbol.Style.CIRCLE, Color.RED, 20);
         Map<String, Object> contributionId = new HashMap<String, Object>();
         for (Contribution contribution : contributions) {
-            if (contribution.getGeometry().getType().equals("Point") && contribution.getContributionProperty() != null && contribution.getContributionProperty().getSymbol() != null) {
+            if (contribution.getGeometry().getType().equals("Point")) {
                 try {
                     contributionId.put(CONTRIBUTION_ID, contribution.getId());
                     JSONArray latLngCoordinates = new JSONArray(contribution.getGeometry().getCoordinates());
@@ -218,6 +218,15 @@ public class OfflineMapsActivity extends AppCompatActivity implements DetailsFra
                     e.printStackTrace();
                 }
             }
+        }
+
+        try {
+            if (graphicsOverlay.getGraphics().size() > 1)
+                mapView.setViewpointGeometryAsync(graphicsOverlay.getExtent(), 70);
+            else if (graphicsOverlay.getGraphics().size() == 1)
+                mapView.setViewpointCenterAsync(graphicsOverlay.getExtent().getCenter(), 3000);
+        } catch (Exception e) {
+            Log.e("Set Viewpoint", e.getMessage());
         }
 
 
@@ -298,7 +307,13 @@ public class OfflineMapsActivity extends AppCompatActivity implements DetailsFra
             MosaicDatasetRaster mosaicDatasetRaster = new MosaicDatasetRaster(MediaHelpers.dataPath + DB_NAME, RASTER_NAME);
             RasterLayer mosaicDatasetRasterLayer = new RasterLayer(mosaicDatasetRaster);
             map.getOperationalLayers().add(mosaicDatasetRasterLayer);
-            Log.e("LAYERS", "SHOWN");
+            map.loadAsync();
+            map.addDoneLoadingListener(new Runnable() {
+                @Override
+                public void run() {
+                    Log.e("LAYERS", "SHOWN");
+                }
+            });
         }
     }
 

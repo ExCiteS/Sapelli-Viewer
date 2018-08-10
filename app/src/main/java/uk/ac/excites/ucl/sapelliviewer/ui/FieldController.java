@@ -10,14 +10,13 @@ import android.widget.ToggleButton;
 
 import java.util.List;
 
-import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.observers.DisposableSingleObserver;
 import io.reactivex.schedulers.Schedulers;
 import uk.ac.excites.ucl.sapelliviewer.R;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Field;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.LookUpValue;
-import uk.ac.excites.ucl.sapelliviewer.service.DatabaseClient;
+import uk.ac.excites.ucl.sapelliviewer.db.DatabaseClient;
 
 class FieldController extends DatabaseClient {
 

@@ -62,18 +62,15 @@ public class SettingsActivity extends AppCompatActivity {
     public static final String PROJECT_ID = "project_id";
     public static final String ERROR_CODE = "error_code";
     public static final int PERMISSIONS_REQUEST_CODE = 0;
-    public static final int FILE_PICKER_REQUEST_CODE = 1;
 
     private RecyclerView recyclerView;
     private TokenManager tokenManager;
-    private GeoKeyRequests requestsWithAuth;
     private CompositeDisposable disposables;
     private AppDatabase db;
     private GeoKeyProjectAdapter projectAdapter;
     private ImageView clickedButton;
     private ObjectAnimator rotator;
     private MenuItem nameItem;
-    private List<ContributionProperty> contributionProperties = new ArrayList<ContributionProperty>();
     private int mapPathPosition;
     private GeoKeyClient geoKeyclient;
 
@@ -84,7 +81,6 @@ public class SettingsActivity extends AppCompatActivity {
         AppCompatDelegate.setCompatVectorFromResourcesEnabled(true);
         tokenManager = TokenManager.getInstance();
         disposables = new CompositeDisposable();
-        requestsWithAuth = RetrofitBuilder.createServiceWithAuth(GeoKeyRequests.class, tokenManager);
         db = AppDatabase.getAppDatabase(SettingsActivity.this);
         geoKeyclient = new GeoKeyClient(SettingsActivity.this);
         setContentView(R.layout.activity_settings);

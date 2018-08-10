@@ -1,6 +1,5 @@
 package uk.ac.excites.ucl.sapelliviewer.ui;
 
-import android.content.Context;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
@@ -12,7 +11,7 @@ import io.reactivex.observers.DisposableSingleObserver;
 import uk.ac.excites.ucl.sapelliviewer.activities.OfflineMapsActivity;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Contribution;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.LookUpValue;
-import uk.ac.excites.ucl.sapelliviewer.service.DatabaseClient;
+import uk.ac.excites.ucl.sapelliviewer.db.DatabaseClient;
 
 public class ValueController extends DatabaseClient {
 
