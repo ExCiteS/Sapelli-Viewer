@@ -1,5 +1,6 @@
 package uk.ac.excites.ucl.sapelliviewer.service;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.util.Log;
 
@@ -90,6 +91,7 @@ public class GeoKeyClient {
                 );
     }
 
+    @SuppressLint("CheckResult")
     public Observable<ContributionProperty> getContributionsWithProperties(int projectID) {
         return getContributions(projectID)
                 .doOnNext(contribution -> db.contributionDao().insertContribution(contribution))
@@ -97,23 +99,23 @@ public class GeoKeyClient {
                         .flatMap(property -> db.projectInfoDao().getFieldByKey(property.getKey()).toObservable()
                                 .flatMap(field -> Observable.just(new ContributionProperty(contribution.getId(), field.getId(), property.getKey(), property.getValue()))
                                         .doOnNext(contributionProperty -> {
+                                            if (field.getFieldtype().equals("LookupField")) {
+                                                db.projectInfoDao().getLookupValueById(contributionProperty.getValue()).toObservable().subscribe(lookUpValue -> {
+                                                    contributionProperty.setValue(lookUpValue.getName());
+                                                    contributionProperty.setSymbol(lookUpValue.getSymbol());
+                                                    if (contributionProperty.getKey().equals(contribution.getDisplay_field().getKey())) {
+                                                        contribution.setContributionProperty(contributionProperty);
+                                                        db.contributionDao().insertContribution(contribution);
+                                                    }
+                                                });
+                                            }
                                             db.contributionDao().insertContributionProperties(contributionProperty);
+                                            /* add displayfield to contribution table*/
                                             if (contributionProperty.getKey().equals(contribution.getDisplay_field().getKey())) {
                                                 contribution.setContributionProperty(contributionProperty);
-                                                db.contributionDao().insertContribution(contribution);
+                                                db.contributionDao().updateContribution(contribution);
                                             }
-
                                         })
-                                        .filter(contributionProperty -> field.getFieldtype().equals("LookupField"))
-                                        .doOnNext(contributionProperty -> db.projectInfoDao().getLookupValueById(contributionProperty.getValue()).toObservable().subscribe(lookUpValue -> {
-                                            contributionProperty.setValue(lookUpValue.getName());
-                                            contributionProperty.setSymbol(lookUpValue.getSymbol());
-                                            if (contributionProperty.getKey().equals(contribution.getDisplay_field().getKey())) {
-                                                contribution.setContributionProperty(contributionProperty);
-                                                db.contributionDao().insertContribution(contribution);
-                                            }
-                                            db.contributionDao().insertContributionProperties(contributionProperty);
-                                        }))
                                 )
                         )
                 );

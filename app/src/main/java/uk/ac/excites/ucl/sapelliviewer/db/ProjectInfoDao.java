@@ -32,7 +32,7 @@ public interface ProjectInfoDao {
     @Delete
     void deleteProjectInfo(ProjectInfo projectInfo);
 
-    @Query("SELECT * FROM ProjectInfo")
+    @Query("SELECT * FROM ProjectInfo order by name")
     Single<List<ProjectInfo>> getProjectInfos();
 
     @Query("DELETE FROM ProjectInfo")

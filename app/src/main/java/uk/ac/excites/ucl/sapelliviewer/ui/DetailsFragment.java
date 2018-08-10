@@ -4,25 +4,21 @@ import android.content.Context;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
-import android.util.Log;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
 
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.schedulers.Schedulers;
 import uk.ac.excites.ucl.sapelliviewer.R;
+import uk.ac.excites.ucl.sapelliviewer.db.AppDatabase;
 
-/**
- * A simple {@link Fragment} subclass.
- * Activities that contain this fragment must implement the
- * {@link DetailsFragment.OnFragmentInteractionListener} interface
- * to handle interaction events.
- * Use the {@link DetailsFragment#newInstance} factory method to
- * create an instance of this fragment.
- */
+
 public class DetailsFragment extends Fragment {
-    // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
     private static final String CONTRIBUTION_ID = "contributionID";
 
     private int contributionId;
@@ -45,12 +41,12 @@ public class DetailsFragment extends Fragment {
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
             contributionId = getArguments().getInt(CONTRIBUTION_ID);
+
         }
     }
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        Log.d("onCreateView", "reached");
         View view = inflater.inflate(R.layout.fragment_details, container, false);
         TextView txtContributionId = view.findViewById(R.id.contrib_id_text);
         txtContributionId.setText(String.valueOf(contributionId));
@@ -61,10 +57,19 @@ public class DetailsFragment extends Fragment {
                 closeView();
             }
         });
+
+        RecyclerView valueRecyclerView = view.findViewById(R.id.value_recycler_view);
+        valueRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity(), LinearLayoutManager.HORIZONTAL, false));
+        AppDatabase.getAppDatabase(getActivity()).contributionDao().getPropertiesByContribution(contributionId).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
+                .subscribe(contributionProperties -> valueRecyclerView.setAdapter(new ContributionValueAdapter(getActivity(), contributionProperties)));
+        RecyclerView photoRecyclerView = view.findViewById(R.id.photo_recycler_view);
+        photoRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity(), LinearLayoutManager.HORIZONTAL, false));
+        AppDatabase.getAppDatabase(getActivity()).contributionDao().getPhotosByContribution(contributionId).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
+                .subscribe(photos -> photoRecyclerView.setAdapter(new ContributionPhotoAdapter(getActivity(), photos)));
+
         return view;
     }
 
-    // TODO: Rename method, update argument and hook method into UI event
     public void closeView() {
         if (interactionListener != null) {
             interactionListener.onFragmentInteraction();

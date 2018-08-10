@@ -2,11 +2,14 @@ package uk.ac.excites.ucl.sapelliviewer.datamodel;
 
 import android.arch.persistence.room.Entity;
 import android.arch.persistence.room.ForeignKey;
+import android.arch.persistence.room.Index;
 import android.arch.persistence.room.PrimaryKey;
 
 @Entity(foreignKeys = {
         @ForeignKey(entity = Contribution.class, parentColumns = "id", childColumns = "contributionId"),
-        @ForeignKey(entity = Field.class, parentColumns = "id", childColumns = "fieldId")})
+        @ForeignKey(entity = Field.class, parentColumns = "id", childColumns = "fieldId")},
+        indices = {@Index(value = {"contributionId", "fieldId", "key"}, unique = true)}
+)
 public class ContributionProperty {
 
     @PrimaryKey(autoGenerate = true)

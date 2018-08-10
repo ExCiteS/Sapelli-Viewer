@@ -18,6 +18,7 @@ import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.observers.DisposableSingleObserver;
 import io.reactivex.schedulers.Schedulers;
 
+import com.idescout.sql.SqlScoutServer;
 import com.jakewharton.retrofit2.adapter.rxjava2.HttpException;
 
 import javax.net.ssl.SSLPeerUnverifiedException;
@@ -32,7 +33,7 @@ import uk.ac.excites.ucl.sapelliviewer.utils.TokenManager;
 import uk.ac.excites.ucl.sapelliviewer.utils.Validator;
 
 /**
- * A login screen that offers login via email/password. TODO: convert network calls to RxJava
+ * A login screen that offers login via email/password.
  */
 public class LoginActivity extends AppCompatActivity {
 
@@ -51,6 +52,7 @@ public class LoginActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        SqlScoutServer.create(this, getPackageName());
         application = this;
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         intent_settingsActivity = new Intent(this, SettingsActivity.class);

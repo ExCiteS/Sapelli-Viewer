@@ -3,7 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/colorAccent"
+    android:background="@color/background_light"
     tools:context="uk.ac.excites.ucl.sapelliviewer.activities.OfflineMapsActivity">
 
 
@@ -21,4 +21,20 @@
         android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true"
         android:text="CLOSE" />
+
+    <android.support.v7.widget.RecyclerView
+        android:id="@+id/value_recycler_view"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/btn_close_fragment"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="65dp"></android.support.v7.widget.RecyclerView>
+
+    <android.support.v7.widget.RecyclerView
+        android:id="@+id/photo_recycler_view"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/value_recycler_view"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="8dp"></android.support.v7.widget.RecyclerView>
 </RelativeLayout>
