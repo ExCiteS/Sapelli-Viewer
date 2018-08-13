@@ -1,9 +1,12 @@
 package uk.ac.excites.ucl.sapelliviewer.ui;
 
 import android.content.Context;
+import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentManager;
+import android.support.v4.content.res.ResourcesCompat;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
@@ -20,16 +23,18 @@ import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.schedulers.Schedulers;
 import uk.ac.excites.ucl.sapelliviewer.R;
 import uk.ac.excites.ucl.sapelliviewer.activities.OfflineMapsActivity;
+import uk.ac.excites.ucl.sapelliviewer.datamodel.Document;
 import uk.ac.excites.ucl.sapelliviewer.db.AppDatabase;
 import uk.ac.excites.ucl.sapelliviewer.utils.DateTimeHelpers;
 import uk.ac.excites.ucl.sapelliviewer.utils.MediaHelpers;
 
 
-public class DetailsFragment extends Fragment {
+public class DetailsFragment extends Fragment implements AudioFragment.FragmentListener {
     private static final String CONTRIBUTION_ID = "contributionID";
 
     private int contributionId;
     private OnFragmentInteractionListener interactionListener;
+    private ContributionAudioAdapter audioAdapter;
 
     public DetailsFragment() {
         // Required empty public constructor
@@ -74,14 +79,22 @@ public class DetailsFragment extends Fragment {
         disposables.add(db.contributionDao().getPhotosByContribution(contributionId).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
                 .subscribe(photos -> photoRecyclerView.setAdapter(new ContributionPhotoAdapter(getActivity(), photos, new ContributionPhotoAdapter.PhotoAdapterClickListener() {
                     @Override
-                    public void onClick(View v, String photoUrl) {
-                        openPhotoView(MediaHelpers.dataPath + File.separator + photoUrl);
+                    public void onClick(Document photo) {
+                        openPhotoView(photo);
                     }
                 }))));
         RecyclerView audioRecyclerView = view.findViewById(R.id.audio_recycler_view);
         audioRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity(), LinearLayoutManager.HORIZONTAL, false));
         disposables.add(db.contributionDao().getAudiosByContribution(contributionId).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
-                .subscribe(audios -> audioRecyclerView.setAdapter(new ContributionAudioAdapter(getActivity(), audios))));
+                .subscribe(audios -> {
+                    audioAdapter = new ContributionAudioAdapter(getActivity(), audios, new ContributionAudioAdapter.AudioAdapterClickListener() {
+                        @Override
+                        public void onClick(Document audio) {
+                            openAudioView(audio);
+                        }
+                    });
+                    audioRecyclerView.setAdapter(audioAdapter);
+                }));
         disposables.add(db.contributionDao().getDateByContribution(contributionId).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
                 .map(contributionProperty -> DateTimeHelpers.parseIso8601DateTime(contributionProperty.getValue())).subscribe(date -> dateTextView.setText(DateTimeHelpers.dateToString(date))));
 
@@ -96,12 +109,23 @@ public class DetailsFragment extends Fragment {
         }
     }
 
-    public void openPhotoView(String photoUrl) {
-        PhotoFragment photoFragment = PhotoFragment.newInstance(photoUrl);
-        getActivity().getSupportFragmentManager().beginTransaction()
+    public void openPhotoView(Document photo) {
+        PhotoFragment photoFragment = PhotoFragment.newInstance(photo.getId(), MediaHelpers.dataPath + File.separator + photo.getUrl());
+        Objects.requireNonNull(getActivity()).getSupportFragmentManager().beginTransaction()
                 .replace(R.id.fragment_media_container, photoFragment)
                 .addToBackStack(null)
                 .commit();
+    }
+
+    public void openAudioView(Document audio) {
+        FragmentManager fragmentManager = Objects.requireNonNull(getActivity()).getSupportFragmentManager();
+        if (audio.isActive()) {
+            fragmentManager.beginTransaction().remove(fragmentManager.findFragmentByTag(String.valueOf(audio.getId()))).commit();
+        } else {
+            AudioFragment audioFragment = AudioFragment.newInstance(audio.getId(), MediaHelpers.dataPath + File.separator + audio.getUrl());
+            fragmentManager.beginTransaction().replace(R.id.fragment_media_container, audioFragment, String.valueOf(audio.getId())).commit();
+            audioFragment.setFragmentListener(this);
+        }
     }
 
     @Override
@@ -124,6 +148,19 @@ public class DetailsFragment extends Fragment {
     public int getContributionId() {
         return contributionId;
     }
+
+    @Override
+    public void OnFragmentAttached(int audioId) {
+        audioAdapter.getAudioByid(audioId).setActive(true);
+        audioAdapter.notifyDataSetChanged();
+    }
+
+    @Override
+    public void OnFragmentDetached(int audioId) {
+        audioAdapter.getAudioByid(audioId).setActive(false);
+        audioAdapter.notifyDataSetChanged();
+    }
+
 
     /**
      * This interface must be implemented by activities that contain this

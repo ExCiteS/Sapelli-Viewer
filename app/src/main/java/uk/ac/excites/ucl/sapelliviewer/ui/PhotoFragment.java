@@ -31,17 +31,20 @@ import uk.ac.excites.ucl.sapelliviewer.utils.DateTimeHelpers;
 
 
 public class PhotoFragment extends Fragment {
+    private static final String PHOTO_ID = "photoId";
     private static final String PHOTO_PATH = "photoPath";
 
+    private int photoId;
     private String photoPath;
 
     public PhotoFragment() {
         // Required empty public constructor
     }
 
-    public static PhotoFragment newInstance(String photoPath) {
+    public static PhotoFragment newInstance(int photoId, String photoPath) {
         PhotoFragment fragment = new PhotoFragment();
         Bundle args = new Bundle();
+        args.putInt(PHOTO_ID, photoId);
         args.putString(PHOTO_PATH, photoPath);
         fragment.setArguments(args);
         return fragment;

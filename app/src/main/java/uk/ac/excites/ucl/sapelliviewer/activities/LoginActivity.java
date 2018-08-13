@@ -21,6 +21,7 @@ import io.reactivex.schedulers.Schedulers;
 import com.idescout.sql.SqlScoutServer;
 import com.jakewharton.retrofit2.adapter.rxjava2.HttpException;
 
+import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLPeerUnverifiedException;
 
 import uk.ac.excites.ucl.sapelliviewer.R;
@@ -114,7 +115,9 @@ public class LoginActivity extends AppCompatActivity {
                                     errorText.setText(R.string.geokey_not_found);
                                 } else if (e instanceof NoConnectivityException) {
                                     errorText.setText(R.string.no_internet);
-                                } else {
+                                } else if (e instanceof SSLException) {
+                                    errorText.setText(R.string.ssl_exception);
+                                } else if (e instanceof HttpException) {
                                     int errorCode = ((HttpException) e).code();
                                     if (errorCode == 404) {
                                         errorText.setText(R.string.geokey_not_found);
@@ -123,7 +126,8 @@ public class LoginActivity extends AppCompatActivity {
                                     } else {
                                         errorText.setText(((HttpException) e).message());
                                     }
-                                }
+                                } else
+                                    errorText.setText(e.getMessage());
                             }
                         }));
     }
