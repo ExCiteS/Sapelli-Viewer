@@ -26,6 +26,17 @@ public class Document {
     @Embedded
     private UserInfo creator;
 
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
+    }
+
+    @Ignore
+    private boolean active;
+
     @Ignore
     private Date created_at;
 

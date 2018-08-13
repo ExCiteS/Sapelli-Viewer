@@ -62,6 +62,9 @@ public interface ContributionDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertMediaFile(Document mediaFile);
 
+    @Query("Select * from Document where id = :id")
+    Maybe<Document> getDocumentById(int id);
+
     @Query("Select * from Document where file_type='ImageFile' and contribution_id = :contributionId")
     Single<List<Document>> getPhotosByContribution(int contributionId);
 

@@ -72,13 +72,13 @@ public class ContributionPhotoAdapter extends RecyclerView.Adapter<ContributionP
             contributionPhotoImage.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    listener.onClick(v, photos.get(getAdapterPosition()).getUrl());
+                    listener.onClick(photos.get(getAdapterPosition()));
                 }
             });
         }
     }
 
     public interface PhotoAdapterClickListener {
-        void onClick(View v, String photoUrl);
+        void onClick(Document photo);
     }
 }
