@@ -29,12 +29,13 @@ import uk.ac.excites.ucl.sapelliviewer.utils.DateTimeHelpers;
 import uk.ac.excites.ucl.sapelliviewer.utils.MediaHelpers;
 
 
-public class DetailsFragment extends Fragment implements AudioFragment.FragmentListener {
+public class DetailsFragment extends Fragment implements DocumentFragmentListener {
     private static final String CONTRIBUTION_ID = "contributionID";
 
     private int contributionId;
     private OnFragmentInteractionListener interactionListener;
     private ContributionAudioAdapter audioAdapter;
+    private ContributionPhotoAdapter photoAdapter;
 
     public DetailsFragment() {
         // Required empty public constructor
@@ -77,12 +78,15 @@ public class DetailsFragment extends Fragment implements AudioFragment.FragmentL
         RecyclerView photoRecyclerView = view.findViewById(R.id.photo_recycler_view);
         photoRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity(), LinearLayoutManager.HORIZONTAL, false));
         disposables.add(db.contributionDao().getPhotosByContribution(contributionId).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
-                .subscribe(photos -> photoRecyclerView.setAdapter(new ContributionPhotoAdapter(getActivity(), photos, new ContributionPhotoAdapter.PhotoAdapterClickListener() {
-                    @Override
-                    public void onClick(Document photo) {
-                        openPhotoView(photo);
-                    }
-                }))));
+                .subscribe(photos -> {
+                    photoAdapter = new ContributionPhotoAdapter(getActivity(), photos, new ContributionPhotoAdapter.PhotoAdapterClickListener() {
+                        @Override
+                        public void onClick(Document photo) {
+                            openPhotoView(photo);
+                        }
+                    });
+                    photoRecyclerView.setAdapter(photoAdapter);
+                }));
         RecyclerView audioRecyclerView = view.findViewById(R.id.audio_recycler_view);
         audioRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity(), LinearLayoutManager.HORIZONTAL, false));
         disposables.add(db.contributionDao().getAudiosByContribution(contributionId).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
@@ -110,11 +114,14 @@ public class DetailsFragment extends Fragment implements AudioFragment.FragmentL
     }
 
     public void openPhotoView(Document photo) {
-        PhotoFragment photoFragment = PhotoFragment.newInstance(photo.getId(), MediaHelpers.dataPath + File.separator + photo.getUrl());
-        Objects.requireNonNull(getActivity()).getSupportFragmentManager().beginTransaction()
-                .replace(R.id.fragment_media_container, photoFragment)
-                .addToBackStack(null)
-                .commit();
+        FragmentManager fragmentManager = Objects.requireNonNull(getActivity()).getSupportFragmentManager();
+        if (photo.isActive()) {
+            fragmentManager.beginTransaction().remove(fragmentManager.findFragmentByTag(String.valueOf(photo.getId()))).commit();
+        } else {
+            PhotoFragment photoFragment = PhotoFragment.newInstance(photo.getId(), MediaHelpers.dataPath + File.separator + photo.getUrl());
+            fragmentManager.beginTransaction().replace(R.id.fragment_media_container, photoFragment, String.valueOf(photo.getId())).commit();
+            photoFragment.setFragmentListener(this);
+        }
     }
 
     public void openAudioView(Document audio) {
@@ -150,15 +157,25 @@ public class DetailsFragment extends Fragment implements AudioFragment.FragmentL
     }
 
     @Override
-    public void OnFragmentAttached(int audioId) {
-        audioAdapter.getAudioByid(audioId).setActive(true);
-        audioAdapter.notifyDataSetChanged();
+    public void OnFragmentAttached(String type, int documentId) {
+        if (type.equals("AudioFragment")) {
+            audioAdapter.getAudioByid(documentId).setActive(true);
+            audioAdapter.notifyDataSetChanged();
+        } else if (type.equals("PhotoFragment")) {
+            photoAdapter.getPhotoByid(documentId).setActive(true);
+            photoAdapter.notifyDataSetChanged();
+        }
     }
 
     @Override
-    public void OnFragmentDetached(int audioId) {
-        audioAdapter.getAudioByid(audioId).setActive(false);
-        audioAdapter.notifyDataSetChanged();
+    public void OnFragmentDetached(String type, int documentId) {
+        if (type.equals("AudioFragment")) {
+            audioAdapter.getAudioByid(documentId).setActive(false);
+            audioAdapter.notifyDataSetChanged();
+        } else if (type.equals("PhotoFragment")) {
+            photoAdapter.getPhotoByid(documentId).setActive(false);
+            photoAdapter.notifyDataSetChanged();
+        }
     }
 
 

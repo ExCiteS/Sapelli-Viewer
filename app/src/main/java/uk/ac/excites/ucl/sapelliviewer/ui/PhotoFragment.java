@@ -36,9 +36,15 @@ public class PhotoFragment extends Fragment {
 
     private int photoId;
     private String photoPath;
+    private DocumentFragmentListener listener;
+
 
     public PhotoFragment() {
         // Required empty public constructor
+    }
+
+    public void setFragmentListener(DocumentFragmentListener listener) {
+        this.listener = listener;
     }
 
     public static PhotoFragment newInstance(int photoId, String photoPath) {
@@ -54,8 +60,11 @@ public class PhotoFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
+            photoId = getArguments().getInt(PHOTO_ID);
             photoPath = getArguments().getString(PHOTO_PATH);
         }
+        if (listener != null)
+            listener.OnFragmentAttached(getClass().getSimpleName(), photoId);
     }
 
     @Override
@@ -69,6 +78,13 @@ public class PhotoFragment extends Fragment {
                 .into(photoView);
 
         return view;
+    }
+
+    @Override
+    public void onDetach() {
+        super.onDetach();
+        if (listener != null)
+            listener.OnFragmentDetached(getClass().getSimpleName(), photoId);
     }
 
 
