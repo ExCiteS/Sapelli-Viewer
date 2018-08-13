@@ -78,4 +78,12 @@
         android:layout_alignParentBottom="true"
         android:background="@color/background_light"
         android:orientation="horizontal"></android.support.v7.widget.RecyclerView>
+
+    <FrameLayout
+        android:id="@+id/fragment_media_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_margin="20dp"
+        android:layout_toRightOf="@id/fragment_container" />
+
 </RelativeLayout>

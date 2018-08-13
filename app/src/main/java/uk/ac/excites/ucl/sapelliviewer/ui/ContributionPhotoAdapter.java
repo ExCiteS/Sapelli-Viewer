@@ -19,10 +19,14 @@ import uk.ac.excites.ucl.sapelliviewer.utils.MediaHelpers;
 public class ContributionPhotoAdapter extends RecyclerView.Adapter<ContributionPhotoAdapter.ContributionViewHolder> {
     private Context context;
     private List<Document> photos;
+    private PhotoAdapterClickListener listener;
 
-    public ContributionPhotoAdapter(Context context, List<Document> photos) {
+
+    public ContributionPhotoAdapter(Context context, List<Document> photos, PhotoAdapterClickListener listener) {
         this.context = context;
         this.photos = photos;
+        this.listener = listener;
+
     }
 
 
@@ -65,7 +69,16 @@ public class ContributionPhotoAdapter extends RecyclerView.Adapter<ContributionP
         ContributionViewHolder(View itemView) {
             super(itemView);
             contributionPhotoImage = itemView.findViewById(R.id.contrib_photo_image);
-
+            contributionPhotoImage.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    listener.onClick(v, photos.get(getAdapterPosition()).getUrl());
+                }
+            });
         }
+    }
+
+    public interface PhotoAdapterClickListener {
+        void onClick(View v, String photoUrl);
     }
 }
