@@ -8,7 +8,9 @@ import android.arch.persistence.room.Update;
 
 import java.util.List;
 
+import io.reactivex.Maybe;
 import io.reactivex.Single;
+import io.reactivex.disposables.Disposable;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Contribution;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.ContributionProperty;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Document;
@@ -38,6 +40,7 @@ public interface ContributionDao {
     @Query("SELECT DISTINCT Contribution.* FROM LookUpValue JOIN ContributionProperty ON LookUpValue.name = ContributionProperty.value AND LookUpValue.symbol = ContributionProperty.symbol JOIN Contribution ON ContributionProperty.contributionId = Contribution.id WHERE LookUpValue.id IN (:valueIDs);")
     Single<List<Contribution>> getContributionsByValues(List<Integer> valueIDs);
 
+
     /* CONTRIBUTION PROPERTIES*/
     @Insert(onConflict = OnConflictStrategy.REPLACE)
 //    void insertContributionProperties(List<ContributionProperty> contributionProperty);
@@ -52,10 +55,17 @@ public interface ContributionDao {
     @Query("SELECT ContributionProperty.* from Contribution join ContributionProperty on contribution.id = contributionproperty.contributionId WHERE  ContributionProperty.symbol is not null and Contribution.id = :contributionId")
     Single<List<ContributionProperty>> getPropertiesByContribution(int contributionId);
 
+    @Query("SELECT ContributionProperty.* from Contribution join ContributionProperty on contribution.id = contributionproperty.contributionId WHERE  ContributionProperty.[key] = 'StartTime' and Contribution.id = :contributionId")
+    Maybe<ContributionProperty> getDateByContribution(int contributionId);
+
     /* MEDIA FILES */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertMediaFile(Document mediaFile);
 
     @Query("Select * from Document where file_type='ImageFile' and contribution_id = :contributionId")
     Single<List<Document>> getPhotosByContribution(int contributionId);
+
+    @Query("Select * from Document where file_type='AudioFile' and contribution_id = :contributionId")
+    Single<List<Document>> getAudiosByContribution(int contributionId);
+
 }

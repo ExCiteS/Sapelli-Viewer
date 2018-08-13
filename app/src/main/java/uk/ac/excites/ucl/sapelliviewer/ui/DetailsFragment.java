@@ -12,10 +12,19 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
+import java.util.Objects;
+
 import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.schedulers.Schedulers;
 import uk.ac.excites.ucl.sapelliviewer.R;
+import uk.ac.excites.ucl.sapelliviewer.activities.OfflineMapsActivity;
 import uk.ac.excites.ucl.sapelliviewer.db.AppDatabase;
+import uk.ac.excites.ucl.sapelliviewer.utils.DateTimeHelpers;
+import uk.ac.excites.ucl.sapelliviewer.utils.MediaHelpers;
 
 
 public class DetailsFragment extends Fragment {
@@ -41,15 +50,13 @@ public class DetailsFragment extends Fragment {
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
             contributionId = getArguments().getInt(CONTRIBUTION_ID);
-
         }
     }
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_details, container, false);
-        TextView txtContributionId = view.findViewById(R.id.contrib_id_text);
-        txtContributionId.setText(String.valueOf(contributionId));
+        TextView dateTextView = view.findViewById(R.id.txt_date);
         Button btnClose = view.findViewById(R.id.btn_close_fragment);
         btnClose.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -58,17 +65,27 @@ public class DetailsFragment extends Fragment {
             }
         });
 
+        AppDatabase db = AppDatabase.getAppDatabase(getActivity());
+        CompositeDisposable disposables = ((OfflineMapsActivity) Objects.requireNonNull(getActivity())).getDisposables();
         RecyclerView valueRecyclerView = view.findViewById(R.id.value_recycler_view);
         valueRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity(), LinearLayoutManager.HORIZONTAL, false));
-        AppDatabase.getAppDatabase(getActivity()).contributionDao().getPropertiesByContribution(contributionId).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
-                .subscribe(contributionProperties -> valueRecyclerView.setAdapter(new ContributionValueAdapter(getActivity(), contributionProperties)));
+        disposables.add(db.contributionDao().getPropertiesByContribution(contributionId).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
+                .subscribe(contributionProperties -> valueRecyclerView.setAdapter(new ContributionValueAdapter(getActivity(), contributionProperties))));
         RecyclerView photoRecyclerView = view.findViewById(R.id.photo_recycler_view);
         photoRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity(), LinearLayoutManager.HORIZONTAL, false));
-        AppDatabase.getAppDatabase(getActivity()).contributionDao().getPhotosByContribution(contributionId).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
-                .subscribe(photos -> photoRecyclerView.setAdapter(new ContributionPhotoAdapter(getActivity(), photos)));
+        disposables.add(db.contributionDao().getPhotosByContribution(contributionId).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
+                .subscribe(photos -> photoRecyclerView.setAdapter(new ContributionPhotoAdapter(getActivity(), photos))));
+        RecyclerView audioRecyclerView = view.findViewById(R.id.audio_recycler_view);
+        audioRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity(), LinearLayoutManager.HORIZONTAL, false));
+        disposables.add(db.contributionDao().getAudiosByContribution(contributionId).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
+                .subscribe(audios -> audioRecyclerView.setAdapter(new ContributionAudioAdapter(getActivity(), audios))));
+        disposables.add(db.contributionDao().getDateByContribution(contributionId).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
+                .map(contributionProperty -> DateTimeHelpers.parseIso8601DateTime(contributionProperty.getValue())).subscribe(date -> dateTextView.setText(DateTimeHelpers.dateToString(date))));
+
 
         return view;
     }
+
 
     public void closeView() {
         if (interactionListener != null) {

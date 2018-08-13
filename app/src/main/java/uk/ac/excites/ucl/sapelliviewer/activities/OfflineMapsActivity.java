@@ -383,6 +383,9 @@ public class OfflineMapsActivity extends AppCompatActivity implements DetailsFra
     }
 
 
+    public CompositeDisposable getDisposables() {
+        return disposables;
+    }
 }
 
 
