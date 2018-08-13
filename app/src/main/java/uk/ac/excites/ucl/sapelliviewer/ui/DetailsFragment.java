@@ -12,9 +12,7 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Locale;
+import java.io.File;
 import java.util.Objects;
 
 import io.reactivex.android.schedulers.AndroidSchedulers;
@@ -74,7 +72,12 @@ public class DetailsFragment extends Fragment {
         RecyclerView photoRecyclerView = view.findViewById(R.id.photo_recycler_view);
         photoRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity(), LinearLayoutManager.HORIZONTAL, false));
         disposables.add(db.contributionDao().getPhotosByContribution(contributionId).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
-                .subscribe(photos -> photoRecyclerView.setAdapter(new ContributionPhotoAdapter(getActivity(), photos))));
+                .subscribe(photos -> photoRecyclerView.setAdapter(new ContributionPhotoAdapter(getActivity(), photos, new ContributionPhotoAdapter.PhotoAdapterClickListener() {
+                    @Override
+                    public void onClick(View v, String photoUrl) {
+                        openPhotoView(MediaHelpers.dataPath + File.separator + photoUrl);
+                    }
+                }))));
         RecyclerView audioRecyclerView = view.findViewById(R.id.audio_recycler_view);
         audioRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity(), LinearLayoutManager.HORIZONTAL, false));
         disposables.add(db.contributionDao().getAudiosByContribution(contributionId).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
@@ -91,6 +94,14 @@ public class DetailsFragment extends Fragment {
         if (interactionListener != null) {
             interactionListener.onFragmentInteraction();
         }
+    }
+
+    public void openPhotoView(String photoUrl) {
+        PhotoFragment photoFragment = PhotoFragment.newInstance(photoUrl);
+        getActivity().getSupportFragmentManager().beginTransaction()
+                .replace(R.id.fragment_media_container, photoFragment)
+                .addToBackStack(null)
+                .commit();
     }
 
     @Override
