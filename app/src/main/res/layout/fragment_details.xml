@@ -6,14 +6,6 @@
     android:background="@color/background_light"
     tools:context="uk.ac.excites.ucl.sapelliviewer.activities.OfflineMapsActivity">
 
-
-    <TextView
-        android:id="@+id/contrib_id_text"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_centerHorizontal="true"
-        android:layout_centerVertical="true" />
-
     <Button
         android:id="@+id/btn_close_fragment"
         android:layout_width="match_parent"
@@ -37,4 +29,20 @@
         android:layout_below="@id/value_recycler_view"
         android:layout_centerHorizontal="true"
         android:layout_marginTop="8dp"></android.support.v7.widget.RecyclerView>
+
+    <android.support.v7.widget.RecyclerView
+        android:id="@+id/audio_recycler_view"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/photo_recycler_view"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="8dp"></android.support.v7.widget.RecyclerView>
+
+    <TextView
+        android:id="@+id/txt_date"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="16dp" />
 </RelativeLayout>
