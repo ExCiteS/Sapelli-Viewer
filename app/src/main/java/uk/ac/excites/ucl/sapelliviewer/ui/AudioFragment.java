@@ -35,13 +35,13 @@ public class AudioFragment extends Fragment {
     private int audioId;
     private String audioPath;
     private RxAudioPlayer rxAudioPlayer;
-    private FragmentListener listener;
+    private DocumentFragmentListener listener;
 
     public AudioFragment() {
         // Required empty public constructor
     }
 
-    public void setFragmentListener(FragmentListener listener) {
+    public void setFragmentListener(DocumentFragmentListener listener) {
         this.listener = listener;
     }
 
@@ -62,7 +62,7 @@ public class AudioFragment extends Fragment {
             audioPath = getArguments().getString(AUDIO_PATH);
         }
         if (listener != null)
-            listener.OnFragmentAttached(audioId);
+            listener.OnFragmentAttached(getClass().getSimpleName(), audioId);
 
         rxAudioPlayer = RxAudioPlayer.getInstance();
 
@@ -112,14 +112,7 @@ public class AudioFragment extends Fragment {
     public void onDetach() {
         super.onDetach();
         if (listener != null)
-            listener.OnFragmentDetached(audioId);
-    }
-
-
-    public interface FragmentListener {
-        public void OnFragmentAttached(int audioId);
-
-        public void OnFragmentDetached(int audioId);
+            listener.OnFragmentDetached(getClass().getSimpleName(), audioId);
     }
 
 
