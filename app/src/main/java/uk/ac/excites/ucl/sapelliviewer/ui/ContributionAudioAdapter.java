@@ -54,7 +54,7 @@ public class ContributionAudioAdapter extends RecyclerView.Adapter<ContributionA
 
     @Override
     public int getItemCount() {
-        return audios.size();
+        return audios == null ? 0 : audios.size();
     }
 
     public Document getAudioByid(int audioId) {

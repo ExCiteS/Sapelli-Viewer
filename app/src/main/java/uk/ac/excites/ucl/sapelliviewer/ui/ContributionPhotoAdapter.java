@@ -66,7 +66,7 @@ public class ContributionPhotoAdapter extends RecyclerView.Adapter<ContributionP
 
     @Override
     public int getItemCount() {
-        return photos.size();
+        return photos == null ? 0 : photos.size();
     }
 
     public Document getPhotoByid(int photoId) {
