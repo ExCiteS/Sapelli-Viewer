@@ -1,5 +1,6 @@
 package uk.ac.excites.ucl.sapelliviewer.activities;
 
+import android.animation.LayoutTransition;
 import android.annotation.SuppressLint;
 import android.app.Fragment;
 import android.content.Context;
@@ -8,6 +9,7 @@ import android.graphics.Color;
 import android.os.Bundle;
 import android.support.transition.CircularPropagation;
 import android.support.transition.Explode;
+import android.support.transition.Fade;
 import android.support.transition.Slide;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentManager;
@@ -17,6 +19,7 @@ import android.util.Log;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 import android.view.animation.AccelerateInterpolator;
@@ -75,7 +78,7 @@ import uk.ac.excites.ucl.sapelliviewer.utils.MediaHelpers;
 /**
  * Created by julia
  */
-public class OfflineMapsActivity extends AppCompatActivity implements DetailsFragment.OnFragmentInteractionListener {
+public class OfflineMapsActivity extends AppCompatActivity {
     private static final String DETAILS_FRAGMENT = "detailsFragment";
     public static String CONTRIBUTION_ID = "contribution_id";
     public static String DB_NAME = "/mosaicdb.sqlite";
@@ -106,6 +109,8 @@ public class OfflineMapsActivity extends AppCompatActivity implements DetailsFra
         disposables = new CompositeDisposable();
         mapView = (MapView) findViewById(R.id.map);
         copyBlankMap();
+
+        ((ViewGroup) findViewById(R.id.root)).getLayoutTransition().enableTransitionType(LayoutTransition.CHANGING);
 
         new ValueController(this, findViewById(R.id.value_recycler_view), disposables)
                 .addFieldController(findViewById(R.id.field_recycler_view)); // ValueController should also work without Fields
@@ -149,9 +154,14 @@ public class OfflineMapsActivity extends AppCompatActivity implements DetailsFra
                                                        // get the list of graphics returned by identify graphic overlay
                                                        if (!grOverlayResult.getGraphics().isEmpty()) {
                                                            Graphic graphic = grOverlayResult.getGraphics().get(0);
-                                                           displayDetails((Integer) graphic.getAttributes().get(CONTRIBUTION_ID));
-                                                           mapView.getGraphicsOverlays().get(0).clearSelection();
-                                                           graphic.setSelected(true);
+                                                           if (!graphic.isSelected()) {
+                                                               displayDetails((Integer) graphic.getAttributes().get(CONTRIBUTION_ID));
+                                                               mapView.getGraphicsOverlays().get(0).clearSelection();
+                                                               graphic.setSelected(true);
+                                                           } else {
+                                                               closeFragment();
+                                                               graphic.setSelected(false);
+                                                           }
 //                                                           mapView.setViewpointCenterAsync(new Point(((Point) graphic.getGeometry()).getX(), ((Point) graphic.getGeometry()).getY()));
                                                        }
                                                    } catch (InterruptedException | ExecutionException ie) {
@@ -277,6 +287,7 @@ public class OfflineMapsActivity extends AppCompatActivity implements DetailsFra
         mosaicDatasetRaster.addDoneLoadingListener(new Runnable() {
             @Override
             public void run() {
+                Log.d("CREATED", mosaicDatasetRaster.getLoadStatus().name());
                 if (mosaicDatasetRaster.getLoadStatus() == LoadStatus.LOADED) {
                     Log.d("CREATED", "successful");
                     AddRastersParameters parameters = new AddRastersParameters();
@@ -345,6 +356,7 @@ public class OfflineMapsActivity extends AppCompatActivity implements DetailsFra
                 DetailsFragment detailsFragment = DetailsFragment.newInstance(contributionId);
                 fragmentManager
                         .beginTransaction()
+                        .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_FADE)
                         .replace(R.id.fragment_container, detailsFragment, DETAILS_FRAGMENT)
                         .commit();
             }
@@ -352,6 +364,7 @@ public class OfflineMapsActivity extends AppCompatActivity implements DetailsFra
             DetailsFragment detailsFragment = DetailsFragment.newInstance(contributionId);
             fragmentManager
                     .beginTransaction()
+                    .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_FADE)
                     .add(R.id.fragment_container, detailsFragment, DETAILS_FRAGMENT)
                     .commit();
             final RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT);
@@ -363,16 +376,11 @@ public class OfflineMapsActivity extends AppCompatActivity implements DetailsFra
     }
 
 
-    @Override
-    public void onFragmentInteraction() {
-        closeFragment();
-    }
-
     public void closeFragment() {
         DetailsFragment shownFragment = (DetailsFragment) getSupportFragmentManager().findFragmentByTag(DETAILS_FRAGMENT);
         FragmentManager fragmentManager = getSupportFragmentManager();
         if (shownFragment != null && shownFragment.isVisible()) {
-            fragmentManager.beginTransaction().remove(shownFragment).commit();
+            fragmentManager.beginTransaction().setTransition(FragmentTransaction.TRANSIT_FRAGMENT_FADE).remove(shownFragment).commit();
         }
 
         final RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT);
