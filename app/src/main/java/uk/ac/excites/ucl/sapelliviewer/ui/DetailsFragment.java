@@ -4,6 +4,7 @@ import android.content.Context;
 import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.content.res.ResourcesCompat;
@@ -33,9 +34,12 @@ public class DetailsFragment extends Fragment implements DocumentFragmentListene
     private static final String CONTRIBUTION_ID = "contributionID";
 
     private int contributionId;
-    private OnFragmentInteractionListener interactionListener;
     private ContributionAudioAdapter audioAdapter;
     private ContributionPhotoAdapter photoAdapter;
+    private RecyclerView valueRecyclerView;
+    private RecyclerView photoRecyclerView;
+    private RecyclerView audioRecyclerView;
+    private TextView dateTextView;
 
     public DetailsFragment() {
         // Required empty public constructor
@@ -60,22 +64,22 @@ public class DetailsFragment extends Fragment implements DocumentFragmentListene
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_details, container, false);
-        TextView dateTextView = view.findViewById(R.id.txt_date);
-        Button btnClose = view.findViewById(R.id.btn_close_fragment);
-        btnClose.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                closeView();
-            }
-        });
+        dateTextView = view.findViewById(R.id.txt_date);
+        valueRecyclerView = view.findViewById(R.id.value_recycler_view);
+        photoRecyclerView = view.findViewById(R.id.photo_recycler_view);
+        audioRecyclerView = view.findViewById(R.id.audio_recycler_view);
+        return view;
+    }
 
+
+    @Override
+    public void onStart() {
+        super.onStart();
         AppDatabase db = AppDatabase.getAppDatabase(getActivity());
         CompositeDisposable disposables = ((OfflineMapsActivity) Objects.requireNonNull(getActivity())).getDisposables();
-        RecyclerView valueRecyclerView = view.findViewById(R.id.value_recycler_view);
         valueRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity(), LinearLayoutManager.HORIZONTAL, false));
         disposables.add(db.contributionDao().getPropertiesByContribution(contributionId).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
                 .subscribe(contributionProperties -> valueRecyclerView.setAdapter(new ContributionValueAdapter(getActivity(), contributionProperties))));
-        RecyclerView photoRecyclerView = view.findViewById(R.id.photo_recycler_view);
         photoRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity(), LinearLayoutManager.HORIZONTAL, false));
         disposables.add(db.contributionDao().getPhotosByContribution(contributionId).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
                 .subscribe(photos -> {
@@ -87,7 +91,6 @@ public class DetailsFragment extends Fragment implements DocumentFragmentListene
                     });
                     photoRecyclerView.setAdapter(photoAdapter);
                 }));
-        RecyclerView audioRecyclerView = view.findViewById(R.id.audio_recycler_view);
         audioRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity(), LinearLayoutManager.HORIZONTAL, false));
         disposables.add(db.contributionDao().getAudiosByContribution(contributionId).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
                 .subscribe(audios -> {
@@ -102,16 +105,8 @@ public class DetailsFragment extends Fragment implements DocumentFragmentListene
         disposables.add(db.contributionDao().getDateByContribution(contributionId).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
                 .map(contributionProperty -> DateTimeHelpers.parseIso8601DateTime(contributionProperty.getValue())).subscribe(date -> dateTextView.setText(DateTimeHelpers.dateToString(date))));
 
-
-        return view;
     }
 
-
-    public void closeView() {
-        if (interactionListener != null) {
-            interactionListener.onFragmentInteraction();
-        }
-    }
 
     public void openPhotoView(Document photo) {
         FragmentManager fragmentManager = Objects.requireNonNull(getActivity()).getSupportFragmentManager();
@@ -135,22 +130,6 @@ public class DetailsFragment extends Fragment implements DocumentFragmentListene
         }
     }
 
-    @Override
-    public void onAttach(Context context) {
-        super.onAttach(context);
-        if (context instanceof OnFragmentInteractionListener) {
-            interactionListener = (OnFragmentInteractionListener) context;
-        } else {
-            throw new RuntimeException(context.toString()
-                    + " must implement OnFragmentInteractionListener");
-        }
-    }
-
-    @Override
-    public void onDetach() {
-        super.onDetach();
-        interactionListener = null;
-    }
 
     public int getContributionId() {
         return contributionId;
@@ -178,18 +157,4 @@ public class DetailsFragment extends Fragment implements DocumentFragmentListene
         }
     }
 
-
-    /**
-     * This interface must be implemented by activities that contain this
-     * fragment to allow an interaction in this fragment to be communicated
-     * to the activity and potentially other fragments contained in that
-     * activity.
-     * <p>
-     * See the Android Training lesson <a href=
-     * "http://developer.android.com/training/basics/fragments/communicating.html"
-     * >Communicating with Other Fragments</a> for more information.
-     */
-    public interface OnFragmentInteractionListener {
-        void onFragmentInteraction();
-    }
 }
