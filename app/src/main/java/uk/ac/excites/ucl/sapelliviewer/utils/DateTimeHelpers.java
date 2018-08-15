@@ -26,7 +26,8 @@ public class DateTimeHelpers {
         if (string == null) {
             return null;
         }
-        String s = string.replace("Z", "+00:00");
+        String s = string.split("\\+|Z")[0];
+        s = s + "+00:00";
         for (String pattern : SUPPORTED_ISO_8601_PATTERNS) {
             String str = s;
             int colonPosition = pattern.lastIndexOf('Z') - TICK_MARK_COUNT + COLON_PREFIX_COUNT;
@@ -34,7 +35,7 @@ public class DateTimeHelpers {
                 str = str.substring(0, colonPosition) + str.substring(colonPosition + 1);
             }
             try {
-                return new SimpleDateFormat(pattern, Locale.UK).parse(str);
+                return new SimpleDateFormat(pattern).parse(str);
             } catch (final ParseException e) {
                 // try the next one
             }
