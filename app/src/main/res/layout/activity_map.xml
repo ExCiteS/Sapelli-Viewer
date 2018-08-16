@@ -78,8 +78,27 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
+        android:layout_toLeftOf="@+id/button_toggle_on"
         android:background="@color/background_light"
         android:orientation="horizontal"></android.support.v7.widget.RecyclerView>
+
+    <ImageButton
+        android:id="@+id/button_toggle_off"
+        android:layout_width="50dp"
+        android:background="@color/background_dark"
+        android:layout_height="50dp"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentRight="true"
+        android:visibility="invisible" />
+
+    <ImageButton
+        android:id="@+id/button_toggle_on"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:background="@color/colorPrimary"
+        android:layout_alignParentBottom="true"
+        android:layout_toLeftOf="@id/button_toggle_off"
+        android:visibility="gone" />
 
     <FrameLayout
         android:id="@+id/fragment_media_container"

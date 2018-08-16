@@ -2,35 +2,24 @@ package uk.ac.excites.ucl.sapelliviewer.activities;
 
 import android.animation.LayoutTransition;
 import android.annotation.SuppressLint;
-import android.app.Fragment;
 import android.content.Context;
 import android.content.pm.ActivityInfo;
 import android.graphics.Color;
 import android.os.Bundle;
-import android.support.transition.CircularPropagation;
-import android.support.transition.Explode;
-import android.support.transition.Fade;
-import android.support.transition.Slide;
-import android.support.v4.app.FragmentActivity;
+import android.os.Handler;
 import android.support.v4.app.FragmentManager;
-import android.support.v4.app.FragmentTransaction;
+import android.support.v4.content.res.ResourcesCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-import android.view.Gravity;
+import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
-import android.view.animation.AccelerateInterpolator;
-import android.view.animation.DecelerateInterpolator;
-import android.widget.FrameLayout;
 import android.widget.RelativeLayout;
 
 import com.esri.arcgisruntime.concurrent.ListenableFuture;
-import com.esri.arcgisruntime.data.Geodatabase;
-import com.esri.arcgisruntime.data.QueryParameters;
-import com.esri.arcgisruntime.geometry.Envelope;
 import com.esri.arcgisruntime.geometry.GeometryEngine;
 import com.esri.arcgisruntime.geometry.Point;
 import com.esri.arcgisruntime.geometry.SpatialReferences;
@@ -42,7 +31,6 @@ import com.esri.arcgisruntime.loadable.LoadStatusChangedListener;
 import com.esri.arcgisruntime.mapping.ArcGISMap;
 import com.esri.arcgisruntime.mapping.Basemap;
 import com.esri.arcgisruntime.mapping.Viewpoint;
-import com.esri.arcgisruntime.mapping.view.Callout;
 import com.esri.arcgisruntime.mapping.view.DefaultMapViewOnTouchListener;
 import com.esri.arcgisruntime.mapping.view.Graphic;
 import com.esri.arcgisruntime.mapping.view.GraphicsOverlay;
@@ -62,7 +50,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
+import io.reactivex.Observable;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.schedulers.Schedulers;
@@ -70,9 +60,9 @@ import uk.ac.excites.ucl.sapelliviewer.R;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Contribution;
 import uk.ac.excites.ucl.sapelliviewer.db.AppDatabase;
 import uk.ac.excites.ucl.sapelliviewer.ui.DetailsFragment;
-import uk.ac.excites.ucl.sapelliviewer.ui.FieldAdapter;
 import uk.ac.excites.ucl.sapelliviewer.ui.ValueController;
 import uk.ac.excites.ucl.sapelliviewer.utils.MediaHelpers;
+import uk.ac.excites.ucl.sapelliviewer.utils.TokenManager;
 
 
 /**
@@ -86,12 +76,11 @@ public class OfflineMapsActivity extends AppCompatActivity {
 
 
     private MapView mapView;
-    private Callout callout;
-    private FieldAdapter fieldAdapter;
     private AppDatabase db;
     private int projectId;
     private CompositeDisposable disposables;
     private ArcGISMap map;
+    private int backCounter;
 
 
     @SuppressLint("ClickableViewAccessibility")
@@ -103,17 +92,18 @@ public class OfflineMapsActivity extends AppCompatActivity {
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
-        setContentView(R.layout.offline_map);
+        setContentView(R.layout.activity_map);
         db = AppDatabase.getAppDatabase(getApplicationContext());
         projectId = getIntent().getIntExtra(SettingsActivity.PROJECT_ID, 0);
         disposables = new CompositeDisposable();
         mapView = (MapView) findViewById(R.id.map);
         copyBlankMap();
 
-        ((ViewGroup) findViewById(R.id.root)).getLayoutTransition().enableTransitionType(LayoutTransition.CHANGING);
+        ((ViewGroup) findViewById(R.id.root)).getLayoutTransition().enableTransitionType(LayoutTransition.CHANGE_APPEARING);
 
         new ValueController(this, findViewById(R.id.value_recycler_view), disposables)
-                .addFieldController(findViewById(R.id.field_recycler_view)); // ValueController should also work without Fields
+                .addFieldController(findViewById(R.id.field_recycler_view))
+                .addToggleButtons(findViewById(R.id.button_toggle_on), findViewById(R.id.button_toggle_off)); // ValueController should also work without Fields
 
         /* Load Vector base map*/
         ArcGISVectorTiledLayer vtpk = new ArcGISVectorTiledLayer(MediaHelpers.dataPath + File.separator + getString(R.string.blank_map));
@@ -126,7 +116,7 @@ public class OfflineMapsActivity extends AppCompatActivity {
                 // map load status can be any of LOADING, FAILED_TO_LOAD, NOT_LOADED or LOADED
                 switch (mapLoadStatus) {
                     case "LOADED":
-                        disposables.add(db.contributionDao().getContributions(projectId).observeOn(Schedulers.io()).subscribeOn(Schedulers.io()).subscribe(OfflineMapsActivity.this::showMarkers)); // initially load all markers
+                        disposables.add(db.contributionDao().getContributions(projectId).observeOn(Schedulers.io()).subscribeOn(Schedulers.io()).subscribe(contributions -> showMarkers(contributions, true))); // initially load all markers
                         disposables.add(db.projectInfoDao().getMapPath(projectId).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe(OfflineMapsActivity.this::createMosaicDataset));
 
                         break;
@@ -199,20 +189,19 @@ public class OfflineMapsActivity extends AppCompatActivity {
                 graphicsIterator.remove();
             }
         }
-        showMarkers(contributionsToDisplay);
+        showMarkers(contributionsToDisplay, false);
     }
 
 
-    protected void showMarkers(List<Contribution> contributions) {
+    protected void showMarkers(List<Contribution> contributions, boolean reCenter) {
         GraphicsOverlay graphicsOverlay;
         if (mapView.getGraphicsOverlays().isEmpty()) {
             graphicsOverlay = new GraphicsOverlay();
             mapView.getGraphicsOverlays().add(graphicsOverlay);
         } else {
             graphicsOverlay = mapView.getGraphicsOverlays().get(0);
-
         }
-
+        graphicsOverlay.setSelectionColor(ResourcesCompat.getColor(getResources(), R.color.colorPrimary, null));
         SimpleMarkerSymbol sms = new SimpleMarkerSymbol(SimpleMarkerSymbol.Style.CIRCLE, Color.RED, 20);
         Map<String, Object> contributionId = new HashMap<String, Object>();
         for (Contribution contribution : contributions) {
@@ -230,15 +219,15 @@ public class OfflineMapsActivity extends AppCompatActivity {
             }
         }
 
-        try {
-            if (graphicsOverlay.getGraphics().size() > 1)
-                mapView.setViewpointGeometryAsync(graphicsOverlay.getExtent(), 70);
-            else if (graphicsOverlay.getGraphics().size() == 1)
-                mapView.setViewpointCenterAsync(graphicsOverlay.getExtent().getCenter(), 3000);
-        } catch (Exception e) {
-            Log.e("Set Viewpoint", e.getMessage());
+        if (reCenter) {
+            disposables.add(
+                    Observable.timer(500, TimeUnit.MILLISECONDS).subscribe(__ -> {
+                        if (graphicsOverlay.getGraphics().size() > 1)
+                            mapView.setViewpointGeometryAsync(graphicsOverlay.getExtent(), 70);
+                        else if (graphicsOverlay.getGraphics().size() == 1)
+                            mapView.setViewpointCenterAsync(graphicsOverlay.getExtent().getCenter(), 3000);
+                    }, e -> Log.e("Set Viewpoint", e.getMessage())));
         }
-
 
     }
 
@@ -269,6 +258,7 @@ public class OfflineMapsActivity extends AppCompatActivity {
         super.onResume();
         mapView.resume();
 //        showRasters();
+
     }
 
     @Override
@@ -356,7 +346,6 @@ public class OfflineMapsActivity extends AppCompatActivity {
                 DetailsFragment detailsFragment = DetailsFragment.newInstance(contributionId);
                 fragmentManager
                         .beginTransaction()
-                        .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_FADE)
                         .replace(R.id.fragment_container, detailsFragment, DETAILS_FRAGMENT)
                         .commit();
             }
@@ -364,7 +353,6 @@ public class OfflineMapsActivity extends AppCompatActivity {
             DetailsFragment detailsFragment = DetailsFragment.newInstance(contributionId);
             fragmentManager
                     .beginTransaction()
-                    .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_FADE)
                     .add(R.id.fragment_container, detailsFragment, DETAILS_FRAGMENT)
                     .commit();
             final RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT);
@@ -380,7 +368,7 @@ public class OfflineMapsActivity extends AppCompatActivity {
         DetailsFragment shownFragment = (DetailsFragment) getSupportFragmentManager().findFragmentByTag(DETAILS_FRAGMENT);
         FragmentManager fragmentManager = getSupportFragmentManager();
         if (shownFragment != null && shownFragment.isVisible()) {
-            fragmentManager.beginTransaction().setTransition(FragmentTransaction.TRANSIT_FRAGMENT_FADE).remove(shownFragment).commit();
+            fragmentManager.beginTransaction().remove(shownFragment).commit();
         }
 
         final RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT);
@@ -393,6 +381,34 @@ public class OfflineMapsActivity extends AppCompatActivity {
 
     public CompositeDisposable getDisposables() {
         return disposables;
+    }
+
+    @Override
+    public boolean onKeyUp(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_BACK) {
+
+            Handler handler = new Handler();
+
+            Runnable mRunnable = new Runnable() {
+                @Override
+                public void run() {
+                    backCounter = 0;
+                }
+            };
+
+            handler.postDelayed(mRunnable, 2000);
+
+            if (backCounter < 2)
+                backCounter++;
+            else {
+                backCounter = 0;
+                TokenManager.getInstance().deleteActiveProject();
+                finish();
+            }
+            return true;
+        }
+
+        return super.onKeyUp(keyCode, event);
     }
 }
 

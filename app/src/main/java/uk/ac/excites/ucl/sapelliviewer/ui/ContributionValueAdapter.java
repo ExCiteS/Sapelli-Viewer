@@ -30,7 +30,7 @@ public class ContributionValueAdapter extends RecyclerView.Adapter<ContributionV
     @Override
     public ContributionViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         LayoutInflater inflater = LayoutInflater.from(context);
-        View view = inflater.inflate(R.layout.contribution_item, parent, false);
+        View view = inflater.inflate(R.layout.item_contribution, parent, false);
         return new ContributionValueAdapter.ContributionViewHolder(view);
     }
 

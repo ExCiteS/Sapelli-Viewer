@@ -29,6 +29,7 @@ import android.widget.ImageView;
 import android.widget.Toast;
 
 
+import com.esri.arcgisruntime.ArcGISRuntimeEnvironment;
 import com.obsez.android.lib.filechooser.ChooserDialog;
 
 import java.io.File;
@@ -135,6 +136,10 @@ public class SettingsActivity extends AppCompatActivity {
         if (tokenManager.getToken().getAccess_token() != null) {
             updateUser();
         }
+        if (tokenManager.getActiveProject() != -1) {
+            openMapView(tokenManager.getActiveProject());
+        }
+
     }
 
     public void updateUser() {
@@ -245,11 +250,6 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     public void openMapView(int projectId) {
-//        online map
-//        Intent mapIntent = new Intent(this, MapsActivity.class);
-//        mapIntent.putExtra(PROJECT_ID, projectId);
-
-//        offline map
         Intent mapIntent = new Intent(this, OfflineMapsActivity.class);
         mapIntent.putExtra(PROJECT_ID, projectId);
         startActivity(mapIntent);
@@ -355,6 +355,7 @@ public class SettingsActivity extends AppCompatActivity {
                 })
                 .build()
                 .show();
+
 
 //        new MaterialFilePicker()
 //                .withTitle(getString(R.string.pick_tpk))

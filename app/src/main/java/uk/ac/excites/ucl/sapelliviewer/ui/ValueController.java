@@ -1,8 +1,10 @@
 package uk.ac.excites.ucl.sapelliviewer.ui;
 
+import android.renderscript.Sampler;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
+import android.widget.ImageButton;
 
 import java.util.List;
 
@@ -20,6 +22,8 @@ public class ValueController extends DatabaseClient {
     private RecyclerView valueRecyclerView;
     private CompositeDisposable disposables;
     private RecyclerView fieldRecyclerView;
+    private ImageButton toggleOnButton;
+    private ImageButton toggleOffButton;
 
 
     public ValueController(OfflineMapsActivity mapActivity, RecyclerView valueRecyclerView, CompositeDisposable disposables) {
@@ -43,8 +47,12 @@ public class ValueController extends DatabaseClient {
                                     loadMarkers(valueAdapter.getVisibleAndActiveLookupValues()).subscribe(contributions -> updateMarkers(contributions));
                                 });
                                 valueRecyclerView.setAdapter(valueAdapter);
-                                if (fieldRecyclerView != null)
-                                    new FieldController(mapsActivity.getContext(), fieldRecyclerView, ValueController.this, mapsActivity.getProjectId(), disposables);
+                                FieldController fieldController;
+                                if (fieldRecyclerView != null) {
+                                    fieldController = new FieldController(mapsActivity.getContext(), fieldRecyclerView, ValueController.this, mapsActivity.getProjectId(), disposables);
+                                    if (toggleOffButton != null && toggleOnButton != null)
+                                        fieldController.setToggleAllValuesButtons(toggleOnButton, toggleOffButton);
+                                }
                             }
 
                             @Override
@@ -54,9 +62,17 @@ public class ValueController extends DatabaseClient {
                         }));
     }
 
-    public void addFieldController(RecyclerView recyclerView) {
+    public ValueController addFieldController(RecyclerView recyclerView) {
         this.fieldRecyclerView = recyclerView;
         fieldRecyclerView.setLayoutManager(new LinearLayoutManager(mapsActivity.getContext(), LinearLayoutManager.HORIZONTAL, false));
+        return this;
+
+    }
+
+    public ValueController addToggleButtons(ImageButton toggleOnButton, ImageButton toggleOffButton) {
+        this.toggleOnButton = toggleOnButton;
+        this.toggleOffButton = toggleOffButton;
+        return this;
     }
 
     public ValueAdapter getAdapter() {
@@ -66,5 +82,6 @@ public class ValueController extends DatabaseClient {
     public void updateMarkers(List<Contribution> contributions) {
         mapsActivity.updateMarkers(contributions);
     }
+
 
 }

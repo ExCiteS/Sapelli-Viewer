@@ -15,7 +15,6 @@ import java.util.List;
 
 import uk.ac.excites.ucl.sapelliviewer.R;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Document;
-import uk.ac.excites.ucl.sapelliviewer.utils.MediaHelpers;
 
 public class ContributionAudioAdapter extends RecyclerView.Adapter<ContributionAudioAdapter.ContributionViewHolder> {
     private Context context;
@@ -34,7 +33,7 @@ public class ContributionAudioAdapter extends RecyclerView.Adapter<ContributionA
     @Override
     public ContributionViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         LayoutInflater inflater = LayoutInflater.from(context);
-        View view = inflater.inflate(R.layout.audio_item, parent, false);
+        View view = inflater.inflate(R.layout.item_audio, parent, false);
         return new ContributionAudioAdapter.ContributionViewHolder(view);
     }
 

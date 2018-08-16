@@ -94,4 +94,5 @@ public interface ProjectInfoDao {
 
     @Query("SELECT * from LookUpValue where fieldId = :fieldId")
     Single<List<LookUpValue>> getLookupValueByField(int fieldId);
+
 }
