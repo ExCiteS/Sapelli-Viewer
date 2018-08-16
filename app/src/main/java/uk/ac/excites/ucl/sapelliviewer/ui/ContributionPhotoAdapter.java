@@ -35,7 +35,7 @@ public class ContributionPhotoAdapter extends RecyclerView.Adapter<ContributionP
     @Override
     public ContributionViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         LayoutInflater inflater = LayoutInflater.from(context);
-        View view = inflater.inflate(R.layout.photo_item, parent, false);
+        View view = inflater.inflate(R.layout.item_photo, parent, false);
         return new ContributionPhotoAdapter.ContributionViewHolder(view);
     }
 

@@ -24,7 +24,6 @@ public class TokenManager {
         }
         return INSTANCE;
     }
-
     private TokenManager() {
         prefs = LoginActivity.get().getSharedPreferences("prefs", 0);
     }

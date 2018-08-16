@@ -36,7 +36,7 @@ public class ValueAdapter extends RecyclerView.Adapter<ValueAdapter.ValueViewHol
     @Override
     public ValueViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         LayoutInflater inflater = LayoutInflater.from(context);
-        View view = inflater.inflate(R.layout.value_item, parent, false);
+        View view = inflater.inflate(R.layout.item_value, parent, false);
         return new ValueAdapter.ValueViewHolder(view);
     }
 
@@ -73,7 +73,7 @@ public class ValueAdapter extends RecyclerView.Adapter<ValueAdapter.ValueViewHol
         return lookUpValues;
     }
 
-    private List<LookUpValue> getVisibleLookupValues() {
+    public List<LookUpValue> getVisibleLookupValues() {
         List<LookUpValue> filteredList = new ArrayList<>();
         for (LookUpValue value : lookUpValues) {
             if (value.isVisible())

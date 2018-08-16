@@ -6,14 +6,19 @@ import android.graphics.Color;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
+import android.view.View;
+import android.widget.ImageButton;
+import android.widget.Toast;
 import android.widget.ToggleButton;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.observers.DisposableSingleObserver;
 import io.reactivex.schedulers.Schedulers;
 import uk.ac.excites.ucl.sapelliviewer.R;
+import uk.ac.excites.ucl.sapelliviewer.datamodel.Contribution;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Field;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.LookUpValue;
 import uk.ac.excites.ucl.sapelliviewer.db.DatabaseClient;
@@ -25,6 +30,8 @@ class FieldController extends DatabaseClient {
     private ValueAdapter valueAdapter;
     private CompositeDisposable disposibles;
     private RecyclerView fieldRecyclerView;
+    private ImageButton toggleOnButton;
+    private ImageButton toggleOffButton;
 
     FieldController(Context context, RecyclerView fieldRecyclerView, ValueController valueController, int projectId, CompositeDisposable disposibles) {
         super(context);
@@ -66,6 +73,11 @@ class FieldController extends DatabaseClient {
                                     }
                                 });
                                 fieldRecyclerView.setAdapter(fieldAdapter);
+                                if (!fields.isEmpty()) {
+                                    toggleOffButton.setVisibility(View.VISIBLE);
+                                    toggleOnButton.setVisibility(View.VISIBLE);
+                                }
+
                             }
 
                             @Override
@@ -75,5 +87,37 @@ class FieldController extends DatabaseClient {
                         }));
     }
 
+    public void setToggleAllValuesButtons(ImageButton toggleOnButton, ImageButton toggleOffButton) {
+        this.toggleOnButton = toggleOnButton;
+        this.toggleOffButton = toggleOffButton;
+        toggleOffButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                toggleOffValues();
+            }
+        });
+        toggleOnButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                toggleOnValues();
+            }
+        });
+    }
 
+    private void toggleOffValues() {
+        for (LookUpValue value : valueAdapter.getVisibleLookupValues()) {
+            value.setActive(false);
+        }
+        valueAdapter.notifyDataSetChanged();
+        valueController.updateMarkers(new ArrayList<Contribution>());
+    }
+
+    private void toggleOnValues() {
+        for (LookUpValue value : valueAdapter.getVisibleLookupValues()) {
+            value.setActive(true);
+        }
+        valueAdapter.notifyDataSetChanged();
+        loadMarkers(valueAdapter.getVisibleLookupValues()).subscribe(valueController::updateMarkers);
+
+    }
 }

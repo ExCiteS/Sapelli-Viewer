@@ -51,12 +51,6 @@
             android:value="AIzaSyDIygJYQ1wW_V2hoyeSrkwqrL_vtkAYnCM" />
 
         <activity
-            android:name=".activities.BaseMapsActivity"
-            android:label="Map"></activity>
-        <activity
-            android:name=".activities.MapsActivity"
-            android:label="Map"></activity>
-        <activity
             android:name=".activities.OfflineMapsActivity"
             android:label="Offline Map"></activity>
     </application>

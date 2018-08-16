@@ -31,7 +31,7 @@ public class FieldAdapter extends RecyclerView.Adapter<FieldAdapter.FieldViewHol
     @Override
     public FieldViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         LayoutInflater inflater = LayoutInflater.from(context);
-        View view = inflater.inflate(R.layout.field_item, parent, false);
+        View view = inflater.inflate(R.layout.item_field, parent, false);
         return new FieldViewHolder(view);
     }
 
