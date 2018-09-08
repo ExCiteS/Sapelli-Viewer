@@ -13,6 +13,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
+import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
@@ -26,8 +27,6 @@ import com.esri.arcgisruntime.geometry.SpatialReferences;
 import com.esri.arcgisruntime.layers.ArcGISVectorTiledLayer;
 import com.esri.arcgisruntime.layers.RasterLayer;
 import com.esri.arcgisruntime.loadable.LoadStatus;
-import com.esri.arcgisruntime.loadable.LoadStatusChangedEvent;
-import com.esri.arcgisruntime.loadable.LoadStatusChangedListener;
 import com.esri.arcgisruntime.mapping.ArcGISMap;
 import com.esri.arcgisruntime.mapping.Basemap;
 import com.esri.arcgisruntime.mapping.Viewpoint;
@@ -59,8 +58,10 @@ import io.reactivex.schedulers.Schedulers;
 import uk.ac.excites.ucl.sapelliviewer.R;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Contribution;
 import uk.ac.excites.ucl.sapelliviewer.db.AppDatabase;
+import uk.ac.excites.ucl.sapelliviewer.db.DatabaseClient;
 import uk.ac.excites.ucl.sapelliviewer.ui.DetailsFragment;
 import uk.ac.excites.ucl.sapelliviewer.ui.ValueController;
+import uk.ac.excites.ucl.sapelliviewer.utils.Logger;
 import uk.ac.excites.ucl.sapelliviewer.utils.MediaHelpers;
 import uk.ac.excites.ucl.sapelliviewer.utils.TokenManager;
 
@@ -81,6 +82,7 @@ public class OfflineMapsActivity extends AppCompatActivity {
     private CompositeDisposable disposables;
     private ArcGISMap map;
     private int backCounter;
+    private DatabaseClient dbClient;
 
 
     @SuppressLint("ClickableViewAccessibility")
@@ -97,11 +99,14 @@ public class OfflineMapsActivity extends AppCompatActivity {
         projectId = getIntent().getIntExtra(SettingsActivity.PROJECT_ID, 0);
         disposables = new CompositeDisposable();
         mapView = (MapView) findViewById(R.id.map);
+        dbClient = new DatabaseClient(OfflineMapsActivity.this, projectId, mapView);
+
+
         copyBlankMap();
 
         ((ViewGroup) findViewById(R.id.root)).getLayoutTransition().enableTransitionType(LayoutTransition.CHANGE_APPEARING);
 
-        new ValueController(this, findViewById(R.id.value_recycler_view), disposables)
+        new ValueController(this, findViewById(R.id.value_recycler_view), disposables, dbClient)
                 .addFieldController(findViewById(R.id.field_recycler_view))
                 .addToggleButtons(findViewById(R.id.button_toggle_on), findViewById(R.id.button_toggle_off)); // ValueController should also work without Fields
 
@@ -109,20 +114,29 @@ public class OfflineMapsActivity extends AppCompatActivity {
         ArcGISVectorTiledLayer vtpk = new ArcGISVectorTiledLayer(MediaHelpers.dataPath + File.separator + getString(R.string.blank_map));
         map = new ArcGISMap(new Basemap(vtpk));
         // Listener on change in map load status
-        map.addLoadStatusChangedListener(new LoadStatusChangedListener() {
+        map.addDoneLoadingListener(new Runnable() {
             @Override
-            public void loadStatusChanged(LoadStatusChangedEvent loadStatusChangedEvent) {
-                String mapLoadStatus = loadStatusChangedEvent.getNewLoadStatus().name();
-                // map load status can be any of LOADING, FAILED_TO_LOAD, NOT_LOADED or LOADED
-                switch (mapLoadStatus) {
-                    case "LOADED":
-                        disposables.add(db.contributionDao().getContributions(projectId).observeOn(Schedulers.io()).subscribeOn(Schedulers.io()).subscribe(contributions -> showMarkers(contributions, true))); // initially load all markers
-                        disposables.add(db.projectInfoDao().getMapPath(projectId).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe(OfflineMapsActivity.this::createMosaicDataset));
-
-                        break;
-                }
+            public void run() {
+                Log.e("LoadStatus", map.getLoadStatus().name());
+                disposables.add(db.contributionDao().getContributions(projectId).observeOn(Schedulers.io()).subscribeOn(Schedulers.io()).subscribe(contributions -> showMarkers(contributions, true))); // initially load all markers
+                disposables.add(db.projectInfoDao().getMapPath(projectId).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe(OfflineMapsActivity.this::createMosaicDataset));
             }
         });
+//        map.addLoadStatusChangedListener(new LoadStatusChangedListener() {
+//            @Override
+//            public void loadStatusChanged(LoadStatusChangedEvent loadStatusChangedEvent) {
+//                String mapLoadStatus = loadStatusChangedEvent.getNewLoadStatus().name();
+//                // map load status can be any of LOADING, FAILED_TO_LOAD, NOT_LOADED or LOADED
+//                switch (mapLoadStatus) {
+//                    case "LOADED":
+//                        Log.e("Loaded", loadStatusChangedEvent.getNewLoadStatus().name());
+//
+////                        disposables.add(db.contributionDao().getContributions(projectId).observeOn(Schedulers.io()).subscribeOn(Schedulers.io()).subscribe(contributions -> showMarkers(contributions, true))); // initially load all markers
+//                        disposables.add(db.projectInfoDao().getMapPath(projectId).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe(OfflineMapsActivity.this::createMosaicDataset));
+//                        break;
+//                }
+//            }
+//        });
         mapView.setMap(map);
 
 
@@ -145,12 +159,15 @@ public class OfflineMapsActivity extends AppCompatActivity {
                                                        if (!grOverlayResult.getGraphics().isEmpty()) {
                                                            Graphic graphic = grOverlayResult.getGraphics().get(0);
                                                            if (!graphic.isSelected()) {
-                                                               displayDetails((Integer) graphic.getAttributes().get(CONTRIBUTION_ID));
+                                                               Integer contributionId = (Integer) graphic.getAttributes().get(CONTRIBUTION_ID);
+                                                               displayDetails(contributionId);
                                                                mapView.getGraphicsOverlays().get(0).clearSelection();
                                                                graphic.setSelected(true);
+                                                               dbClient.insertLog(Logger.CONTRIBUTION_DETAILS_OPENED + contributionId);
                                                            } else {
                                                                closeFragment();
                                                                graphic.setSelected(false);
+                                                               dbClient.insertLog(Logger.CONTRIBUTION_DETAILS_CLOSED + (Integer) graphic.getAttributes().get(CONTRIBUTION_ID));
                                                            }
 //                                                           mapView.setViewpointCenterAsync(new Point(((Point) graphic.getGeometry()).getX(), ((Point) graphic.getGeometry()).getY()));
                                                        }
@@ -160,6 +177,50 @@ public class OfflineMapsActivity extends AppCompatActivity {
                                                }
                                            });
                                            return super.onSingleTapConfirmed(e);
+                                       }
+
+                                       @Override
+                                       public boolean onRotate(MotionEvent event, double rotationAngle) {
+                                           if (rotationAngle > 10)
+                                               dbClient.setPendingRotation(true);
+                                           return super.onRotate(event, rotationAngle);
+                                       }
+
+
+                                       @Override
+                                       public boolean onDoubleTap(MotionEvent e) {
+                                           dbClient.insertLog(Logger.ZOOM_IN_DOUBLE_TAP);
+                                           return super.onDoubleTap(e);
+                                       }
+
+                                       @Override
+                                       public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+                                           dbClient.insertLog(Logger.PAN);
+                                           return super.onFling(e1, e2, velocityX, velocityY);
+                                       }
+
+                                       @Override
+                                       public boolean onUp(MotionEvent e) {
+                                           if (dbClient.isPendingotation()) {
+                                               dbClient.insertLog(Logger.ROTATE);
+                                               dbClient.setPendingRotation(false);
+                                           }
+                                           return super.onUp(e);
+                                       }
+
+                                       @Override
+                                       public boolean onScaleBegin(ScaleGestureDetector detector) {
+                                           dbClient.setScale(mapView.getMapScale());
+                                           return super.onScaleBegin(detector);
+                                       }
+
+                                       @Override
+                                       public void onScaleEnd(ScaleGestureDetector detector) {
+                                           if (mapView.getMapScale() < dbClient.getScale())
+                                               dbClient.insertLog(Logger.ZOOM_IN_PINCH);
+                                           else if (mapView.getMapScale() > dbClient.getScale())
+                                               dbClient.insertLog(Logger.ZOOM_OUT_PINCH);
+                                           super.onScaleEnd(detector);
                                        }
                                    }
         );
@@ -194,6 +255,7 @@ public class OfflineMapsActivity extends AppCompatActivity {
 
 
     protected void showMarkers(List<Contribution> contributions, boolean reCenter) {
+        Log.e("Show Markers entered", String.valueOf(reCenter));
         GraphicsOverlay graphicsOverlay;
         if (mapView.getGraphicsOverlays().isEmpty()) {
             graphicsOverlay = new GraphicsOverlay();
@@ -210,7 +272,7 @@ public class OfflineMapsActivity extends AppCompatActivity {
                     contributionId.put(CONTRIBUTION_ID, contribution.getId());
                     JSONArray latLngCoordinates = new JSONArray(contribution.getGeometry().getCoordinates());
                     Point pnt = (Point) GeometryEngine.project(new Point(latLngCoordinates.getDouble(0), latLngCoordinates.getDouble(1)), SpatialReferences.getWgs84());
-                    pnt = (Point) GeometryEngine.project(pnt, mapView.getSpatialReference());
+                    pnt = (Point) GeometryEngine.project(pnt, SpatialReferences.getWebMercator());
                     Graphic graphic = new Graphic(pnt, contributionId, sms);
                     graphicsOverlay.getGraphics().add(graphic);
                 } catch (JSONException e) {
@@ -223,9 +285,9 @@ public class OfflineMapsActivity extends AppCompatActivity {
             disposables.add(
                     Observable.timer(500, TimeUnit.MILLISECONDS).subscribe(__ -> {
                         if (graphicsOverlay.getGraphics().size() > 1)
-                            mapView.setViewpointGeometryAsync(graphicsOverlay.getExtent(), 70);
+                            mapView.setViewpointGeometryAsync(graphicsOverlay.getExtent(), 70).addDoneListener(() -> dbClient.insertLog(Logger.INITIAL_EXTENT));
                         else if (graphicsOverlay.getGraphics().size() == 1)
-                            mapView.setViewpointCenterAsync(graphicsOverlay.getExtent().getCenter(), 3000);
+                            mapView.setViewpointCenterAsync(graphicsOverlay.getExtent().getCenter(), 3000).addDoneListener(() -> dbClient.insertLog(Logger.INITIAL_EXTENT));
                     }, e -> Log.e("Set Viewpoint", e.getMessage())));
         }
 
@@ -235,12 +297,15 @@ public class OfflineMapsActivity extends AppCompatActivity {
     public void zoomIn(View view) {
         Viewpoint viewpoint = new Viewpoint(mapView.getVisibleArea().getExtent().getCenter(), mapView.getMapScale() / 2, mapView.getMapRotation());
         mapView.setViewpointAsync(viewpoint, 0.5f);
+        dbClient.insertLog(Logger.ZOOM_IN_BUTTON);
 
     }
 
     public void zoomOut(View view) {
         Viewpoint viewpoint = new Viewpoint(mapView.getVisibleArea().getExtent().getCenter(), mapView.getMapScale() * 2, mapView.getMapRotation());
         mapView.setViewpointAsync(viewpoint, 0.5f);
+        dbClient.insertLog(Logger.ZOOM_OUT_BUTTON);
+
     }
 
     public void rotateNorth(View view) {
@@ -383,6 +448,10 @@ public class OfflineMapsActivity extends AppCompatActivity {
         return disposables;
     }
 
+    public DatabaseClient getDbClient() {
+        return dbClient;
+    }
+
     @Override
     public boolean onKeyUp(int keyCode, KeyEvent event) {
         if (keyCode == KeyEvent.KEYCODE_BACK) {
@@ -410,6 +479,8 @@ public class OfflineMapsActivity extends AppCompatActivity {
 
         return super.onKeyUp(keyCode, event);
     }
+
+
 }
 
 

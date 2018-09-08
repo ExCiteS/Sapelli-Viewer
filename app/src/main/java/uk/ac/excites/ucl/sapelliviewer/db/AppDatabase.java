@@ -11,13 +11,14 @@ import uk.ac.excites.ucl.sapelliviewer.datamodel.ContributionProperty;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Document;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Field;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Geometry;
+import uk.ac.excites.ucl.sapelliviewer.datamodel.Logs;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.LookUpValue;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Project;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.ProjectInfo;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.ProjectProperties;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.UserInfo;
 
-@Database(entities = {UserInfo.class, ProjectInfo.class, Category.class, Project.class, Field.class, LookUpValue.class, Contribution.class, Document.class, Geometry.class, ContributionProperty.class, ProjectProperties.class}, version = 1, exportSchema = false)
+@Database(entities = {UserInfo.class, ProjectInfo.class, Category.class, Project.class, Field.class, LookUpValue.class, Contribution.class, Document.class, Geometry.class, ContributionProperty.class, ProjectProperties.class, Logs.class}, version = 1, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     private static AppDatabase INSTANCE;

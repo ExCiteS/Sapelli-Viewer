@@ -14,6 +14,7 @@ import io.reactivex.Observable;
 import io.reactivex.Single;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Category;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Field;
+import uk.ac.excites.ucl.sapelliviewer.datamodel.Logs;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.LookUpValue;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Project;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.ProjectInfo;
@@ -95,4 +96,8 @@ public interface ProjectInfoDao {
     @Query("SELECT * from LookUpValue where fieldId = :fieldId")
     Single<List<LookUpValue>> getLookupValueByField(int fieldId);
 
+
+    /* Logs */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    void insertLog(Logs log);
 }
