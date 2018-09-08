@@ -26,7 +26,9 @@ import uk.ac.excites.ucl.sapelliviewer.R;
 import uk.ac.excites.ucl.sapelliviewer.activities.OfflineMapsActivity;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Document;
 import uk.ac.excites.ucl.sapelliviewer.db.AppDatabase;
+import uk.ac.excites.ucl.sapelliviewer.db.DatabaseClient;
 import uk.ac.excites.ucl.sapelliviewer.utils.DateTimeHelpers;
+import uk.ac.excites.ucl.sapelliviewer.utils.Logger;
 import uk.ac.excites.ucl.sapelliviewer.utils.MediaHelpers;
 
 
@@ -40,6 +42,7 @@ public class DetailsFragment extends Fragment implements DocumentFragmentListene
     private RecyclerView photoRecyclerView;
     private RecyclerView audioRecyclerView;
     private TextView dateTextView;
+    private DatabaseClient dbClient;
 
     public DetailsFragment() {
         // Required empty public constructor
@@ -76,6 +79,7 @@ public class DetailsFragment extends Fragment implements DocumentFragmentListene
     public void onStart() {
         super.onStart();
         AppDatabase db = AppDatabase.getAppDatabase(getActivity());
+        dbClient = ((OfflineMapsActivity) Objects.requireNonNull(getActivity())).getDbClient();
         CompositeDisposable disposables = ((OfflineMapsActivity) Objects.requireNonNull(getActivity())).getDisposables();
         valueRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity(), LinearLayoutManager.HORIZONTAL, false));
         disposables.add(db.contributionDao().getPropertiesByContribution(contributionId).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
@@ -112,10 +116,12 @@ public class DetailsFragment extends Fragment implements DocumentFragmentListene
         FragmentManager fragmentManager = Objects.requireNonNull(getActivity()).getSupportFragmentManager();
         if (photo.isActive()) {
             fragmentManager.beginTransaction().remove(fragmentManager.findFragmentByTag(String.valueOf(photo.getId()))).commit();
+            dbClient.insertLog(Logger.PHOTO_CLOSED + photo.getId());
         } else {
             PhotoFragment photoFragment = PhotoFragment.newInstance(photo.getId(), MediaHelpers.dataPath + File.separator + photo.getUrl());
             fragmentManager.beginTransaction().replace(R.id.fragment_media_container, photoFragment, String.valueOf(photo.getId())).commit();
             photoFragment.setFragmentListener(this);
+            dbClient.insertLog(Logger.PHOTO_OPENED + photo.getId());
         }
     }
 
@@ -123,10 +129,12 @@ public class DetailsFragment extends Fragment implements DocumentFragmentListene
         FragmentManager fragmentManager = Objects.requireNonNull(getActivity()).getSupportFragmentManager();
         if (audio.isActive()) {
             fragmentManager.beginTransaction().remove(fragmentManager.findFragmentByTag(String.valueOf(audio.getId()))).commit();
+            dbClient.insertLog(Logger.AUDIO_CLOSED + audio.getId());
         } else {
             AudioFragment audioFragment = AudioFragment.newInstance(audio.getId(), MediaHelpers.dataPath + File.separator + audio.getUrl());
             fragmentManager.beginTransaction().replace(R.id.fragment_media_container, audioFragment, String.valueOf(audio.getId())).commit();
             audioFragment.setFragmentListener(this);
+            dbClient.insertLog(Logger.AUDIO_OPENED + audio.getId());
         }
     }
 

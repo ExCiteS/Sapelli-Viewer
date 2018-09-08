@@ -4,6 +4,7 @@ import android.renderscript.Sampler;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
+import android.view.View;
 import android.widget.ImageButton;
 
 import java.util.List;
@@ -14,9 +15,11 @@ import uk.ac.excites.ucl.sapelliviewer.activities.OfflineMapsActivity;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Contribution;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.LookUpValue;
 import uk.ac.excites.ucl.sapelliviewer.db.DatabaseClient;
+import uk.ac.excites.ucl.sapelliviewer.utils.Logger;
 
-public class ValueController extends DatabaseClient {
+public class ValueController {
 
+    private final DatabaseClient dbClient;
     private OfflineMapsActivity mapsActivity;
     private ValueAdapter valueAdapter;
     private RecyclerView valueRecyclerView;
@@ -26,8 +29,8 @@ public class ValueController extends DatabaseClient {
     private ImageButton toggleOffButton;
 
 
-    public ValueController(OfflineMapsActivity mapActivity, RecyclerView valueRecyclerView, CompositeDisposable disposables) {
-        super(mapActivity.getContext());
+    public ValueController(OfflineMapsActivity mapActivity, RecyclerView valueRecyclerView, CompositeDisposable disposables, DatabaseClient dbClient) {
+        this.dbClient = dbClient;
         this.mapsActivity = mapActivity;
         this.valueRecyclerView = valueRecyclerView;
         valueRecyclerView.setLayoutManager(new LinearLayoutManager(mapActivity.getContext(), LinearLayoutManager.HORIZONTAL, false));
@@ -37,19 +40,24 @@ public class ValueController extends DatabaseClient {
 
     private void getValueAdapter() {
         disposables.add(
-                getLookUpValues(mapsActivity.getProjectId())
+                dbClient.getLookUpValues()
                         .subscribeWith(new DisposableSingleObserver<List<LookUpValue>>() {
                             @Override
                             public void onSuccess(List<LookUpValue> lookUpValues) {
-                                valueAdapter = new ValueAdapter(mapsActivity.getContext(), lookUpValues, (v, value) -> {
+                                valueAdapter = new ValueAdapter(mapsActivity.getContext(), lookUpValues, (View v, LookUpValue value) -> {
                                     value.setActive(!value.isActive());
                                     valueAdapter.notifyDataSetChanged();
-                                    loadMarkers(valueAdapter.getVisibleAndActiveLookupValues()).subscribe(contributions -> updateMarkers(contributions));
+                                    dbClient.loadMarkers(valueAdapter.getVisibleAndActiveLookupValues()).subscribe(contributions -> updateMarkers(contributions));
+                                    if (value.isActive())
+                                        dbClient.insertLog(Logger.VALUE_CHECKED + value.getId());
+                                    else dbClient.insertLog(Logger.VALUE_UNCHECKED + value.getId());
+
+
                                 });
                                 valueRecyclerView.setAdapter(valueAdapter);
                                 FieldController fieldController;
                                 if (fieldRecyclerView != null) {
-                                    fieldController = new FieldController(mapsActivity.getContext(), fieldRecyclerView, ValueController.this, mapsActivity.getProjectId(), disposables);
+                                    fieldController = new FieldController(mapsActivity.getContext(), fieldRecyclerView, ValueController.this, mapsActivity.getProjectId(), disposables, dbClient);
                                     if (toggleOffButton != null && toggleOnButton != null)
                                         fieldController.setToggleAllValuesButtons(toggleOnButton, toggleOffButton);
                                 }

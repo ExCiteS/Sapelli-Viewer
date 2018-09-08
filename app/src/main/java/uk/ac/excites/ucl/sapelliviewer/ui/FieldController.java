@@ -22,9 +22,11 @@ import uk.ac.excites.ucl.sapelliviewer.datamodel.Contribution;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Field;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.LookUpValue;
 import uk.ac.excites.ucl.sapelliviewer.db.DatabaseClient;
+import uk.ac.excites.ucl.sapelliviewer.utils.Logger;
 
-class FieldController extends DatabaseClient {
+class FieldController{
 
+    private final DatabaseClient dbClient;
     private Context context;
     private ValueController valueController;
     private ValueAdapter valueAdapter;
@@ -33,20 +35,20 @@ class FieldController extends DatabaseClient {
     private ImageButton toggleOnButton;
     private ImageButton toggleOffButton;
 
-    FieldController(Context context, RecyclerView fieldRecyclerView, ValueController valueController, int projectId, CompositeDisposable disposibles) {
-        super(context);
+    FieldController(Context context, RecyclerView fieldRecyclerView, ValueController valueController, int projectId, CompositeDisposable disposibles, DatabaseClient dbClient) {
         this.context = context;
         this.valueController = valueController;
         this.valueAdapter = valueController.getAdapter();
         this.disposibles = disposibles;
         this.fieldRecyclerView = fieldRecyclerView;
+        this.dbClient = dbClient;
         setAdapter(projectId);
     }
 
 
     private void setAdapter(int projectId) {
         disposibles.add(
-                getFields(projectId)
+                dbClient.getFields()
                         .subscribeOn(Schedulers.io())
                         .toObservable().flatMapIterable(fields -> fields)
                         .filter(field -> !field.getKey().equals("DeviceId") && !field.getKey().equals("StartTime") && !field.getKey().equals("EndTime"))
@@ -65,11 +67,15 @@ class FieldController extends DatabaseClient {
                                         }
                                         if (isChecked) {
                                             buttonView.setBackgroundColor(ContextCompat.getColor(context, R.color.colorPrimary));
+                                            dbClient.insertLog(Logger.FIELD_CHECKED + field.getId());
+
                                         } else {
                                             buttonView.setBackgroundColor(Color.WHITE);
+                                            dbClient.insertLog(Logger.FIELD_UNCHECKED + field.getId());
+
                                         }
                                         valueAdapter.notifyDataSetChanged();
-                                        loadMarkers(valueAdapter.getVisibleAndActiveLookupValues()).subscribe(valueController::updateMarkers);
+                                        dbClient.loadMarkers(valueAdapter.getVisibleAndActiveLookupValues()).subscribe(valueController::updateMarkers);
                                     }
                                 });
                                 fieldRecyclerView.setAdapter(fieldAdapter);
@@ -110,6 +116,7 @@ class FieldController extends DatabaseClient {
         }
         valueAdapter.notifyDataSetChanged();
         valueController.updateMarkers(new ArrayList<Contribution>());
+        dbClient.insertLog(Logger.TOGGLE_ALL_OFF);
     }
 
     private void toggleOnValues() {
@@ -117,7 +124,8 @@ class FieldController extends DatabaseClient {
             value.setActive(true);
         }
         valueAdapter.notifyDataSetChanged();
-        loadMarkers(valueAdapter.getVisibleLookupValues()).subscribe(valueController::updateMarkers);
-
+        dbClient.loadMarkers(valueAdapter.getVisibleLookupValues()).subscribe(valueController::updateMarkers);
+        dbClient.insertLog(Logger.TOGGLE_ALL_ON);
     }
+
 }
