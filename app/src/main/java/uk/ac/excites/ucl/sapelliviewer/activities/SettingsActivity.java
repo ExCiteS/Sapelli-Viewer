@@ -8,7 +8,6 @@ import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.os.Bundle;
-import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
@@ -24,18 +23,10 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
 import android.view.animation.Animation;
-import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.Toast;
 
-
-import com.esri.arcgisruntime.ArcGISRuntimeEnvironment;
-import com.obsez.android.lib.filechooser.ChooserDialog;
-
-import java.io.File;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Pattern;
 
 import io.reactivex.Completable;
 import io.reactivex.Observable;
@@ -45,8 +36,8 @@ import io.reactivex.observers.DisposableCompletableObserver;
 import io.reactivex.observers.DisposableObserver;
 import io.reactivex.observers.DisposableSingleObserver;
 import io.reactivex.schedulers.Schedulers;
+import lib.folderpicker.FolderPicker;
 import uk.ac.excites.ucl.sapelliviewer.R;
-import uk.ac.excites.ucl.sapelliviewer.datamodel.ContributionProperty;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.ProjectInfo;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.ProjectProperties;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.UserInfo;
@@ -56,6 +47,7 @@ import uk.ac.excites.ucl.sapelliviewer.service.GeoKeyRequests;
 import uk.ac.excites.ucl.sapelliviewer.service.RetrofitBuilder;
 import uk.ac.excites.ucl.sapelliviewer.ui.GeoKeyProjectAdapter;
 import uk.ac.excites.ucl.sapelliviewer.utils.NoConnectivityException;
+import uk.ac.excites.ucl.sapelliviewer.utils.SdCardStorage;
 import uk.ac.excites.ucl.sapelliviewer.utils.TokenManager;
 
 public class SettingsActivity extends AppCompatActivity {
@@ -63,6 +55,7 @@ public class SettingsActivity extends AppCompatActivity {
     public static final String PROJECT_ID = "project_id";
     public static final String ERROR_CODE = "error_code";
     public static final int PERMISSIONS_REQUEST_CODE = 0;
+    private static final int FILE_PICKER_REQUEST_CODE = 434;
 
     private RecyclerView recyclerView;
     private TokenManager tokenManager;
@@ -329,71 +322,34 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     private void openFilePicker() {
-
-        new ChooserDialog().with(this)
-                .withResources(R.string.choose_directory, R.string.title_choose, R.string.dialog_cancel)
-                .withFilter(true, false)
-                .withStartFile(String.valueOf(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)))
-                .withChosenListener(new ChooserDialog.Result() {
-                    @Override
-                    public void onChoosePath(String path, File pathFile) {
-                        ProjectProperties projectProperties = new ProjectProperties(projectAdapter.getProject(mapPathPosition).getId(), path);
-                        disposables.add(
-                                Completable.fromAction(() -> db.projectInfoDao().insertProjectProperties(projectProperties)).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
-                                        .subscribeWith(new DisposableCompletableObserver() {
-                                            @Override
-                                            public void onComplete() {
-                                                projectAdapter.notifyItemChanged(mapPathPosition);
-                                            }
-
-                                            @Override
-                                            public void onError(Throwable e) {
-                                                Log.e("setMapPath", e.getMessage());
-                                            }
-                                        }));
-                    }
-                })
-                .build()
-                .show();
-
-
-//        new MaterialFilePicker()
-//                .withTitle(getString(R.string.pick_tpk))
-//                .withActivity(this)
-//                .withPath(String.valueOf(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)))
-//                .withRequestCode(FILE_PICKER_REQUEST_CODE)
-////                .withFilter(Pattern.compile(".*\\.tpk$")) // Filtering files and directories by file name using regexp
-////                .withFilter(Pattern.compile(".*\\.tpk$")) // Filtering files and directories by file name using regexp
-//                .withHiddenFiles(true) // Show hidden files and folders
-//                .start();
-
+        Intent intent = new Intent(this, FolderPicker.class);
+        intent.putExtra("title", getResources().getString(R.string.choose_directory));
+        intent.putExtra("location", SdCardStorage.getExternalStoragePath(SettingsActivity.this, true));
+        startActivityForResult(intent, FILE_PICKER_REQUEST_CODE);
     }
 
 
-//
-//
-//    @Override
-//    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-//        super.onActivityResult(requestCode, resultCode, data);
-//        if (requestCode == FILE_PICKER_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
-//            if (data != null) {
-//                String filePath = data.getStringExtra(FilePickerActivity.RESULT_FILE_PATH);
-//                ProjectProperties projectProperties = new ProjectProperties(projectAdapter.getProject(mapPathPosition).getId(), filePath);
-//
-//                disposables.add(
-//                        Completable.fromAction(() -> db.projectInfoDao().insertProjectProperties(projectProperties)).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
-//                                .subscribeWith(new DisposableCompletableObserver() {
-//                                    @Override
-//                                    public void onComplete() {
-//                                        projectAdapter.notifyItemChanged(mapPathPosition);
-//                                    }
-//
-//                                    @Override
-//                                    public void onError(Throwable e) {
-//                                        Log.e("setMapPath", e.getMessage());
-//                                    }
-//                                }));
-//            }
-//        }
-//    }
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == FILE_PICKER_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
+
+            String folderLocation = data.getExtras().getString("data");
+            ProjectProperties projectProperties = new ProjectProperties(projectAdapter.getProject(mapPathPosition).getId(), folderLocation);
+
+            disposables.add(
+                    Completable.fromAction(() -> db.projectInfoDao().insertProjectProperties(projectProperties)).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
+                            .subscribeWith(new DisposableCompletableObserver() {
+                                @Override
+                                public void onComplete() {
+                                    projectAdapter.notifyItemChanged(mapPathPosition);
+                                }
+
+                                @Override
+                                public void onError(Throwable e) {
+                                    Log.e("setMapPath", e.getMessage());
+                                }
+                            }));
+        }
+    }
 }
