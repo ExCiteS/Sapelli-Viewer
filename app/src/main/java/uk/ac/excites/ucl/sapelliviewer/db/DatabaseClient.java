@@ -58,7 +58,12 @@ public class DatabaseClient {
     }
 
     public void insertLog(String event) {
-        Logs log = logger.log(projectId, event, mapView);
+        Logs log = logger.log(projectId, event, null, mapView);
+        Completable.fromAction(() -> db.projectInfoDao().insertLog(log)).subscribeOn(Schedulers.io()).subscribe();
+    }
+
+    public void insertLog(String event, int interactionId) {
+        Logs log = logger.log(projectId, event, interactionId, mapView);
         Completable.fromAction(() -> db.projectInfoDao().insertLog(log)).subscribeOn(Schedulers.io()).subscribe();
     }
 

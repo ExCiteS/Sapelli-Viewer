@@ -49,8 +49,8 @@ public class ValueController {
                                     valueAdapter.notifyDataSetChanged();
                                     dbClient.loadMarkers(valueAdapter.getVisibleAndActiveLookupValues()).subscribe(contributions -> updateMarkers(contributions));
                                     if (value.isActive())
-                                        dbClient.insertLog(Logger.VALUE_CHECKED + value.getId());
-                                    else dbClient.insertLog(Logger.VALUE_UNCHECKED + value.getId());
+                                        dbClient.insertLog(Logger.VALUE_CHECKED , value.getId());
+                                    else dbClient.insertLog(Logger.VALUE_UNCHECKED , value.getId());
 
 
                                 });

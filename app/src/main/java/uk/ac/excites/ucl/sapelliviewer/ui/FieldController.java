@@ -67,11 +67,11 @@ class FieldController{
                                         }
                                         if (isChecked) {
                                             buttonView.setBackgroundColor(ContextCompat.getColor(context, R.color.colorPrimary));
-                                            dbClient.insertLog(Logger.FIELD_CHECKED + field.getId());
+                                            dbClient.insertLog(Logger.FIELD_CHECKED , field.getId());
 
                                         } else {
                                             buttonView.setBackgroundColor(Color.WHITE);
-                                            dbClient.insertLog(Logger.FIELD_UNCHECKED + field.getId());
+                                            dbClient.insertLog(Logger.FIELD_UNCHECKED , field.getId());
 
                                         }
                                         valueAdapter.notifyDataSetChanged();

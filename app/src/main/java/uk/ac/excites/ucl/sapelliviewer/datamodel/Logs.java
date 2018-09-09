@@ -12,17 +12,20 @@ public class Logs {
 
     @PrimaryKey(autoGenerate = true)
     int id;
-    int projectId;
-    String time;  //TODO: implement properly
-    String event;
-    double scale;
+    private int projectId;
+    private String time;
+    private String event;
+    private Integer interactionId;
+    private double scale;
     @Embedded
+    private
     Geometry geometry;
 
-    public Logs(int projectId, String time, String event, double scale, Geometry geometry) {
+    public Logs(int projectId, String time, String event, Integer interactionId, double scale, Geometry geometry) {
         this.projectId = projectId;
         this.time = time;
         this.event = event;
+        this.interactionId = interactionId;
         this.scale = scale;
         this.geometry = geometry;
     }
@@ -73,5 +76,13 @@ public class Logs {
 
     public void setScale(double scale) {
         this.scale = scale;
+    }
+
+    public Integer getInteractionId() {
+        return interactionId;
+    }
+
+    public void setInteractionId(Integer interactionId) {
+        this.interactionId = interactionId;
     }
 }

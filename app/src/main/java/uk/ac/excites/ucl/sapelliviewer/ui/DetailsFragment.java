@@ -116,12 +116,12 @@ public class DetailsFragment extends Fragment implements DocumentFragmentListene
         FragmentManager fragmentManager = Objects.requireNonNull(getActivity()).getSupportFragmentManager();
         if (photo.isActive()) {
             fragmentManager.beginTransaction().remove(fragmentManager.findFragmentByTag(String.valueOf(photo.getId()))).commit();
-            dbClient.insertLog(Logger.PHOTO_CLOSED + photo.getId());
+            dbClient.insertLog(Logger.PHOTO_CLOSED , photo.getId());
         } else {
             PhotoFragment photoFragment = PhotoFragment.newInstance(photo.getId(), MediaHelpers.dataPath + File.separator + photo.getUrl());
             fragmentManager.beginTransaction().replace(R.id.fragment_media_container, photoFragment, String.valueOf(photo.getId())).commit();
             photoFragment.setFragmentListener(this);
-            dbClient.insertLog(Logger.PHOTO_OPENED + photo.getId());
+            dbClient.insertLog(Logger.PHOTO_OPENED , photo.getId());
         }
     }
 
@@ -129,12 +129,12 @@ public class DetailsFragment extends Fragment implements DocumentFragmentListene
         FragmentManager fragmentManager = Objects.requireNonNull(getActivity()).getSupportFragmentManager();
         if (audio.isActive()) {
             fragmentManager.beginTransaction().remove(fragmentManager.findFragmentByTag(String.valueOf(audio.getId()))).commit();
-            dbClient.insertLog(Logger.AUDIO_CLOSED + audio.getId());
+            dbClient.insertLog(Logger.AUDIO_CLOSED , audio.getId());
         } else {
             AudioFragment audioFragment = AudioFragment.newInstance(audio.getId(), MediaHelpers.dataPath + File.separator + audio.getUrl());
             fragmentManager.beginTransaction().replace(R.id.fragment_media_container, audioFragment, String.valueOf(audio.getId())).commit();
             audioFragment.setFragmentListener(this);
-            dbClient.insertLog(Logger.AUDIO_OPENED + audio.getId());
+            dbClient.insertLog(Logger.AUDIO_OPENED , audio.getId());
         }
     }
 
