@@ -163,11 +163,11 @@ public class OfflineMapsActivity extends AppCompatActivity {
                                                                displayDetails(contributionId);
                                                                mapView.getGraphicsOverlays().get(0).clearSelection();
                                                                graphic.setSelected(true);
-                                                               dbClient.insertLog(Logger.CONTRIBUTION_DETAILS_OPENED + contributionId);
+                                                               dbClient.insertLog(Logger.CONTRIBUTION_DETAILS_OPENED , contributionId);
                                                            } else {
                                                                closeFragment();
                                                                graphic.setSelected(false);
-                                                               dbClient.insertLog(Logger.CONTRIBUTION_DETAILS_CLOSED + (Integer) graphic.getAttributes().get(CONTRIBUTION_ID));
+                                                               dbClient.insertLog(Logger.CONTRIBUTION_DETAILS_CLOSED , (Integer) graphic.getAttributes().get(CONTRIBUTION_ID));
                                                            }
 //                                                           mapView.setViewpointCenterAsync(new Point(((Point) graphic.getGeometry()).getX(), ((Point) graphic.getGeometry()).getY()));
                                                        }

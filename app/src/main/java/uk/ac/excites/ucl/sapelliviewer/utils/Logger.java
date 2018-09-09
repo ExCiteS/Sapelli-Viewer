@@ -26,21 +26,21 @@ public class Logger {
     public static final String ZOOM_IN_DOUBLE_TAP = "ZoomInDoubleTap";
     public static final String ROTATE = "Rotate";
     public static final String ZOOM_OUT_PINCH = "ZoomOutPinch";
-    public static final String FIELD_CHECKED = "FieldChecked_";
-    public static final String FIELD_UNCHECKED = "FieldUnchecked_";
-    public static final String VALUE_CHECKED = "LookUpValueChecked_";
-    public static final String VALUE_UNCHECKED = "LookUpValueUnchecked_";
-    public static final String CONTRIBUTION_DETAILS_OPENED = "ContributionDetailsOpened_";
-    public static final String CONTRIBUTION_DETAILS_CLOSED = "ContributionDetailsClosed_";
-    public static final String PHOTO_CLOSED = "PhotoClosed_";
-    public static final String PHOTO_OPENED = "PhotoOpened_";
-    public static final String AUDIO_CLOSED = "AudioClosed_";
-    public static final String AUDIO_OPENED = "AudioOpened_";
+    public static final String FIELD_CHECKED = "FieldChecked";
+    public static final String FIELD_UNCHECKED = "FieldUnchecked";
+    public static final String VALUE_CHECKED = "LookUpValueChecked";
+    public static final String VALUE_UNCHECKED = "LookUpValueUnchecked";
+    public static final String CONTRIBUTION_DETAILS_OPENED = "ContributionDetailsOpened";
+    public static final String CONTRIBUTION_DETAILS_CLOSED = "ContributionDetailsClosed";
+    public static final String PHOTO_CLOSED = "PhotoClosed";
+    public static final String PHOTO_OPENED = "PhotoOpened";
+    public static final String AUDIO_CLOSED = "AudioClosed";
+    public static final String AUDIO_OPENED = "AudioOpened";
     public static final String TOGGLE_ALL_OFF = "ToggleAllOff";
     public static final String TOGGLE_ALL_ON = "ToggleAllOn";
 
 
-    public Logs log(int projectId, String event, MapView mapView) {
+    public Logs log(int projectId, String event, Integer interactionId, MapView mapView) {
         String time;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             time = Instant.now().toString();
@@ -63,7 +63,7 @@ public class Logger {
         String bottomRight = getWGS84coord(new Point(maxX, minY, mapView.getSpatialReference()));
 
         Geometry geometry = new Geometry("Polygon", "[" + topLeft + ", " + topRight + ", " + bottomRight + ", " + bottomLeft + "]");
-        return new Logs(projectId, time, event.toString(), mapView.getMapScale(), geometry);
+        return new Logs(projectId, time, event, interactionId, mapView.getMapScale(), geometry);
     }
 
     private String getWGS84coord(Point coord) {
