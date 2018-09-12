@@ -160,6 +160,7 @@ public class GeoKeyProjectAdapter extends RecyclerView.Adapter<GeoKeyProjectAdap
         RelativeLayout cardLayout;
         TextView projectName;
         ImageView openMapButton;
+        ImageView openSettingsButton;
         ImageView syncProjectButton;
         TextView contributionsTxt;
         TextView mediaTxt;
@@ -172,12 +173,14 @@ public class GeoKeyProjectAdapter extends RecyclerView.Adapter<GeoKeyProjectAdap
             projectName = itemView.findViewById(R.id.list_item_text);
             cardLayout = itemView.findViewById(R.id.card);
             openMapButton = itemView.findViewById(R.id.open_map);
+            openSettingsButton = itemView.findViewById(R.id.open_settings);
             syncProjectButton = itemView.findViewById(R.id.sync_project);
             contributionsTxt = itemView.findViewById(R.id.txt_contributions);
             btnMapPath = itemView.findViewById(R.id.btn_map_path);
             mapPathTxt = itemView.findViewById(R.id.txt_map_path);
             mediaTxt = itemView.findViewById(R.id.txt_media);
             activeTxt = itemView.findViewById(R.id.active_txt);
+
 
 
             openMapButton.setOnClickListener(new View.OnClickListener() {
@@ -191,6 +194,13 @@ public class GeoKeyProjectAdapter extends RecyclerView.Adapter<GeoKeyProjectAdap
                 @Override
                 public void onClick(View view) {
                     onClickListener.syncProjectOnClick(view, getAdapterPosition());
+                }
+            });
+            
+            openSettingsButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    onClickListener.openProjectSettings(projects.get(getAdapterPosition()));
                 }
             });
 
@@ -218,6 +228,8 @@ public class GeoKeyProjectAdapter extends RecyclerView.Adapter<GeoKeyProjectAdap
         void activateMapOnClick(View v, int position);
 
         void setMapPath(View v, int position);
+
+        void openProjectSettings(ProjectInfo projectInfo);
     }
 
 }

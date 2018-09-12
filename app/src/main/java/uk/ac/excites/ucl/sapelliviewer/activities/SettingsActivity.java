@@ -11,6 +11,7 @@ import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.FragmentManager;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.app.AppCompatDelegate;
@@ -24,6 +25,7 @@ import android.view.View;
 import android.view.WindowManager;
 import android.view.animation.Animation;
 import android.widget.ImageView;
+import android.widget.RelativeLayout;
 import android.widget.Toast;
 
 import java.util.List;
@@ -45,7 +47,9 @@ import uk.ac.excites.ucl.sapelliviewer.db.AppDatabase;
 import uk.ac.excites.ucl.sapelliviewer.service.GeoKeyClient;
 import uk.ac.excites.ucl.sapelliviewer.service.GeoKeyRequests;
 import uk.ac.excites.ucl.sapelliviewer.service.RetrofitBuilder;
+import uk.ac.excites.ucl.sapelliviewer.ui.DetailsFragment;
 import uk.ac.excites.ucl.sapelliviewer.ui.GeoKeyProjectAdapter;
+import uk.ac.excites.ucl.sapelliviewer.ui.SettingsFragment;
 import uk.ac.excites.ucl.sapelliviewer.utils.NoConnectivityException;
 import uk.ac.excites.ucl.sapelliviewer.utils.SdCardStorage;
 import uk.ac.excites.ucl.sapelliviewer.utils.TokenManager;
@@ -117,6 +121,11 @@ public class SettingsActivity extends AppCompatActivity {
             public void setMapPath(View v, int position) {
                 mapPathPosition = position;
                 checkPermissionsAndOpenFilePicker();
+            }
+
+            @Override
+            public void openProjectSettings(ProjectInfo projectInfo) {
+                showProjectSettings(projectInfo.getId());
             }
         });
         recyclerView.setAdapter(projectAdapter);
@@ -351,5 +360,15 @@ public class SettingsActivity extends AppCompatActivity {
                                 }
                             }));
         }
+    }
+
+    public void showProjectSettings(int projectid) {
+        SettingsFragment settingsFragment = SettingsFragment.newInstance(projectid);
+        FragmentManager fragmentManager = getSupportFragmentManager();
+        fragmentManager
+                .beginTransaction()
+                .add(R.id.fragment_container, settingsFragment)
+                .addToBackStack(null)
+                .commit();
     }
 }

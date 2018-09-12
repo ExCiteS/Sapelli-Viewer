@@ -30,4 +30,16 @@
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="ssl_exception">Connection closed by peer</string>
+    <string name="project_settings">Project settings</string>
+    <string name="show_fields">Show fields:</string>
+    <string name="hide">Hide</string>
+    <string name="show">Show</string>
+    <string name="what_s_up">What\'s up? :)</string>
+    <string name="north">North</string>
+    <string name="east">East</string>
+    <string name="south">South</string>
+    <string name="west">West</string>
+    <string name="interaction_logging">Interaction logging:</string>
+    <string name="export_logs">Export logs</string>
+    <string name="reload_project_structure">Reload Project structure:</string>
 </resources>
