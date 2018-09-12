@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background_light">
+
+
+    <TextView
+        android:id="@+id/txt_project_name"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:padding="32dp"
+        android:text="@string/project_settings"
+        android:textAllCaps="true"
+        android:textStyle="bold" />
+
+
+    <!-- LOGGING SETTINGS -->
+    <RelativeLayout
+        android:id="@+id/group_logging_settings"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/txt_project_name"
+        android:layout_margin="8dp"
+        android:background="@android:color/white"
+        android:padding="8dp">
+
+        <TextView
+            android:id="@+id/label_logging_settings"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="Logging"
+            android:textAllCaps="true"
+            android:textColor="@color/colorPrimary" />
+
+        <TextView
+            android:id="@+id/label_tggl_logging"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignBaseline="@id/tggl_logging"
+            android:layout_marginRight="16dp"
+            android:text="@string/interaction_logging" />
+
+        <ToggleButton
+            android:id="@+id/tggl_logging"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/label_logging_settings"
+            android:layout_toRightOf="@id/label_tggl_logging" />
+
+        <Button
+            android:id="@+id/btn_logs"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/tggl_logging"
+            android:text="@string/export_logs" />
+    </RelativeLayout>
+
+    <!-- PROJECT SETTINGS -->
+    <RelativeLayout
+        android:id="@+id/group_project_settings"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/group_logging_settings"
+        android:layout_margin="8dp"
+        android:background="@android:color/white"
+        android:padding="8dp">
+
+        <TextView
+            android:id="@+id/label_project_settings"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="@string/project_settings"
+            android:textAllCaps="true"
+            android:textColor="@color/colorPrimary" />
+
+        <TextView
+            android:id="@+id/label_show_fields"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignBaseline="@id/tggl_show_fields"
+            android:layout_marginRight="16dp"
+            android:text="@string/show_fields" />
+
+        <ToggleButton
+            android:id="@+id/tggl_show_fields"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/label_project_settings"
+            android:layout_toRightOf="@id/label_show_fields"
+            android:textOff="@string/hide"
+            android:textOn="@string/show" />
+
+
+        <TextView
+            android:id="@+id/txt_whatsup"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/tggl_show_fields"
+            android:text="@string/what_s_up" />
+
+        <RadioGroup
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/txt_whatsup"
+            android:orientation="horizontal">
+
+            <RadioButton
+                android:id="@+id/radio_north"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/north" />
+
+            <RadioButton
+                android:id="@+id/radio_east"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/east" />
+
+
+            <RadioButton
+                android:id="@+id/radio_south"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/south" />
+
+            <RadioButton
+                android:id="@+id/radio_west"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/west" />
+        </RadioGroup>
+    </RelativeLayout>
+
+    <!-- RELOAD SETTINGS -->
+    <RelativeLayout
+        android:id="@+id/group_reload_settings"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/group_project_settings"
+        android:layout_margin="8dp"
+        android:background="@android:color/white"
+        android:padding="8dp">
+
+        <TextView
+            android:id="@+id/label_reload_project"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginRight="16dp"
+            android:layout_marginTop="20dp"
+            android:text="@string/reload_project_structure" />
+
+        <android.support.v7.widget.AppCompatImageButton
+            android:id="@+id/btn_reload"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_toRightOf="@id/label_reload_project"
+            app:srcCompat="@drawable/sync" />
+    </RelativeLayout>
+
+</RelativeLayout>

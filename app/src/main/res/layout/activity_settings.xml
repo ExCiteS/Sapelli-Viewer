@@ -19,5 +19,12 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_below="@+id/custom_toolbar"
-        android:layout_marginTop="4dp"/>
+        android:layout_marginTop="4dp" />
+
+    <FrameLayout
+        android:id="@+id/fragment_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_above="@id/value_recycler_view"
+        tools:layout="@layout/fragment_details" />
 </RelativeLayout>
