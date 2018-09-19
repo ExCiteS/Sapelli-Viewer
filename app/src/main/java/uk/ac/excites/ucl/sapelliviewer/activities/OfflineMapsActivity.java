@@ -18,6 +18,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.ImageButton;
 import android.widget.RelativeLayout;
 
 import com.esri.arcgisruntime.concurrent.ListenableFuture;
@@ -57,6 +58,7 @@ import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.schedulers.Schedulers;
 import uk.ac.excites.ucl.sapelliviewer.R;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Contribution;
+import uk.ac.excites.ucl.sapelliviewer.datamodel.ProjectProperties;
 import uk.ac.excites.ucl.sapelliviewer.db.AppDatabase;
 import uk.ac.excites.ucl.sapelliviewer.db.DatabaseClient;
 import uk.ac.excites.ucl.sapelliviewer.ui.DetailsFragment;
@@ -83,6 +85,7 @@ public class OfflineMapsActivity extends AppCompatActivity {
     private ArcGISMap map;
     private int backCounter;
     private DatabaseClient dbClient;
+    private int resetAngle;
 
 
     @SuppressLint("ClickableViewAccessibility")
@@ -101,42 +104,17 @@ public class OfflineMapsActivity extends AppCompatActivity {
         mapView = (MapView) findViewById(R.id.map);
         dbClient = new DatabaseClient(OfflineMapsActivity.this, projectId, mapView);
 
-
         copyBlankMap();
 
         ((ViewGroup) findViewById(R.id.root)).getLayoutTransition().enableTransitionType(LayoutTransition.CHANGE_APPEARING);
 
-        new ValueController(this, findViewById(R.id.value_recycler_view), disposables, dbClient)
-                .addFieldController(findViewById(R.id.field_recycler_view))
-                .addToggleButtons(findViewById(R.id.button_toggle_on), findViewById(R.id.button_toggle_off)); // ValueController should also work without Fields
+
 
         /* Load Vector base map*/
         ArcGISVectorTiledLayer vtpk = new ArcGISVectorTiledLayer(MediaHelpers.dataPath + File.separator + getString(R.string.blank_map));
         map = new ArcGISMap(new Basemap(vtpk));
-        // Listener on change in map load status
-        map.addDoneLoadingListener(new Runnable() {
-            @Override
-            public void run() {
-                Log.e("LoadStatus", map.getLoadStatus().name());
-                disposables.add(db.contributionDao().getContributions(projectId).observeOn(Schedulers.io()).subscribeOn(Schedulers.io()).subscribe(contributions -> showMarkers(contributions, true))); // initially load all markers
-                disposables.add(db.projectInfoDao().getMapPath(projectId).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe(OfflineMapsActivity.this::createMosaicDataset));
-            }
-        });
-//        map.addLoadStatusChangedListener(new LoadStatusChangedListener() {
-//            @Override
-//            public void loadStatusChanged(LoadStatusChangedEvent loadStatusChangedEvent) {
-//                String mapLoadStatus = loadStatusChangedEvent.getNewLoadStatus().name();
-//                // map load status can be any of LOADING, FAILED_TO_LOAD, NOT_LOADED or LOADED
-//                switch (mapLoadStatus) {
-//                    case "LOADED":
-//                        Log.e("Loaded", loadStatusChangedEvent.getNewLoadStatus().name());
-//
-////                        disposables.add(db.contributionDao().getContributions(projectId).observeOn(Schedulers.io()).subscribeOn(Schedulers.io()).subscribe(contributions -> showMarkers(contributions, true))); // initially load all markers
-//                        disposables.add(db.projectInfoDao().getMapPath(projectId).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe(OfflineMapsActivity.this::createMosaicDataset));
-//                        break;
-//                }
-//            }
-//        });
+
+
         mapView.setMap(map);
 
 
@@ -163,11 +141,11 @@ public class OfflineMapsActivity extends AppCompatActivity {
                                                                displayDetails(contributionId);
                                                                mapView.getGraphicsOverlays().get(0).clearSelection();
                                                                graphic.setSelected(true);
-                                                               dbClient.insertLog(Logger.CONTRIBUTION_DETAILS_OPENED , contributionId);
+                                                               dbClient.insertLog(Logger.CONTRIBUTION_DETAILS_OPENED, contributionId);
                                                            } else {
                                                                closeFragment();
                                                                graphic.setSelected(false);
-                                                               dbClient.insertLog(Logger.CONTRIBUTION_DETAILS_CLOSED , (Integer) graphic.getAttributes().get(CONTRIBUTION_ID));
+                                                               dbClient.insertLog(Logger.CONTRIBUTION_DETAILS_CLOSED, (Integer) graphic.getAttributes().get(CONTRIBUTION_ID));
                                                            }
 //                                                           mapView.setViewpointCenterAsync(new Point(((Point) graphic.getGeometry()).getX(), ((Point) graphic.getGeometry()).getY()));
                                                        }
@@ -309,7 +287,7 @@ public class OfflineMapsActivity extends AppCompatActivity {
     }
 
     public void rotateNorth(View view) {
-        mapView.setViewpointRotationAsync(0);
+        mapView.setViewpointRotationAsync(resetAngle);
     }
 
     @Override
@@ -322,8 +300,42 @@ public class OfflineMapsActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         mapView.resume();
-//        showRasters();
+        ValueController valueController = new ValueController(this, findViewById(R.id.value_recycler_view), disposables, dbClient);
+        disposables.add(dbClient.getProjectProperties().filter(ProjectProperties::isShowFields)
+                .subscribe(__ -> valueController.addFieldController(findViewById(R.id.field_recycler_view)).addToggleButtons(findViewById(R.id.button_toggle_on), findViewById(R.id.button_toggle_off))));
+        ImageButton northButton = findViewById(R.id.rotate_north_btn);
 
+        disposables.add(dbClient.getProjectProperties()
+                .subscribe(projectProperties -> {
+                    switch (projectProperties.getUpDirection()) {
+                        case "east":
+                            resetAngle = 90;
+                            northButton.setImageDrawable(getResources().getDrawable(R.drawable.east));
+                            break;
+                        case "south":
+                            resetAngle = 180;
+                            northButton.setImageDrawable(getResources().getDrawable(R.drawable.south));
+                            break;
+                        case "west":
+                            resetAngle = 270;
+                            northButton.setImageDrawable(getResources().getDrawable(R.drawable.west));
+                            break;
+                        default:
+                            northButton.setImageDrawable(getResources().getDrawable(R.drawable.north));
+
+                    }
+                    mapView.setViewpointRotationAsync(resetAngle);
+
+                }));
+        // Listener on change in map load status
+        map.addDoneLoadingListener(new Runnable() {
+            @Override
+            public void run() {
+                Log.e("LoadStatus", map.getLoadStatus().name());
+                disposables.add(db.contributionDao().getContributions(projectId).observeOn(Schedulers.io()).subscribeOn(Schedulers.io()).subscribe(contributions -> showMarkers(contributions, true))); // initially load all markers
+                disposables.add(db.projectInfoDao().getMapPath(projectId).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe(OfflineMapsActivity.this::createMosaicDataset));
+            }
+        });
     }
 
     @Override

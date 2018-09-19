@@ -42,4 +42,5 @@
     <string name="interaction_logging">Interaction logging:</string>
     <string name="export_logs">Export logs</string>
     <string name="reload_project_structure">Reload Project structure:</string>
+    <string name="db_exported">Database exported</string>
 </resources>

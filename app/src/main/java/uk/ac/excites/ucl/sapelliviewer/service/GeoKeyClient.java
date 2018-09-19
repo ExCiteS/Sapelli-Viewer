@@ -15,6 +15,7 @@ import okhttp3.ResponseBody;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Contribution;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.ContributionProperty;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.ProjectInfo;
+import uk.ac.excites.ucl.sapelliviewer.datamodel.ProjectProperties;
 import uk.ac.excites.ucl.sapelliviewer.db.AppDatabase;
 import uk.ac.excites.ucl.sapelliviewer.utils.MediaHelpers;
 import uk.ac.excites.ucl.sapelliviewer.utils.TokenManager;
@@ -46,6 +47,7 @@ public class GeoKeyClient {
                 .subscribeOn(Schedulers.io())
                 .concatMap(Observable::fromIterable)
                 .filter(projectInfo -> projectInfo.getUser_info().is_admin())
+                .doOnNext(projectInfo -> db.projectInfoDao().insertProjectProperties(new ProjectProperties(projectInfo.getId())))
                 .toList()
                 .doOnSuccess(projectInfos -> {
                     db.projectInfoDao().clearProjectInfos();

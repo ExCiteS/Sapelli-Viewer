@@ -1,21 +1,20 @@
 package uk.ac.excites.ucl.sapelliviewer.db;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 
 import com.esri.arcgisruntime.mapping.view.MapView;
 
 import java.util.List;
-import java.util.Map;
 
-import io.reactivex.Completable;
+import io.reactivex.Maybe;
 import io.reactivex.Observable;
 import io.reactivex.Single;
 import io.reactivex.schedulers.Schedulers;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Contribution;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Field;
-import uk.ac.excites.ucl.sapelliviewer.datamodel.Logs;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.LookUpValue;
-import uk.ac.excites.ucl.sapelliviewer.db.AppDatabase;
+import uk.ac.excites.ucl.sapelliviewer.datamodel.ProjectProperties;
 import uk.ac.excites.ucl.sapelliviewer.utils.Logger;
 
 public class DatabaseClient {
@@ -57,14 +56,22 @@ public class DatabaseClient {
                 .flatMap(this::getContributionsByValues);
     }
 
-    public void insertLog(String event) {
-        Logs log = logger.log(projectId, event, null, mapView);
-        Completable.fromAction(() -> db.projectInfoDao().insertLog(log)).subscribeOn(Schedulers.io()).subscribe();
+    public Single<ProjectProperties> getProjectProperties() {
+        return db.projectInfoDao().getProjectProperties(projectId).subscribeOn(Schedulers.io());
     }
 
+    @SuppressLint("CheckResult")
+    public void insertLog(String event) {
+        db.projectInfoDao().getProjectProperties(projectId).subscribeOn(Schedulers.io())
+                .filter(ProjectProperties::isLogging)
+                .subscribe(projectProperties -> db.projectInfoDao().insertLog(logger.log(projectId, event, null, mapView)));
+    }
+
+    @SuppressLint("CheckResult")
     public void insertLog(String event, int interactionId) {
-        Logs log = logger.log(projectId, event, interactionId, mapView);
-        Completable.fromAction(() -> db.projectInfoDao().insertLog(log)).subscribeOn(Schedulers.io()).subscribe();
+        db.projectInfoDao().getProjectProperties(projectId).subscribeOn(Schedulers.io())
+                .filter(ProjectProperties::isLogging)
+                .subscribe(projectProperties -> db.projectInfoDao().insertLog(logger.log(projectId, event, interactionId, mapView)));
     }
 
 

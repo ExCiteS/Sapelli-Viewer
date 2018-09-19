@@ -33,6 +33,9 @@ public interface ProjectInfoDao {
     @Delete
     void deleteProjectInfo(ProjectInfo projectInfo);
 
+    @Query("SELECT * FROM ProjectInfo where id = :projectId")
+    Single<ProjectInfo> getProjectInfo(int projectId);
+
     @Query("SELECT * FROM ProjectInfo order by name")
     Single<List<ProjectInfo>> getProjectInfos();
 
@@ -46,11 +49,28 @@ public interface ProjectInfoDao {
     @Query("SELECT count(*) FROM Document WHERE contribution_id IN (SELECT id FROM Contribution WHERE projectid = :projectId)")
     Single<Integer> getMediaCount(int projectId);
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     void insertProjectProperties(ProjectProperties projectProperties);
+
+    @Query("Update ProjectProperties set mapPath = :folderLocation where id = :id")
+    void setMapPath(int id, String folderLocation);
+
+    @Query("Update ProjectProperties set logging = :logging where id = :id")
+    void setLogging(int id, boolean logging);
+
+    @Query("Update ProjectProperties set showFields = :showFields where id = :id")
+    void showFields(int id, boolean showFields);
+
+    @Query("Update ProjectProperties set upDirection = :upDirection where id = :id")
+    void setUpDirection(int id, String upDirection);
+
 
     @Query("SELECT mapPath FROM projectproperties WHERE id=:projectId")
     Maybe<String> getMapPath(int projectId);
+
+    @Query("SELECT * FROM projectproperties WHERE id=:projectId")
+    Single<ProjectProperties> getProjectProperties(int projectId);
+
 
     /* CATEGORIES */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -100,4 +120,6 @@ public interface ProjectInfoDao {
     /* Logs */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertLog(Logs log);
+
+
 }
