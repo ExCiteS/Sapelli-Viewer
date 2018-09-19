@@ -10,8 +10,9 @@
         android:id="@+id/txt_project_name"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:padding="32dp"
         android:text="@string/project_settings"
+        android:textSize="24sp"
+        android:layout_margin="8dp"
         android:textAllCaps="true"
         android:textStyle="bold" />
 
@@ -103,6 +104,7 @@
             android:text="@string/what_s_up" />
 
         <RadioGroup
+            android:id="@+id/radio_whatsup"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_below="@+id/txt_whatsup"
@@ -159,9 +161,16 @@
 
         <android.support.v7.widget.AppCompatImageButton
             android:id="@+id/btn_reload"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_toRightOf="@id/label_reload_project"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_toRightOf="@id/label_reload_project" />
+
+        <ImageView
+            android:id="@+id/img_reload"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_alignStart="@+id/btn_reload"
+            android:padding="8dp"
             app:srcCompat="@drawable/sync" />
     </RelativeLayout>
 

@@ -25,7 +25,6 @@ import android.view.View;
 import android.view.WindowManager;
 import android.view.animation.Animation;
 import android.widget.ImageView;
-import android.widget.RelativeLayout;
 import android.widget.Toast;
 
 import java.util.List;
@@ -41,13 +40,11 @@ import io.reactivex.schedulers.Schedulers;
 import lib.folderpicker.FolderPicker;
 import uk.ac.excites.ucl.sapelliviewer.R;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.ProjectInfo;
-import uk.ac.excites.ucl.sapelliviewer.datamodel.ProjectProperties;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.UserInfo;
 import uk.ac.excites.ucl.sapelliviewer.db.AppDatabase;
 import uk.ac.excites.ucl.sapelliviewer.service.GeoKeyClient;
 import uk.ac.excites.ucl.sapelliviewer.service.GeoKeyRequests;
 import uk.ac.excites.ucl.sapelliviewer.service.RetrofitBuilder;
-import uk.ac.excites.ucl.sapelliviewer.ui.DetailsFragment;
 import uk.ac.excites.ucl.sapelliviewer.ui.GeoKeyProjectAdapter;
 import uk.ac.excites.ucl.sapelliviewer.ui.SettingsFragment;
 import uk.ac.excites.ucl.sapelliviewer.utils.NoConnectivityException;
@@ -264,7 +261,30 @@ public class SettingsActivity extends AppCompatActivity {
                 Observable.merge(geoKeyclient.getContributionsWithProperties(projectID), geoKeyclient.getMedia(projectID));
 
         disposables.add(
-                Observable.concat(geoKeyclient.getProject(projectID), contributionAndMediaObervable)
+                contributionAndMediaObervable
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .subscribeWith(new DisposableObserver<Object>() {
+                            @Override
+                            public void onNext(Object o) {
+                            }
+
+                            @Override
+                            public void onError(Throwable e) {
+                                Log.e("getProject", e.getMessage());
+                                loadProjectStructure(projectInfo, contributionAndMediaObervable);
+                            }
+
+                            @Override
+                            public void onComplete() {
+                                projectAdapter.getCounts(projectInfo);
+                                updateUI(true);
+                            }
+                        }));
+    }
+
+    public void loadProjectStructure(ProjectInfo projectInfo, Observable<Object> contributionAndMediaObervable) {
+        disposables.add(
+                Observable.concat(geoKeyclient.getProject(projectInfo.getId()), contributionAndMediaObervable)
                         .observeOn(AndroidSchedulers.mainThread())
                         .subscribeWith(new DisposableObserver<Object>() {
                             @Override
@@ -344,10 +364,9 @@ public class SettingsActivity extends AppCompatActivity {
         if (requestCode == FILE_PICKER_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
 
             String folderLocation = data.getExtras().getString("data");
-            ProjectProperties projectProperties = new ProjectProperties(projectAdapter.getProject(mapPathPosition).getId(), folderLocation);
 
             disposables.add(
-                    Completable.fromAction(() -> db.projectInfoDao().insertProjectProperties(projectProperties)).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
+                    Completable.fromAction(() -> db.projectInfoDao().setMapPath(projectAdapter.getProject(mapPathPosition).getId(), folderLocation)).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
                             .subscribeWith(new DisposableCompletableObserver() {
                                 @Override
                                 public void onComplete() {
@@ -371,4 +390,5 @@ public class SettingsActivity extends AppCompatActivity {
                 .addToBackStack(null)
                 .commit();
     }
+
 }

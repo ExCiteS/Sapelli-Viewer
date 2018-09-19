@@ -8,11 +8,14 @@ public class ProjectProperties {
     @PrimaryKey
     private int id;
     private String mapPath;
+    private boolean logging;
+    private boolean showFields;
+    private String upDirection = "north"; // default value
 
-    public ProjectProperties(int id, String mapPath) {
+    public ProjectProperties(int id) {
         this.id = id;
-        this.mapPath = mapPath;
     }
+
 
     public int getId() {
         return id;
@@ -28,5 +31,29 @@ public class ProjectProperties {
 
     public void setMapPath(String mapPath) {
         this.mapPath = mapPath;
+    }
+
+    public boolean isLogging() {
+        return logging;
+    }
+
+    public void setLogging(boolean logging) {
+        this.logging = logging;
+    }
+
+    public boolean isShowFields() {
+        return showFields;
+    }
+
+    public void setShowFields(boolean showFields) {
+        this.showFields = showFields;
+    }
+
+    public String getUpDirection() {
+        return upDirection;
+    }
+
+    public void setUpDirection(String upDirection) {
+        this.upDirection = upDirection;
     }
 }

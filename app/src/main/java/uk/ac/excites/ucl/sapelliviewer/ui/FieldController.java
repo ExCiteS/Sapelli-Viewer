@@ -42,11 +42,11 @@ class FieldController{
         this.disposibles = disposibles;
         this.fieldRecyclerView = fieldRecyclerView;
         this.dbClient = dbClient;
-        setAdapter(projectId);
+        setAdapter();
     }
 
 
-    private void setAdapter(int projectId) {
+    private void setAdapter() {
         disposibles.add(
                 dbClient.getFields()
                         .subscribeOn(Schedulers.io())
