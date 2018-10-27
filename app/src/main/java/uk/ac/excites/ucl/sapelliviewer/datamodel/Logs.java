@@ -18,17 +18,21 @@ public class Logs {
     private Integer interactionId;
     private double scale;
     @Embedded
-    private
-    Geometry geometry;
+    private Geometry geometry;
+    private String mapPath;
+    private String upDirection;
 
-    public Logs(int projectId, String time, String event, Integer interactionId, double scale, Geometry geometry) {
+    public Logs(int projectId, String time, String event, Integer interactionId, double scale, Geometry geometry, String mapPath, String upDirection) {
         this.projectId = projectId;
         this.time = time;
         this.event = event;
         this.interactionId = interactionId;
         this.scale = scale;
         this.geometry = geometry;
+        this.mapPath = mapPath;
+        this.upDirection = upDirection;
     }
+
 
     public int getId() {
         return id;
@@ -84,5 +88,21 @@ public class Logs {
 
     public void setInteractionId(Integer interactionId) {
         this.interactionId = interactionId;
+    }
+
+    public String getMapPath() {
+        return mapPath;
+    }
+
+    public void setMapPath(String mapPath) {
+        this.mapPath = mapPath;
+    }
+
+    public String getUpDirection() {
+        return upDirection;
+    }
+
+    public void setUpDirection(String upDirection) {
+        this.upDirection = upDirection;
     }
 }

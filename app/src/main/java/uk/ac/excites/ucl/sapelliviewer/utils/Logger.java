@@ -16,6 +16,7 @@ import java.util.TimeZone;
 
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Geometry;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Logs;
+import uk.ac.excites.ucl.sapelliviewer.datamodel.ProjectProperties;
 
 public class Logger {
     public static final String INITIAL_EXTENT = "InitialExtent";
@@ -38,9 +39,10 @@ public class Logger {
     public static final String AUDIO_OPENED = "AudioOpened";
     public static final String TOGGLE_ALL_OFF = "ToggleAllOff";
     public static final String TOGGLE_ALL_ON = "ToggleAllOn";
+    public static final String ROTATE_BUTTON = "RotateButton";
 
 
-    public Logs log(int projectId, String event, Integer interactionId, MapView mapView) {
+    public Logs log(int projectId, String event, Integer interactionId, MapView mapView, ProjectProperties projectProperties) {
         String time;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             time = Instant.now().toString();
@@ -63,7 +65,7 @@ public class Logger {
         String bottomRight = getWGS84coord(new Point(maxX, minY, mapView.getSpatialReference()));
 
         Geometry geometry = new Geometry("Polygon", "[" + topLeft + ", " + topRight + ", " + bottomRight + ", " + bottomLeft + "]");
-        return new Logs(projectId, time, event, interactionId, mapView.getMapScale(), geometry);
+        return new Logs(projectId, time, event, interactionId, mapView.getMapScale(), geometry, projectProperties.getMapPath(), projectProperties.getUpDirection());
     }
 
     private String getWGS84coord(Point coord) {
