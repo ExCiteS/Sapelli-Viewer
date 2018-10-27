@@ -64,14 +64,14 @@ public class DatabaseClient {
     public void insertLog(String event) {
         db.projectInfoDao().getProjectProperties(projectId).subscribeOn(Schedulers.io())
                 .filter(ProjectProperties::isLogging)
-                .subscribe(projectProperties -> db.projectInfoDao().insertLog(logger.log(projectId, event, null, mapView)));
+                .subscribe(projectProperties -> db.projectInfoDao().insertLog(logger.log(projectId, event, null, mapView, projectProperties)));
     }
 
     @SuppressLint("CheckResult")
     public void insertLog(String event, int interactionId) {
         db.projectInfoDao().getProjectProperties(projectId).subscribeOn(Schedulers.io())
                 .filter(ProjectProperties::isLogging)
-                .subscribe(projectProperties -> db.projectInfoDao().insertLog(logger.log(projectId, event, interactionId, mapView)));
+                .subscribe(projectProperties -> db.projectInfoDao().insertLog(logger.log(projectId, event, interactionId, mapView, projectProperties)));
     }
 
 

@@ -2,6 +2,7 @@ package uk.ac.excites.ucl.sapelliviewer.ui;
 
 import android.content.Context;
 import android.graphics.Color;
+import android.support.v4.content.res.ResourcesCompat;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -111,7 +112,7 @@ public class GeoKeyProjectAdapter extends RecyclerView.Adapter<GeoKeyProjectAdap
         holder.mediaTxt.setText(ctx.getResources().getString(R.string.media) + project.getMediaCount());
         getMapPath(getProject(position), holder.mapPathTxt);
         if (project.isActive()) {
-            holder.cardLayout.setBackgroundColor(Color.parseColor("#42a2ce"));
+            holder.cardLayout.setBackgroundColor(ResourcesCompat.getColor(ctx.getResources(), R.color.colorPrimary, null));
             holder.activeTxt.setText(R.string.active);
         } else {
             holder.cardLayout.setBackgroundColor(0);
@@ -182,7 +183,6 @@ public class GeoKeyProjectAdapter extends RecyclerView.Adapter<GeoKeyProjectAdap
             activeTxt = itemView.findViewById(R.id.active_txt);
 
 
-
             openMapButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
@@ -196,7 +196,7 @@ public class GeoKeyProjectAdapter extends RecyclerView.Adapter<GeoKeyProjectAdap
                     onClickListener.syncProjectOnClick(view, getAdapterPosition());
                 }
             });
-            
+
             openSettingsButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {

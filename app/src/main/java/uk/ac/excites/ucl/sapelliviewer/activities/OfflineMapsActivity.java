@@ -288,6 +288,7 @@ public class OfflineMapsActivity extends AppCompatActivity {
 
     public void rotateNorth(View view) {
         mapView.setViewpointRotationAsync(resetAngle);
+        dbClient.insertLog(Logger.ROTATE_BUTTON);
     }
 
     @Override

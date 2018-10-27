@@ -86,7 +86,6 @@ public class SettingsActivity extends AppCompatActivity {
         toolbar.setLogo(R.mipmap.ic_sapelli_viewer);
 
         recyclerView = (RecyclerView) findViewById(R.id.project_recyclerview);
-        recyclerView.setHasFixedSize(true);
         recyclerView.setItemAnimator(null);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         projectAdapter = new GeoKeyProjectAdapter(SettingsActivity.this, disposables, new GeoKeyProjectAdapter.ProjectAdapterClickListener() {
