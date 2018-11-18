@@ -96,7 +96,7 @@ public class GeoKeyClient {
     public Observable<ContributionProperty> getContributionsWithProperties(int projectID) {
         return getContributions(projectID)
                 .doOnNext(contribution -> {
-                    contribution.getContributionProperty().setFieldId(db.projectInfoDao().getFieldByKey(contribution.getContributionProperty().getKey(), contribution.getCategoryId()).getId());
+                    contribution.setDisplayFieldId(db.projectInfoDao().getFieldByKey(contribution.getDisplayFieldKey(), contribution.getCategoryId()).getId());
                     db.contributionDao().insertContribution(contribution);
                 })
                 .flatMap(contribution -> Observable.fromIterable(contribution.getContributionProperties())

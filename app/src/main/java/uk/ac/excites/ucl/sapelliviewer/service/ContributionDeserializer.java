@@ -21,11 +21,8 @@ public class ContributionDeserializer implements JsonDeserializer<Contribution> 
         JsonObject jsonObject = (JsonObject) json;
         contribution.setId(jsonObject.get("id").getAsInt());
         contribution.setGeometry(new GeometryDeserializer().deserialize(jsonObject.get("geometry").getAsJsonObject()));
+        contribution.setDisplayFieldKey(extractString(jsonObject.get("display_field").getAsJsonObject().get("key")));
 
-        String displayFieldKey = extractString(jsonObject.get("display_field").getAsJsonObject().get("key"));
-        String displayFieldValue = extractString(jsonObject.get("display_field").getAsJsonObject().get("value"));
-        ContributionProperty displayField = new ContributionProperty(contribution.getId(), 0, displayFieldKey, displayFieldValue);
-        contribution.setContributionProperty(displayField);
 
         Category category = new Category();
         JsonObject categoryJson = jsonObject.get("meta").getAsJsonObject().get("category").getAsJsonObject();
