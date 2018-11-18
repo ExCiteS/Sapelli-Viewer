@@ -47,29 +47,6 @@ public abstract class AppDatabase extends RoomDatabase {
                     "                 FROM ContributionProperty))\n" +
                     "  WHERE contribPropertyId = new.contribPropertyId;\n" +
                     "END;";
-    private static String LOOKUP_INJECTION_CONTRIBUTION =
-            "CREATE TRIGGER trigger_lookup_injection_contribution\n" +
-                    "  AFTER\n" +
-                    "  INSERT\n" +
-                    "  ON Contribution\n" +
-                    "  WHEN ((SELECT fieldtype\n" +
-                    "         FROM Contribution\n" +
-                    "           JOIN Field ON Contribution.fieldId = Field.id\n" +
-                    "         WHERE Contribution.id = NEW.id) LIKE '%LookUpField%')\n" +
-                    "BEGIN\n" +
-                    "  UPDATE Contribution\n" +
-                    "  SET value = (SELECT name\n" +
-                    "               FROM LookUpValue\n" +
-                    "               WHERE id IN (\n" +
-                    "                 SELECT value\n" +
-                    "                 FROM Contribution)),\n" +
-                    "    symbol  = (SELECT symbol\n" +
-                    "               FROM LookUpValue\n" +
-                    "               WHERE id IN (\n" +
-                    "                 SELECT value\n" +
-                    "                 FROM Contribution))\n" +
-                    "  WHERE Contribution.id = NEW.id;\n" +
-                    "END;";
 
     public abstract UserDao userDao();
 
@@ -92,8 +69,6 @@ public abstract class AppDatabase extends RoomDatabase {
 
     static RoomDatabase.Callback rdc = new RoomDatabase.Callback() {
         public void onCreate(SupportSQLiteDatabase db) {
-            if (LOOKUP_INJECTION_CONTRIBUTION != null)
-                db.execSQL(LOOKUP_INJECTION_CONTRIBUTION);
             if (LOOKUP_INJECTION_CONTRIBUTIONPROPERTY != null)
                 db.execSQL(LOOKUP_INJECTION_CONTRIBUTIONPROPERTY);
         }

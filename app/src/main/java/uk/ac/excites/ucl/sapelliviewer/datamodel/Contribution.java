@@ -19,6 +19,9 @@ public class Contribution {
     private int id;
     private int projectId;
     private int categoryId;
+    private int displayFieldId;
+    private String displayFieldKey;
+
     @Ignore
     private Category category;
 
@@ -27,11 +30,9 @@ public class Contribution {
     @Ignore
     private HashMap<String, String> properties;
 
-    @Embedded
-    private ContributionProperty contributionProperty;
     @Ignore
     private List<ContributionProperty> contributionProperties;
-    private String expiry_field;
+
     @Ignore // Ignore for now, might need later
     private Meta meta;
 
@@ -47,9 +48,6 @@ public class Contribution {
         return geometry;
     }
 
-    public String getExpiry_field() {
-        return expiry_field;
-    }
 
     public Meta getMeta() {
         return meta;
@@ -67,9 +65,6 @@ public class Contribution {
         this.properties = properties;
     }
 
-    public void setExpiry_field(String expiry_field) {
-        this.expiry_field = expiry_field;
-    }
 
     public void setMeta(Meta meta) {
         this.meta = meta;
@@ -91,12 +86,12 @@ public class Contribution {
         this.categoryId = category;
     }
 
-    public ContributionProperty getContributionProperty() {
-        return contributionProperty;
+    public int getDisplayFieldId() {
+        return displayFieldId;
     }
 
-    public void setContributionProperty(ContributionProperty contributionProperty) {
-        this.contributionProperty = contributionProperty;
+    public void setDisplayFieldId(int displayFieldId) {
+        this.displayFieldId = displayFieldId;
     }
 
     public Category getCategory() {
@@ -113,5 +108,13 @@ public class Contribution {
 
     public List<ContributionProperty> getContributionProperties() {
         return contributionProperties;
+    }
+
+    public String getDisplayFieldKey() {
+        return displayFieldKey;
+    }
+
+    public void setDisplayFieldKey(String displayFieldKey) {
+        this.displayFieldKey = displayFieldKey;
     }
 }

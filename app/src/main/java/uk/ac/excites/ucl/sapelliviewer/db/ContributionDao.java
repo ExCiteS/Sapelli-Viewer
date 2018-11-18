@@ -39,7 +39,7 @@ public interface ContributionDao {
     @Query("SELECT DISTINCT Contribution.* FROM LookUpValue JOIN ContributionProperty ON LookUpValue.name = ContributionProperty.value AND LookUpValue.symbol = ContributionProperty.symbol JOIN Contribution ON ContributionProperty.contributionId = Contribution.id WHERE LookUpValue.id IN (:valueIDs);")
     Single<List<Contribution>> getContributionsByValues(List<Integer> valueIDs);
 
-    @Query("Select distinct fieldId from Contribution where projectId=:projectId")
+    @Query("Select distinct displayFieldId from Contribution where projectId=:projectId")
     Maybe<Integer> getDisplayField(int projectId);
 
     /* CONTRIBUTION PROPERTIES*/
