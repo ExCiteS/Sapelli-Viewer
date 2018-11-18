@@ -10,10 +10,10 @@
         android:id="@+id/txt_project_name"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/project_settings"
-        android:textSize="24sp"
         android:layout_margin="8dp"
+        android:text="@string/project_settings"
         android:textAllCaps="true"
+        android:textSize="24sp"
         android:textStyle="bold" />
 
 
@@ -79,28 +79,50 @@
             android:textColor="@color/colorPrimary" />
 
         <TextView
+            android:layout_marginTop="8dp"
             android:id="@+id/label_show_fields"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_alignBaseline="@id/tggl_show_fields"
+            android:layout_below="@+id/label_project_settings"
             android:layout_marginRight="16dp"
             android:text="@string/show_fields" />
 
-        <ToggleButton
-            android:id="@+id/tggl_show_fields"
-            android:layout_width="wrap_content"
+        <RadioGroup
+            android:id="@+id/radio_show_fields"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_below="@+id/label_project_settings"
-            android:layout_toRightOf="@id/label_show_fields"
-            android:textOff="@string/hide"
-            android:textOn="@string/show" />
+            android:layout_below="@+id/label_show_fields"
+            android:orientation="horizontal">
+
+            <RadioButton
+                android:id="@+id/show_all_fields"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/show_all_fields_and_values" />
+
+            <RadioButton
+                android:id="@+id/show_no_fields"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/show_no_fields_but_all_values" />
+
+            <RadioButton
+                android:id="@+id/show_display_fields"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/show_no_fields_but_display_values" />
+        </RadioGroup>
 
 
         <TextView
             android:id="@+id/txt_whatsup"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_below="@id/tggl_show_fields"
+            android:layout_below="@id/radio_show_fields"
+            android:layout_marginTop="16dp"
             android:text="@string/what_s_up" />
 
         <RadioGroup
@@ -155,8 +177,8 @@
             android:id="@+id/label_reload_project"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginRight="16dp"
             android:layout_marginTop="20dp"
+            android:layout_marginRight="16dp"
             android:text="@string/reload_project_structure" />
 
         <android.support.v7.widget.AppCompatImageButton

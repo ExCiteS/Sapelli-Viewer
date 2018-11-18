@@ -1,6 +1,5 @@
 package uk.ac.excites.ucl.sapelliviewer.ui;
 
-import android.renderscript.Sampler;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
@@ -29,18 +28,18 @@ public class ValueController {
     private ImageButton toggleOffButton;
 
 
-    public ValueController(OfflineMapsActivity mapActivity, RecyclerView valueRecyclerView, CompositeDisposable disposables, DatabaseClient dbClient) {
+    public ValueController(OfflineMapsActivity mapActivity, RecyclerView valueRecyclerView, CompositeDisposable disposables, DatabaseClient dbClient, Integer displayField) {
         this.dbClient = dbClient;
         this.mapsActivity = mapActivity;
         this.valueRecyclerView = valueRecyclerView;
         valueRecyclerView.setLayoutManager(new LinearLayoutManager(mapActivity.getContext(), LinearLayoutManager.HORIZONTAL, false));
         this.disposables = disposables;
-        getValueAdapter();
+        getValueAdapter(displayField);
     }
 
-    private void getValueAdapter() {
+    private void getValueAdapter(Integer displayField) {
         disposables.add(
-                dbClient.getLookUpValues()
+                dbClient.getLookUpValues(displayField)
                         .subscribeWith(new DisposableSingleObserver<List<LookUpValue>>() {
                             @Override
                             public void onSuccess(List<LookUpValue> lookUpValues) {
@@ -49,8 +48,8 @@ public class ValueController {
                                     valueAdapter.notifyDataSetChanged();
                                     dbClient.loadMarkers(valueAdapter.getVisibleAndActiveLookupValues()).subscribe(contributions -> updateMarkers(contributions));
                                     if (value.isActive())
-                                        dbClient.insertLog(Logger.VALUE_CHECKED , value.getId());
-                                    else dbClient.insertLog(Logger.VALUE_UNCHECKED , value.getId());
+                                        dbClient.insertLog(Logger.VALUE_CHECKED, value.getId());
+                                    else dbClient.insertLog(Logger.VALUE_UNCHECKED, value.getId());
 
 
                                 });

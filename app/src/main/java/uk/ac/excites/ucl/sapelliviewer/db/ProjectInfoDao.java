@@ -58,7 +58,7 @@ public interface ProjectInfoDao {
     void setLogging(int id, boolean logging);
 
     @Query("Update ProjectProperties set showFields = :showFields where id = :id")
-    void showFields(int id, boolean showFields);
+    void showFields(int id, String showFields);
 
     @Query("Update ProjectProperties set upDirection = :upDirection where id = :id")
     void setUpDirection(int id, String upDirection);

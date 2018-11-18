@@ -7,7 +7,6 @@ import com.esri.arcgisruntime.mapping.view.MapView;
 
 import java.util.List;
 
-import io.reactivex.Maybe;
 import io.reactivex.Observable;
 import io.reactivex.Single;
 import io.reactivex.schedulers.Schedulers;
@@ -38,10 +37,16 @@ public class DatabaseClient {
                 .subscribeOn(Schedulers.io());
     }
 
-    public Single<List<LookUpValue>> getLookUpValues() {
-        return db.projectInfoDao().getLookupValueByProject(projectId).observeOn(Schedulers.io())
-                .subscribeOn(Schedulers.io());
+    /* Return LookupValues By field, if displayfield is set, otherwise, return all lookupvalues*/
+    public Single<List<LookUpValue>> getLookUpValues(Integer fieldId) {
+        if (fieldId == null)
+            return db.projectInfoDao().getLookupValueByProject(projectId).observeOn(Schedulers.io())
+                    .subscribeOn(Schedulers.io());
+        else
+            return db.projectInfoDao().getLookupValueByField(fieldId).observeOn(Schedulers.io())
+                    .subscribeOn(Schedulers.io());
     }
+
 
     public Single<List<Contribution>> getContributionsByValues(List<Integer> valueIDs) {
         return db.contributionDao().getContributionsByValues(valueIDs)

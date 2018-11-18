@@ -8,12 +8,12 @@ import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageButton;
-import android.widget.Toast;
 import android.widget.ToggleButton;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.observers.DisposableSingleObserver;
 import io.reactivex.schedulers.Schedulers;
@@ -24,7 +24,7 @@ import uk.ac.excites.ucl.sapelliviewer.datamodel.LookUpValue;
 import uk.ac.excites.ucl.sapelliviewer.db.DatabaseClient;
 import uk.ac.excites.ucl.sapelliviewer.utils.Logger;
 
-class FieldController{
+class FieldController {
 
     private final DatabaseClient dbClient;
     private Context context;
@@ -53,6 +53,7 @@ class FieldController{
                         .toObservable().flatMapIterable(fields -> fields)
                         .filter(field -> !field.getKey().equals("DeviceId") && !field.getKey().equals("StartTime") && !field.getKey().equals("EndTime"))
                         .toList()
+                        .observeOn(AndroidSchedulers.mainThread())
                         .subscribeWith(new DisposableSingleObserver<List<Field>>() {
 
                             @Override
@@ -67,11 +68,11 @@ class FieldController{
                                         }
                                         if (isChecked) {
                                             buttonView.setBackgroundColor(ContextCompat.getColor(context, R.color.colorPrimary));
-                                            dbClient.insertLog(Logger.FIELD_CHECKED , field.getId());
+                                            dbClient.insertLog(Logger.FIELD_CHECKED, field.getId());
 
                                         } else {
                                             buttonView.setBackgroundColor(Color.WHITE);
-                                            dbClient.insertLog(Logger.FIELD_UNCHECKED , field.getId());
+                                            dbClient.insertLog(Logger.FIELD_UNCHECKED, field.getId());
 
                                         }
                                         valueAdapter.notifyDataSetChanged();
