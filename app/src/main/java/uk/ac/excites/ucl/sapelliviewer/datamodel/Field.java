@@ -1,18 +1,16 @@
 package uk.ac.excites.ucl.sapelliviewer.datamodel;
 
 import android.arch.persistence.room.Entity;
-import android.arch.persistence.room.ForeignKey;
 import android.arch.persistence.room.Ignore;
 import android.arch.persistence.room.PrimaryKey;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Created by Julia on 19/02/2018.
  */
 
-@Entity(foreignKeys = @ForeignKey(entity = Category.class, parentColumns = "id", childColumns = "category_id"))
+@Entity()
 public class Field {
     @PrimaryKey
     private int id;

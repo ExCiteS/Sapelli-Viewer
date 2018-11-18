@@ -2,7 +2,6 @@ package uk.ac.excites.ucl.sapelliviewer.service;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.util.Log;
 
 import java.io.File;
 import java.util.List;
@@ -96,30 +95,15 @@ public class GeoKeyClient {
     @SuppressLint("CheckResult")
     public Observable<ContributionProperty> getContributionsWithProperties(int projectID) {
         return getContributions(projectID)
-                .doOnNext(contribution -> db.contributionDao().insertContribution(contribution))
-                .flatMap(contribution -> Observable.fromIterable(contribution.getProperties().entrySet())
-                        .flatMap(property -> db.projectInfoDao().getFieldByKey(property.getKey()).toObservable()
-                                .flatMap(field -> Observable.just(new ContributionProperty(contribution.getId(), field.getId(), property.getKey(), property.getValue()))
-                                        .doOnNext(contributionProperty -> {
-                                            if (field.getFieldtype().equals("LookupField")) {
-                                                db.projectInfoDao().getLookupValueById(contributionProperty.getValue()).toObservable().subscribe(lookUpValue -> {
-                                                    contributionProperty.setValue(lookUpValue.getName());
-                                                    contributionProperty.setSymbol(lookUpValue.getSymbol());
-                                                    if (contributionProperty.getKey().equals(contribution.getDisplay_field().getKey())) {
-                                                        contribution.setContributionProperty(contributionProperty);
-                                                        db.contributionDao().insertContribution(contribution);
-                                                    }
-                                                });
-                                            }
-                                            db.contributionDao().insertContributionProperties(contributionProperty);
-                                            /* add displayfield to contribution table*/
-                                            if (contributionProperty.getKey().equals(contribution.getDisplay_field().getKey())) {
-                                                contribution.setContributionProperty(contributionProperty);
-                                                db.contributionDao().updateContribution(contribution);
-                                            }
-                                        })
-                                )
-                        )
+                .doOnNext(contribution -> {
+                    contribution.getContributionProperty().setFieldId(db.projectInfoDao().getFieldByKey(contribution.getContributionProperty().getKey(), contribution.getCategoryId()).getId());
+                    db.contributionDao().insertContribution(contribution);
+                })
+                .flatMap(contribution -> Observable.fromIterable(contribution.getContributionProperties())
+                        .doOnNext(contributionProperty -> {
+                            contributionProperty.setFieldId(db.projectInfoDao().getFieldByKey(contributionProperty.getKey(), contribution.getCategoryId()).getId());
+                            db.contributionDao().insertContributionProperties(contributionProperty);
+                        })
                 );
     }
 
