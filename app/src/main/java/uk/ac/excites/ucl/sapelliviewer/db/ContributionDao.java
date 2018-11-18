@@ -10,7 +10,6 @@ import java.util.List;
 
 import io.reactivex.Maybe;
 import io.reactivex.Single;
-import io.reactivex.disposables.Disposable;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Contribution;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.ContributionProperty;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Document;
@@ -40,6 +39,8 @@ public interface ContributionDao {
     @Query("SELECT DISTINCT Contribution.* FROM LookUpValue JOIN ContributionProperty ON LookUpValue.name = ContributionProperty.value AND LookUpValue.symbol = ContributionProperty.symbol JOIN Contribution ON ContributionProperty.contributionId = Contribution.id WHERE LookUpValue.id IN (:valueIDs);")
     Single<List<Contribution>> getContributionsByValues(List<Integer> valueIDs);
 
+    @Query("Select distinct fieldId from Contribution where projectId=:projectId")
+    Maybe<Integer> getDisplayField(int projectId);
 
     /* CONTRIBUTION PROPERTIES*/
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -70,5 +71,6 @@ public interface ContributionDao {
 
     @Query("Select * from Document where file_type='AudioFile' and contribution_id = :contributionId")
     Single<List<Document>> getAudiosByContribution(int contributionId);
+
 
 }

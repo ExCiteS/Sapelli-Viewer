@@ -28,7 +28,7 @@
     <string name="blank_map">blank.vtpk</string>
     <string name="ssl_exception">Connection closed by peer</string>
     <string name="project_settings">Project settings</string>
-    <string name="show_fields">Show fields:</string>
+    <string name="show_fields">Layer options:</string>
     <string name="hide">Hide</string>
     <string name="show">Show</string>
     <string name="what_s_up">What\'s up? :)</string>
@@ -40,5 +40,8 @@
     <string name="export_logs">Export logs</string>
     <string name="reload_project_structure">Reload Project structure:</string>
     <string name="db_exported">Database exported</string>
+    <string name="show_all_fields_and_values">Show all fields and values</string>
+    <string name="show_no_fields_but_all_values">Show no fields but all values</string>
+    <string name="show_no_fields_but_display_values">Show no fields but display values</string>
 
 </resources>

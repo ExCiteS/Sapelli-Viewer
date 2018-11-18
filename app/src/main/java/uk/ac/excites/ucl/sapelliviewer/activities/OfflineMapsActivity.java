@@ -58,7 +58,6 @@ import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.schedulers.Schedulers;
 import uk.ac.excites.ucl.sapelliviewer.R;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Contribution;
-import uk.ac.excites.ucl.sapelliviewer.datamodel.ProjectProperties;
 import uk.ac.excites.ucl.sapelliviewer.db.AppDatabase;
 import uk.ac.excites.ucl.sapelliviewer.db.DatabaseClient;
 import uk.ac.excites.ucl.sapelliviewer.ui.DetailsFragment;
@@ -301,33 +300,43 @@ public class OfflineMapsActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         mapView.resume();
-        ValueController valueController = new ValueController(this, findViewById(R.id.value_recycler_view), disposables, dbClient);
-        disposables.add(dbClient.getProjectProperties().filter(ProjectProperties::isShowFields)
-                .subscribe(__ -> valueController.addFieldController(findViewById(R.id.field_recycler_view)).addToggleButtons(findViewById(R.id.button_toggle_on), findViewById(R.id.button_toggle_off))));
         ImageButton northButton = findViewById(R.id.rotate_north_btn);
-
         disposables.add(dbClient.getProjectProperties()
                 .subscribe(projectProperties -> {
-                    switch (projectProperties.getUpDirection()) {
-                        case "east":
-                            resetAngle = 90;
-                            northButton.setImageDrawable(getResources().getDrawable(R.drawable.east));
-                            break;
-                        case "south":
-                            resetAngle = 180;
-                            northButton.setImageDrawable(getResources().getDrawable(R.drawable.south));
-                            break;
-                        case "west":
-                            resetAngle = 270;
-                            northButton.setImageDrawable(getResources().getDrawable(R.drawable.west));
-                            break;
-                        default:
-                            northButton.setImageDrawable(getResources().getDrawable(R.drawable.north));
+                            switch (projectProperties.getUpDirection()) {
+                                case "east":
+                                    resetAngle = 90;
+                                    northButton.setImageDrawable(getResources().getDrawable(R.drawable.east));
+                                    break;
+                                case "south":
+                                    resetAngle = 180;
+                                    northButton.setImageDrawable(getResources().getDrawable(R.drawable.south));
+                                    break;
+                                case "west":
+                                    resetAngle = 270;
+                                    northButton.setImageDrawable(getResources().getDrawable(R.drawable.west));
+                                    break;
+                                default:
+                                    northButton.setImageDrawable(getResources().getDrawable(R.drawable.north));
 
-                    }
-                    mapView.setViewpointRotationAsync(resetAngle);
+                            }
+                            mapView.setViewpointRotationAsync(resetAngle);
 
-                }));
+                            switch (projectProperties.getShowFields()) {
+                                case "all":
+                                    ValueController valueControllerAll = new ValueController(this, findViewById(R.id.value_recycler_view), disposables, dbClient, null);
+                                    valueControllerAll.addFieldController(findViewById(R.id.field_recycler_view)).addToggleButtons(findViewById(R.id.button_toggle_on), findViewById(R.id.button_toggle_off));
+                                    break;
+                                case "display":
+                                    db.contributionDao().getDisplayField(projectId).subscribe(displayField -> new ValueController(this, findViewById(R.id.value_recycler_view), disposables, dbClient, displayField));
+                                    break;
+                                case "none":
+                                    new ValueController(this, findViewById(R.id.value_recycler_view), disposables, dbClient, null);
+                            }
+                        }
+
+
+                ));
         // Listener on change in map load status
         map.addDoneLoadingListener(new Runnable() {
             @Override

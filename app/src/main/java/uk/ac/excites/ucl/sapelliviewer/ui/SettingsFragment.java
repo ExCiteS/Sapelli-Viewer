@@ -103,11 +103,22 @@ public class SettingsFragment extends Fragment {
                 exportLogs();
             }
         });
-        ToggleButton showFields = view.findViewById(R.id.tggl_show_fields);
-        showFields.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+
+        RadioGroup layerOptions = view.findViewById(R.id.radio_show_fields);
+        layerOptions.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
             @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                Completable.fromAction(() -> db.projectInfoDao().showFields(projectId, isChecked)).subscribeOn(Schedulers.io()).subscribe();
+            public void onCheckedChanged(RadioGroup group, int checked) {
+                switch (checked) {
+                    case R.id.show_all_fields:
+                        Completable.fromAction(() -> db.projectInfoDao().showFields(projectId, "all")).subscribeOn(Schedulers.io()).subscribe();
+                        break;
+                    case R.id.show_no_fields:
+                        Completable.fromAction(() -> db.projectInfoDao().showFields(projectId, "none")).subscribeOn(Schedulers.io()).subscribe();
+                        break;
+                    case R.id.show_display_fields:
+                        Completable.fromAction(() -> db.projectInfoDao().showFields(projectId, "display")).subscribeOn(Schedulers.io()).subscribe();
+                        break;
+                }
             }
         });
 
@@ -146,9 +157,21 @@ public class SettingsFragment extends Fragment {
                             @Override
                             public void onSuccess(ProjectProperties projectProperties) {
                                 toggleLogging.setChecked(projectProperties.isLogging());
-                                showFields.setChecked(projectProperties.isShowFields());
 
                                 // Radiobutton initialisation
+                                switch (projectProperties.getShowFields()) {
+                                    case "all":
+                                        layerOptions.check(R.id.show_all_fields);
+                                        break;
+                                    case "none":
+                                        layerOptions.check(R.id.show_no_fields);
+                                        break;
+                                    case "display":
+                                        layerOptions.check(R.id.show_display_fields);
+                                        break;
+
+                                }
+
                                 switch (projectProperties.getUpDirection()) {
                                     case "north":
                                         upDirection.check(R.id.radio_north);

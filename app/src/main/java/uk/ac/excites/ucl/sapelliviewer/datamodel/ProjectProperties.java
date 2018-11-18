@@ -9,7 +9,7 @@ public class ProjectProperties {
     private int id;
     private String mapPath;
     private boolean logging;
-    private boolean showFields;
+    private String showFields = "none";
     private String upDirection = "north"; // default value
 
     public ProjectProperties(int id) {
@@ -41,11 +41,11 @@ public class ProjectProperties {
         this.logging = logging;
     }
 
-    public boolean isShowFields() {
+    public String getShowFields() {
         return showFields;
     }
 
-    public void setShowFields(boolean showFields) {
+    public void setShowFields(String showFields) {
         this.showFields = showFields;
     }
 
@@ -56,4 +56,6 @@ public class ProjectProperties {
     public void setUpDirection(String upDirection) {
         this.upDirection = upDirection;
     }
+
+
 }
