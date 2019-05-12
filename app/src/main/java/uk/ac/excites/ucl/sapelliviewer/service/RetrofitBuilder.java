@@ -13,6 +13,7 @@ import okhttp3.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 import uk.ac.excites.ucl.sapelliviewer.activities.LoginActivity;
+import uk.ac.excites.ucl.sapelliviewer.datamodel.Contribution;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Geometry;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Login;
 import uk.ac.excites.ucl.sapelliviewer.utils.TokenManager;
@@ -36,6 +37,7 @@ public class RetrofitBuilder {
         TokenManager token = TokenManager.getInstance();
         Gson gson = new GsonBuilder()
                 .registerTypeAdapter(Geometry.class, new GeometryDeserializer())
+                .registerTypeAdapter(Contribution.class, new ContributionDeserializer())
                 .create();
 
         return new Retrofit.Builder()

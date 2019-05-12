@@ -1,12 +1,20 @@
 package uk.ac.excites.ucl.sapelliviewer.activities;
 
+import android.Manifest;
 import android.animation.ObjectAnimator;
+import android.app.Activity;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
-import android.support.annotation.Nullable;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.FragmentManager;
+import android.support.v4.content.ContextCompat;
+import android.support.v7.app.AppCompatActivity;
+import android.support.v7.app.AppCompatDelegate;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
@@ -16,72 +24,60 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
 import android.view.animation.Animation;
-import android.widget.ImageButton;
+import android.widget.ImageView;
+import android.widget.Toast;
 
-
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import io.reactivex.Completable;
-import io.reactivex.CompletableObserver;
 import io.reactivex.Observable;
-import io.reactivex.SingleObserver;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
-import io.reactivex.disposables.Disposable;
+import io.reactivex.observers.DisposableCompletableObserver;
 import io.reactivex.observers.DisposableObserver;
 import io.reactivex.observers.DisposableSingleObserver;
 import io.reactivex.schedulers.Schedulers;
-import okhttp3.ResponseBody;
+import lib.folderpicker.FolderPicker;
 import uk.ac.excites.ucl.sapelliviewer.R;
-import uk.ac.excites.ucl.sapelliviewer.datamodel.Category;
-import uk.ac.excites.ucl.sapelliviewer.datamodel.Contribution;
-import uk.ac.excites.ucl.sapelliviewer.datamodel.ContributionProperty;
-import uk.ac.excites.ucl.sapelliviewer.datamodel.Document;
-import uk.ac.excites.ucl.sapelliviewer.datamodel.Field;
-import uk.ac.excites.ucl.sapelliviewer.datamodel.LookUpValue;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.ProjectInfo;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.UserInfo;
 import uk.ac.excites.ucl.sapelliviewer.db.AppDatabase;
 import uk.ac.excites.ucl.sapelliviewer.service.GeoKeyClient;
+import uk.ac.excites.ucl.sapelliviewer.service.GeoKeyRequests;
 import uk.ac.excites.ucl.sapelliviewer.service.RetrofitBuilder;
 import uk.ac.excites.ucl.sapelliviewer.ui.GeoKeyProjectAdapter;
+import uk.ac.excites.ucl.sapelliviewer.ui.SettingsFragment;
 import uk.ac.excites.ucl.sapelliviewer.utils.NoConnectivityException;
+import uk.ac.excites.ucl.sapelliviewer.utils.SdCardStorage;
 import uk.ac.excites.ucl.sapelliviewer.utils.TokenManager;
 
 public class SettingsActivity extends AppCompatActivity {
 
-    public static String PROJECT_ID = "project_id";
-    public static String ERROR_CODE = "error_code";
-
+    public static final String PROJECT_ID = "project_id";
+    public static final String ERROR_CODE = "error_code";
+    public static final int PERMISSIONS_REQUEST_CODE = 0;
+    private static final int FILE_PICKER_REQUEST_CODE = 434;
 
     private RecyclerView recyclerView;
     private TokenManager tokenManager;
-    private GeoKeyClient clientWithAuth;
     private CompositeDisposable disposables;
     private AppDatabase db;
     private GeoKeyProjectAdapter projectAdapter;
-    private ImageButton clickedButton;
+    private ImageView clickedButton;
     private ObjectAnimator rotator;
     private MenuItem nameItem;
-    private List<ContributionProperty> contributionProperties = new ArrayList<ContributionProperty>();
+    private int mapPathPosition;
+    private GeoKeyClient geoKeyclient;
 
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        AppCompatDelegate.setCompatVectorFromResourcesEnabled(true);
         tokenManager = TokenManager.getInstance();
         disposables = new CompositeDisposable();
-        clientWithAuth = RetrofitBuilder.createServiceWithAuth(GeoKeyClient.class, tokenManager);
-        db = AppDatabase.getAppDatabase(getApplicationContext());
+        db = AppDatabase.getAppDatabase(SettingsActivity.this);
+        geoKeyclient = new GeoKeyClient(SettingsActivity.this);
         setContentView(R.layout.activity_settings);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         Toolbar toolbar = (Toolbar) findViewById(R.id.custom_toolbar);
@@ -90,10 +86,9 @@ public class SettingsActivity extends AppCompatActivity {
         toolbar.setLogo(R.mipmap.ic_sapelli_viewer);
 
         recyclerView = (RecyclerView) findViewById(R.id.project_recyclerview);
-        recyclerView.setHasFixedSize(true);
         recyclerView.setItemAnimator(null);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        projectAdapter = new GeoKeyProjectAdapter(getApplicationContext(), disposables, new GeoKeyProjectAdapter.DetailsAdapterListener() {
+        projectAdapter = new GeoKeyProjectAdapter(SettingsActivity.this, disposables, new GeoKeyProjectAdapter.ProjectAdapterClickListener() {
             @Override
             public void openMap(View v, int position) {
                 openMapView(projectAdapter.getProject(position).getId());
@@ -101,7 +96,7 @@ public class SettingsActivity extends AppCompatActivity {
 
             @Override
             public void syncProjectOnClick(View v, int position) {
-                clickedButton = (ImageButton) v;
+                clickedButton = (ImageView) v;
                 clickedButton.getDrawable().mutate().setColorFilter(Color.parseColor("#000000"), PorterDuff.Mode.SRC_IN);
                 getProject(projectAdapter.getProject(position));
                 rotator = ObjectAnimator.ofFloat(clickedButton, View.ROTATION, 0f, -360f);
@@ -117,6 +112,17 @@ public class SettingsActivity extends AppCompatActivity {
 
 
             }
+
+            @Override
+            public void setMapPath(View v, int position) {
+                mapPathPosition = position;
+                checkPermissionsAndOpenFilePicker();
+            }
+
+            @Override
+            public void openProjectSettings(ProjectInfo projectInfo) {
+                showProjectSettings(projectInfo.getId());
+            }
         });
         recyclerView.setAdapter(projectAdapter);
 
@@ -128,11 +134,15 @@ public class SettingsActivity extends AppCompatActivity {
         if (tokenManager.getToken().getAccess_token() != null) {
             updateUser();
         }
+        if (tokenManager.getActiveProject() != -1) {
+            openMapView(tokenManager.getActiveProject());
+        }
+
     }
 
     public void updateUser() {
         if (nameItem != null) {
-            GeoKeyClient clientWithAuth = RetrofitBuilder.createServiceWithAuth(GeoKeyClient.class, tokenManager);
+            GeoKeyRequests clientWithAuth = RetrofitBuilder.createServiceWithAuth(GeoKeyRequests.class, tokenManager);
             disposables.add(
                     clientWithAuth.getUserInfo()
                             .subscribeOn(Schedulers.io())
@@ -174,38 +184,17 @@ public class SettingsActivity extends AppCompatActivity {
         }
     }
 
+    /* Fetch project information list from server and update database and UI */
     public void updateProjects() {
         disposables.add(
-                clientWithAuth.listProjects()
-                        .subscribeOn(Schedulers.io())
-                        .flatMap(Observable::fromIterable)
-                        .filter(projectInfo -> projectInfo.getUser_info().is_admin())
-                        .toList()
-                        .doOnSuccess(projectInfos -> Log.d(getLocalClassName(), "projects: " + projectInfos.size()))
-                        .doOnSuccess(projectInfos -> db.projectInfoDao().clearProjectInfos())
-                        .doOnSuccess(projectInfos -> db.projectInfoDao().insertProjectInfo(projectInfos))
-                        .observeOn(AndroidSchedulers.mainThread())
-                        .subscribeWith(new DisposableSingleObserver<List<ProjectInfo>>() {
-
-                                           @Override
-                                           public void onSuccess(List<ProjectInfo> projectInfos) {
-                                               Log.d(getLocalClassName(), "projects: " + projectInfos.size());
-                                               projectAdapter.setProjects(projectInfos);
-                                           }
-
-                                           @Override
-                                           public void onError(Throwable e) {
-                                               if (e instanceof NoConnectivityException) {
-                                                   listProjects();
-                                               } else {
-                                                   StringWriter sw = new StringWriter();
-                                                   PrintWriter pw = new PrintWriter(sw);
-                                                   e.printStackTrace(pw);
-                                                   Log.e("Update Projects", sw.toString());
-                                               }
-                                           }
-                                       }
-                        )
+                geoKeyclient.updateProjects()
+                        .subscribe(
+                                projectInfos -> projectAdapter.setProjects(projectInfos),
+                                error -> {
+                                    if (error instanceof NoConnectivityException)
+                                        listProjects(); // if no internet connection -> get projects from db
+                                    else Log.e("Update Projects", error.getMessage());
+                                })
         );
     }
 
@@ -259,30 +248,46 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     public void openMapView(int projectId) {
-        Intent mapIntent = new Intent(this, MapsActivity.class);
+        Intent mapIntent = new Intent(this, OfflineMapsActivity.class);
         mapIntent.putExtra(PROJECT_ID, projectId);
         startActivity(mapIntent);
     }
 
     public void getProject(ProjectInfo projectInfo) {
+        int projectID = projectInfo.getId();
+
+        Observable<Object> contributionAndMediaObervable =
+                Observable.merge(geoKeyclient.getContributionsWithProperties(projectID), geoKeyclient.getMedia(projectID));
+
         disposables.add(
-                clientWithAuth.getProject(projectInfo.getId())
-                        .subscribeOn(Schedulers.io())
-                        .doOnNext(project -> loadContributions(projectInfo)) // load contributions in parallel
-                        .doOnNext(project -> db.projectInfoDao().insertProject(project))
-                        .flatMap(project -> Observable.fromIterable(project.categories))
-                        .doOnNext(category -> category.setProjectid(projectInfo.getId()))
-                        .doOnNext(category -> db.projectInfoDao().insertCategory(category))
-                        .doOnNext(category -> setParentId(category))
-                        .flatMap(category -> Observable.fromIterable(category.getFields()))
-                        .doOnNext(field -> db.projectInfoDao().insertField(field))
-                        .doOnNext(field -> setParentId(field))
-                        .toList()
+                contributionAndMediaObervable
                         .observeOn(AndroidSchedulers.mainThread())
-                        .subscribeWith(new DisposableSingleObserver<List<Field>>() {
+                        .subscribeWith(new DisposableObserver<Object>() {
                             @Override
-                            public void onSuccess(List<Field> fields) {
-                                Log.d("getProject", "Successful");
+                            public void onNext(Object o) {
+                            }
+
+                            @Override
+                            public void onError(Throwable e) {
+                                Log.e("getProject", e.getMessage());
+                                loadProjectStructure(projectInfo, contributionAndMediaObervable);
+                            }
+
+                            @Override
+                            public void onComplete() {
+                                projectAdapter.getCounts(projectInfo);
+                                updateUI(true);
+                            }
+                        }));
+    }
+
+    public void loadProjectStructure(ProjectInfo projectInfo, Observable<Object> contributionAndMediaObervable) {
+        disposables.add(
+                Observable.concat(geoKeyclient.getProject(projectInfo.getId()), contributionAndMediaObervable)
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .subscribeWith(new DisposableObserver<Object>() {
+                            @Override
+                            public void onNext(Object o) {
                             }
 
                             @Override
@@ -290,208 +295,20 @@ public class SettingsActivity extends AppCompatActivity {
                                 Log.e("getProject", e.getMessage());
                                 updateUI(false);
                             }
-                        })
-        );
-    }
-
-    public void setParentId(Object object) {
-        if (object instanceof Category) {
-            Category category = (Category) object;
-            for (Field field : category.getFields()) {
-                field.setCategory_id(category.getId());
-            }
-        } else if (object instanceof Field) {
-            Field field = (Field) object;
-            if (field.getLookupvalues() != null) {
-                for (LookUpValue lookUpValue : field.getLookupvalues()) {
-                    lookUpValue.setFieldId(field.getId());
-                    db.projectInfoDao().insertLookupValue(lookUpValue);
-                    if (lookUpValue.getSymbol() != null)
-                        downloadfile(lookUpValue.getSymbol());
-                }
-            }
-        }
-    }
-
-    private void downloadfile(String url) {
-        disposables.add(
-                clientWithAuth.downloadFileByUrl(url)
-                        .observeOn(Schedulers.io())
-                        .subscribeWith(new DisposableObserver<ResponseBody>() {
-                            @Override
-                            public void onNext(ResponseBody responseBody) {
-                                writeFileToDisk(responseBody, url);
-                            }
-
-                            @Override
-                            public void onError(Throwable e) {
-                            }
 
                             @Override
                             public void onComplete() {
-                            }
-                        })
-        );
-    }
-
-    public void loadContributions(ProjectInfo project) {
-        disposables.add(
-                clientWithAuth.getContributions(project.getId())
-                        .flatMap(contributionCollection -> Observable.fromIterable(contributionCollection.getFeatures()))
-                        .doOnNext(contribution -> {
-                            contribution.setProjectId(project.getId());
-                            insertProperties(project, contribution);
-                            insertMedia(project, contribution);
-                        })
-                        .toList()
-                        .doOnSuccess(contributions -> db.contributionDao().insertContributions(contributions))
-                        .subscribeOn(Schedulers.io())
-                        .observeOn(AndroidSchedulers.mainThread())
-                        .subscribeWith(new DisposableSingleObserver<List<Contribution>>() {
-                            @Override
-                            public void onSuccess(List<Contribution> contributions) {
-                                Log.d("loadContributions", "Successful");
-                                insertContributionProperties(contributionProperties);
-                                projectAdapter.getCounts(project);
+                                projectAdapter.getCounts(projectInfo);
                                 updateUI(true);
-
                             }
-
-                            @Override
-                            public void onError(Throwable e) {
-                                Log.e("getContributions", e.getMessage());
-                                updateUI(false);
-                            }
-                        })
-        );
+                        }));
     }
 
-    private void insertMedia(ProjectInfo project, Contribution contribution) {
-        if (contribution.getMeta().getNum_media() != 0) {
-            disposables.add(
-                    clientWithAuth.getMedia(project.getId(), contribution.getId())
-                            .subscribeOn(Schedulers.io())
-                            .flatMap(Observable::fromIterable)
-                            .filter(mediaFile -> mediaFile.getFile_type() != "VideoFile") // Don't handle video files for now
-                            .doOnNext(mediaFile -> mediaFile.setContribution_id(contribution.getId()))
-                            .doOnNext(mediaFile -> downloadfile(mediaFile.getUrl()))
-                            .toList()
-                            .doOnSuccess(mediaList -> {
-                                db.contributionDao().insertMediaFiles(mediaList);
-                                Log.d("INSERT MEDIA", "CALLED");
-                            })
-                            .observeOn(AndroidSchedulers.mainThread())
-                            .subscribeWith(new DisposableSingleObserver<List<Document>>() {
-                                @Override
-                                public void onSuccess(List<Document> documents) {
-                                }
-
-                                @Override
-                                public void onError(Throwable e) {
-                                    Log.e("insertMedia", e.getMessage());
-                                }
-                            }));
-        }
-    }
-
-    private void insertProperties(ProjectInfo project, Contribution contribution) {
-        for (Map.Entry<String, String> property : contribution.getProperties().entrySet()) {
-            Field field = db.projectInfoDao().getFieldByKey(property.getKey());
-            ContributionProperty contributionProperty = new ContributionProperty(contribution.getId(), field.getId(), property.getKey(), property.getValue());
-            if (field.getFieldtype().equals("LookupField"))
-                db.projectInfoDao().getLookupValueById(property.getValue()).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
-                        .subscribeWith(new SingleObserver<LookUpValue>() {
-                            @Override
-                            public void onSubscribe(Disposable d) {
-                                disposables.add(d);
-                            }
-
-                            @Override
-                            public void onSuccess(LookUpValue lookUpValue) {
-                                Log.d("getLookupValueById", "Successful");
-                                contributionProperty.setValue(lookUpValue.getName());
-                                contributionProperty.setSymbol(lookUpValue.getSymbol());
-                                contributionProperties.add(contributionProperty);
-                            }
-
-                            @Override
-                            public void onError(Throwable e) {
-                                Log.e("getLookupValueById", e.getMessage());
-                            }
-                        });
-            else {
-                contributionProperties.add(contributionProperty);
-            }
-        }
-    }
-
-    private boolean writeFileToDisk(ResponseBody responseBody, String url) {
-        try {
-
-            String fileName = url.split("/")[url.split("/").length - 1];
-            String subPath = url.replace(fileName, "");
-
-            new File("/data/data/" + getPackageName() + subPath).mkdirs();
-            File destinationFile = new File("/data/data/" + getPackageName() + subPath + fileName);
-
-            InputStream inputStream = null;
-            OutputStream outputStream = null;
-
-            try {
-                byte[] fileReader = new byte[4096];
-
-                inputStream = responseBody.byteStream();
-                outputStream = new FileOutputStream(destinationFile);
-
-                while (true) {
-                    int read = inputStream.read(fileReader);
-                    if (read == -1)
-                        break;
-                    outputStream.write(fileReader, 0, read);
-                }
-
-                outputStream.flush();
-                return true;
-            } catch (IOException e) {
-                Log.e("File download", e.getMessage());
-                return false;
-            } finally {
-                if (inputStream != null)
-                    inputStream.close();
-                if (outputStream != null)
-                    outputStream.flush();
-            }
-        } catch (IOException e) {
-            return false;
-        }
-    }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
         disposables.clear();
-    }
-
-    public void insertContributionProperties(List<ContributionProperty> contributionProperties) {
-        Completable.fromAction(() -> db.contributionDao().insertContributionProperty(contributionProperties)).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
-                .subscribeWith(new CompletableObserver() {
-                    @Override
-                    public void onSubscribe(Disposable d) {
-                        disposables.add(d);
-                    }
-
-                    @Override
-                    public void onComplete() {
-                        contributionProperties.clear();
-                        Log.d("insertContribProperty", "Successful");
-                    }
-
-                    @Override
-                    public void onError(Throwable e) {
-                    }
-
-
-                });
     }
 
 
@@ -503,4 +320,74 @@ public class SettingsActivity extends AppCompatActivity {
             clickedButton.getDrawable().mutate().setColorFilter(Color.parseColor("#c70039"), PorterDuff.Mode.SRC_IN);
         }
     }
+
+    private void checkPermissionsAndOpenFilePicker() {
+        String permission = Manifest.permission.READ_EXTERNAL_STORAGE;
+        if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this, permission)) {
+                Toast.makeText(this, "Allow external storage reading", Toast.LENGTH_SHORT).show();
+            } else {
+                ActivityCompat.requestPermissions(this, new String[]{permission}, PERMISSIONS_REQUEST_CODE);
+            }
+        } else {
+            openFilePicker();
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           @NonNull String permissions[], @NonNull int[] grantResults) {
+        switch (requestCode) {
+            case PERMISSIONS_REQUEST_CODE: {
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    openFilePicker();
+                } else {
+                    Toast.makeText(this, "Allow external storage reading", Toast.LENGTH_SHORT).show();
+                }
+            }
+        }
+    }
+
+    private void openFilePicker() {
+        Intent intent = new Intent(this, FolderPicker.class);
+        intent.putExtra("title", getResources().getString(R.string.choose_directory));
+        intent.putExtra("location", SdCardStorage.getExternalStoragePath(SettingsActivity.this, true));
+        startActivityForResult(intent, FILE_PICKER_REQUEST_CODE);
+    }
+
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == FILE_PICKER_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
+
+            String folderLocation = data.getExtras().getString("data");
+
+            disposables.add(
+                    Completable.fromAction(() -> db.projectInfoDao().setMapPath(projectAdapter.getProject(mapPathPosition).getId(), folderLocation)).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
+                            .subscribeWith(new DisposableCompletableObserver() {
+                                @Override
+                                public void onComplete() {
+                                    projectAdapter.notifyItemChanged(mapPathPosition);
+                                }
+
+                                @Override
+                                public void onError(Throwable e) {
+                                    Log.e("setMapPath", e.getMessage());
+                                }
+                            }));
+        }
+    }
+
+    public void showProjectSettings(int projectid) {
+        SettingsFragment settingsFragment = SettingsFragment.newInstance(projectid);
+        FragmentManager fragmentManager = getSupportFragmentManager();
+        fragmentManager
+                .beginTransaction()
+                .add(R.id.fragment_container, settingsFragment)
+                .addToBackStack(null)
+                .commit();
+    }
+
 }

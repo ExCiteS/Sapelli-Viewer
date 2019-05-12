@@ -82,4 +82,5 @@ public class ProjectInfo {
     public void setMediaCount(int mediaCount) {
         this.mediaCount = mediaCount;
     }
+
 }

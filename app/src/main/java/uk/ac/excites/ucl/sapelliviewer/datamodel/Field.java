@@ -1,7 +1,6 @@
 package uk.ac.excites.ucl.sapelliviewer.datamodel;
 
 import android.arch.persistence.room.Entity;
-import android.arch.persistence.room.ForeignKey;
 import android.arch.persistence.room.Ignore;
 import android.arch.persistence.room.PrimaryKey;
 
@@ -11,7 +10,7 @@ import java.util.List;
  * Created by Julia on 19/02/2018.
  */
 
-@Entity(foreignKeys = @ForeignKey(entity = Category.class, parentColumns = "id", childColumns = "category_id"))
+@Entity()
 public class Field {
     @PrimaryKey
     private int id;
@@ -26,7 +25,9 @@ public class Field {
     private boolean textarea;
     private double maxlength;
     @Ignore
-    private List<LookUpValue> lookupvalues;  // TODO: IMPLEMENT LOOKUPVALuES
+    private boolean active = true;
+    @Ignore
+    private List<LookUpValue> lookupvalues;
     private int order;
 
     public int getId() {
@@ -131,5 +132,13 @@ public class Field {
 
     public void setOrder(int order) {
         this.order = order;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
     }
 }

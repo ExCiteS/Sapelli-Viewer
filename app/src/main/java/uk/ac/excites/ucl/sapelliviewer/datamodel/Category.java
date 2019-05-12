@@ -1,7 +1,6 @@
 package uk.ac.excites.ucl.sapelliviewer.datamodel;
 
 import android.arch.persistence.room.Entity;
-import android.arch.persistence.room.ForeignKey;
 import android.arch.persistence.room.Ignore;
 import android.arch.persistence.room.PrimaryKey;
 
@@ -12,7 +11,7 @@ import java.util.List;
  * Created by Julia on 13/02/2018.
  */
 
-@Entity(foreignKeys = @ForeignKey(entity = Project.class, parentColumns = "id", childColumns = "projectid"))
+@Entity()
 public class Category {
     @PrimaryKey
     private int id;

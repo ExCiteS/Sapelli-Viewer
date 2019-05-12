@@ -1,19 +1,32 @@
 package uk.ac.excites.ucl.sapelliviewer.datamodel;
 
 import android.arch.persistence.room.Entity;
-import android.arch.persistence.room.ForeignKey;
+import android.arch.persistence.room.Ignore;
 import android.arch.persistence.room.PrimaryKey;
 
 /**
  * Created by Julia on 19/02/2018.
  */
-@Entity(foreignKeys = @ForeignKey(entity = Field.class, parentColumns = "id", childColumns = "fieldId"))
+@Entity()
 public class LookUpValue {
     @PrimaryKey
     private int id;
     private int fieldId;
     private String name;
     private String symbol;
+    @Ignore
+    private boolean visible = true;
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
+    }
+
+    @Ignore
+    private boolean active = true;
 
     public int getId() {
         return id;
@@ -45,5 +58,13 @@ public class LookUpValue {
 
     public void setSymbol(String symbol) {
         this.symbol = symbol;
+    }
+
+    public boolean isVisible() {
+        return visible;
+    }
+
+    public void setVisible(boolean visible) {
+        this.visible = visible;
     }
 }

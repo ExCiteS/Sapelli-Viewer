@@ -1,19 +1,11 @@
 package uk.ac.excites.ucl.sapelliviewer.service;
 
-import android.util.Log;
-
 import com.google.gson.JsonArray;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
-
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
-import com.google.maps.android.data.geojson.GeoJsonPolygon;
-
 
 import java.lang.reflect.Type;
 
@@ -29,36 +21,46 @@ public class GeometryDeserializer implements JsonDeserializer<Geometry> {
         JsonObject jsonObject = (JsonObject) json;
         String type = jsonObject.get("type").getAsString();
         String coordinates = extractCoords(jsonObject.get("coordinates"), type);
-        Geometry result = new Geometry(type, coordinates);
-        return result;
+        return new Geometry(type, coordinates);
     }
 
-    public String extractCoords(JsonElement coordinates, String type) {
+    private String extractCoords(JsonElement coordinates, String type) {
         JsonArray coordArray;
-        String result = "";
-        if (type.equals("Point")) {
-            coordArray = (JsonArray) coordinates.getAsJsonArray();
-            result += "[" + coordArray.get(0).toString() + ", " + coordArray.get(1).toString() + "]";
+        StringBuilder result = new StringBuilder();
+        switch (type) {
+            case "Point":
+                coordArray = coordinates.getAsJsonArray();
+                result.append("[").append(coordArray.get(0).toString()).append(", ").append(coordArray.get(1).toString()).append("]");
 
-        } else if (type.equals("LineString")) {
-            coordArray = (JsonArray) coordinates.getAsJsonArray();
-            result += "[";
-            for (int i = 0; i < coordArray.size(); i++) {
-                result += "[" + coordArray.get(i).getAsJsonArray().get(0) + ", " + coordArray.get(i).getAsJsonArray().get(1) + "],";
-            }
-            result = result.substring(0, result.length() - 1);
-            result += "]";
+                break;
+            case "LineString":
+                coordArray = coordinates.getAsJsonArray();
+                result.append("[");
+                for (int i = 0; i < coordArray.size(); i++) {
+                    result.append("[").append(coordArray.get(i).getAsJsonArray().get(0)).append(", ").append(coordArray.get(i).getAsJsonArray().get(1)).append("],");
+                }
+                result = new StringBuilder(result.substring(0, result.length() - 1));
+                result.append("]");
 
-        } else {
-            coordArray = (JsonArray) coordinates.getAsJsonArray().get(0);
-            result += "[";
-            for (int i = 0; i < coordArray.size(); i++) {
-                result += "[" + coordArray.get(i).getAsJsonArray().get(0) + ", " + coordArray.get(i).getAsJsonArray().get(1) + "],";
-            }
-            result = result.substring(0, result.length() - 1);
-            result += "]";
+                break;
+            default:
+                coordArray = (JsonArray) coordinates.getAsJsonArray().get(0);
+                result.append("[");
+                for (int i = 0; i < coordArray.size(); i++) {
+                    result.append("[").append(coordArray.get(i).getAsJsonArray().get(0)).append(", ").append(coordArray.get(i).getAsJsonArray().get(1)).append("],");
+                }
+                result = new StringBuilder(result.substring(0, result.length() - 1));
+                result.append("]");
+                break;
         }
-        return result;
+        return result.toString();
 
+    }
+
+    public Geometry deserialize(JsonElement geometry) {
+        JsonObject jsonObject = (JsonObject) geometry;
+        String type = jsonObject.get("type").getAsString();
+        String coordinates = extractCoords(jsonObject.get("coordinates"), type);
+        return new Geometry(type, coordinates);
     }
 }
