@@ -2,12 +2,15 @@
 
 buildscript {
     repositories {
-        jcenter()
-        maven { url 'https://dl.google.com/dl/android/maven2/' }
+        maven {
+            url 'https://dl.google.com/dl/android/maven2/'
+        }
         google()
+        jcenter()
+
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.1.2'
+        classpath 'com.android.tools.build:gradle:3.2.1'
 
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
@@ -16,9 +19,28 @@ buildscript {
 
 allprojects {
     repositories {
+        maven {
+            url 'https://dl.google.com/dl/android/maven2/'
+        }
+        maven {
+            url 'https://esri.bintray.com/arcgis'
+        }
+        maven {
+            url "http://dl.bintray.com/lukaville/maven"
+        }
+        maven {
+            url "https://jitpack.io"
+        }
+        maven {
+            url 'http://www.idescout.com/maven/repo/'
+        }
+        maven {
+            url "http://dl.bintray.com/piasy/maven"
+        }
+
+        maven { url 'https://maven.google.com' }
+
         jcenter()
-        maven { url 'https://dl.google.com/dl/android/maven2/' }
-        google()
 
 
     }

@@ -2,6 +2,7 @@
 
     <!-- Base application theme. -->
     <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:windowBackground">@color/background_light</item>
         <item name="actionMenuTextColor">@color/primary_dark_material_light</item>
         <item name="android:actionMenuTextColor">@color/primary_dark_material_light</item>
 
@@ -18,7 +19,7 @@
     </style>
 
     <style name="FullscreenActionBarStyle" parent="FullscreenTheme">
-        <item name="android:background">@color/black_overlay</item>
+        <item name="android:background">@color/colorPrimaryDark</item>
     </style>
 
 </resources>

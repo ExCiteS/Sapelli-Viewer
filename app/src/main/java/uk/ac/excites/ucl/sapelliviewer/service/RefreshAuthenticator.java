@@ -44,7 +44,7 @@ public class RefreshAuthenticator implements Authenticator {
 
         AccessToken token = tokenManager.getToken();
 
-        GeoKeyClient service = RetrofitBuilder.createService(GeoKeyClient.class, tokenManager.getServerUrl());
+        GeoKeyRequests service = RetrofitBuilder.createService(GeoKeyRequests.class, tokenManager.getServerUrl());
         Call<AccessToken> call = service.refreshToken(AccessToken.GRANT_TYPE_REFRESH_TOKEN, token.getRefresh_token());
         retrofit2.Response<AccessToken> res = call.execute();
 

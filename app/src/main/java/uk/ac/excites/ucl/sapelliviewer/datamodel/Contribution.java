@@ -7,7 +7,6 @@ import android.arch.persistence.room.Ignore;
 import android.arch.persistence.room.PrimaryKey;
 
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
@@ -19,21 +18,23 @@ public class Contribution {
     @PrimaryKey
     private int id;
     private int projectId;
-    private int category;
+    private int categoryId;
+    private int displayFieldId;
+    private String displayFieldKey;
+
+    @Ignore
+    private Category category;
+
     @Embedded
     private Geometry geometry;
     @Ignore
     private HashMap<String, String> properties;
-    @Ignore // TODO: insert properly
-    private DisplayField display_field;
-    private String expiry_field;
-    @Ignore // Ignore for now, might need later
-    private Meta meta;
-    @Ignore
-    private List<Comment> comments;
 
     @Ignore
-    private List<Comment> review_comments;
+    private List<ContributionProperty> contributionProperties;
+
+    @Ignore // Ignore for now, might need later
+    private Meta meta;
 
     public int getId() {
         return id;
@@ -47,24 +48,9 @@ public class Contribution {
         return geometry;
     }
 
-    public DisplayField getDisplay_field() {
-        return display_field;
-    }
-
-    public String getExpiry_field() {
-        return expiry_field;
-    }
 
     public Meta getMeta() {
         return meta;
-    }
-
-    public List<Comment> getComments() {
-        return comments;
-    }
-
-    public List<Comment> getReview_comments() {
-        return review_comments;
     }
 
     public void setId(int id) {
@@ -79,24 +65,9 @@ public class Contribution {
         this.properties = properties;
     }
 
-    public void setDisplay_field(DisplayField display_field) {
-        this.display_field = display_field;
-    }
-
-    public void setExpiry_field(String expiry_field) {
-        this.expiry_field = expiry_field;
-    }
 
     public void setMeta(Meta meta) {
         this.meta = meta;
-    }
-
-    public void setComments(List<Comment> comments) {
-        this.comments = comments;
-    }
-
-    public void setReview_comments(List<Comment> review_comments) {
-        this.review_comments = review_comments;
     }
 
     public int getProjectId() {
@@ -107,11 +78,43 @@ public class Contribution {
         this.projectId = projectId;
     }
 
-    public int getCategory() {
+    public int getCategoryId() {
+        return categoryId;
+    }
+
+    public void setCategoryId(int category) {
+        this.categoryId = category;
+    }
+
+    public int getDisplayFieldId() {
+        return displayFieldId;
+    }
+
+    public void setDisplayFieldId(int displayFieldId) {
+        this.displayFieldId = displayFieldId;
+    }
+
+    public Category getCategory() {
         return category;
     }
 
-    public void setCategory(int category) {
+    public void setCategory(Category category) {
         this.category = category;
+    }
+
+    public void setContributionproperties(List<ContributionProperty> contributionproperties) {
+        this.contributionProperties = contributionproperties;
+    }
+
+    public List<ContributionProperty> getContributionProperties() {
+        return contributionProperties;
+    }
+
+    public String getDisplayFieldKey() {
+        return displayFieldKey;
+    }
+
+    public void setDisplayFieldKey(String displayFieldKey) {
+        this.displayFieldKey = displayFieldKey;
     }
 }

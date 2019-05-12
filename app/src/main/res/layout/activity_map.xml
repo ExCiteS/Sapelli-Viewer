@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:animateLayoutChanges="true"
+    android:background="#EAECEE">
+
+
+    <com.esri.arcgisruntime.mapping.view.MapView
+        android:id="@+id/map"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_above="@id/value_recycler_view"
+        android:layout_marginBottom="-24dp">
+
+    </com.esri.arcgisruntime.mapping.view.MapView>
+
+    <FrameLayout
+        android:id="@+id/fragment_container"
+        android:layout_width="230dp"
+        android:layout_height="match_parent"
+        android:layout_above="@id/value_recycler_view"
+        tools:layout="@layout/fragment_details" />
+
+
+    <android.support.v7.widget.AppCompatImageButton
+        android:id="@+id/zoom_in"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentRight="true"
+        android:layout_marginRight="10dp"
+        android:layout_marginTop="10dp"
+        android:onClick="zoomIn"
+        android:padding="3dp"
+        app:srcCompat="@drawable/tree_large" />
+
+    <android.support.v7.widget.AppCompatImageButton
+        android:id="@+id/zoom_out"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:layout_alignEnd="@+id/zoom_in"
+        android:layout_alignLeft="@+id/zoom_in"
+        android:layout_alignRight="@+id/zoom_in"
+        android:layout_alignStart="@+id/zoom_in"
+        android:layout_below="@+id/zoom_in"
+        android:layout_marginTop="5dp"
+        android:onClick="zoomOut"
+        android:padding="3dp"
+        app:srcCompat="@drawable/tree_small" />
+
+
+    <android.support.v7.widget.AppCompatImageButton
+        android:id="@+id/rotate_north_btn"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:layout_alignEnd="@+id/zoom_in"
+        android:layout_alignStart="@+id/zoom_in"
+        android:layout_below="@+id/zoom_out"
+        android:layout_marginTop="5dp"
+        android:contentDescription="@string/content_desc_rotate_north"
+        android:onClick="rotateNorth" />
+
+    <android.support.v7.widget.RecyclerView
+        android:id="@+id/value_recycler_view"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_above="@id/field_recycler_view"
+        android:background="@color/background_dark"
+        android:orientation="horizontal"></android.support.v7.widget.RecyclerView>
+
+    <android.support.v7.widget.RecyclerView
+        android:id="@+id/field_recycler_view"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_toLeftOf="@+id/button_toggle_on"
+        android:background="@color/background_light"
+        android:orientation="horizontal"></android.support.v7.widget.RecyclerView>
+
+    <ImageButton
+        android:id="@+id/button_toggle_off"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentRight="true"
+        android:background="@color/background_dark"
+        android:visibility="invisible" />
+
+    <ImageButton
+        android:id="@+id/button_toggle_on"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:layout_alignParentBottom="true"
+        android:layout_toLeftOf="@id/button_toggle_off"
+        android:background="@color/colorPrimary"
+        android:visibility="gone" />
+
+    <FrameLayout
+        android:id="@+id/fragment_media_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_margin="20dp"
+        android:layout_toRightOf="@id/fragment_container" />
+
+</RelativeLayout>

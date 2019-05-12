@@ -16,4 +16,32 @@
     <string name="contributions">"Contributions: "</string>
     <string name="media">"Media files: "</string>
     <string name="active">ACTIVE</string>
+    <string name="map_path">"Map path: "</string>
+    <string name="pick_tpk">Select a map tile package</string>
+    <string name="choose_map_path">Choose a map path</string>
+    <string name="world_topo_service">http://services.arcgisonline.com/arcgis/rest/services/World_Topo_Map/MapServer</string>
+    <string name="world_imagery_service">https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer</string>
+    <string name="content_desc_rotate_north">Align map to north direction</string>
+    <string name="content_desc_zoom_out">Zoom out</string>
+    <string name="content_desc_zoom_in">Zoom in</string>
+    <string name="choose_directory">Choose directory with raster files</string>
+    <string name="blank_map">blank.vtpk</string>
+    <string name="ssl_exception">Connection closed by peer</string>
+    <string name="project_settings">Project settings</string>
+    <string name="show_fields">Layer options:</string>
+    <string name="hide">Hide</string>
+    <string name="show">Show</string>
+    <string name="what_s_up">What\'s up? :)</string>
+    <string name="north">North</string>
+    <string name="east">East</string>
+    <string name="south">South</string>
+    <string name="west">West</string>
+    <string name="interaction_logging">Interaction logging:</string>
+    <string name="export_logs">Export logs</string>
+    <string name="reload_project_structure">Reload Project structure:</string>
+    <string name="db_exported">Database exported</string>
+    <string name="show_all_fields_and_values">Show all fields and values</string>
+    <string name="show_no_fields_but_all_values">Show no fields but all values</string>
+    <string name="show_no_fields_but_display_values">Show no fields but display values</string>
+
 </resources>
