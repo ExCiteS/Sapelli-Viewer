@@ -50,6 +50,9 @@ public class GeoKeyClient {
                 .toList()
                 .doOnSuccess(projectInfos -> {
                     db.projectInfoDao().clearProjectInfos();
+                    for (ProjectInfo p : projectInfos){
+                        p.setRemote(true);
+                    }
                     db.projectInfoDao().insertProjectInfo(projectInfos);
                 })
                 .observeOn(AndroidSchedulers.mainThread());

@@ -68,6 +68,7 @@ public class SettingsActivity extends AppCompatActivity {
     private MenuItem nameItem;
     private int mapPathPosition;
     private GeoKeyClient geoKeyclient;
+    private List<ProjectInfo> projects;
 
 
     @Override
@@ -80,12 +81,17 @@ public class SettingsActivity extends AppCompatActivity {
         geoKeyclient = new GeoKeyClient(SettingsActivity.this);
         setContentView(R.layout.activity_settings);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
-        Toolbar toolbar = (Toolbar) findViewById(R.id.custom_toolbar);
+        Toolbar toolbar = findViewById(R.id.custom_toolbar);
         toolbar.setTitle("");
         setSupportActionBar(toolbar);
         toolbar.setLogo(R.mipmap.ic_sapelli_viewer);
 
-        recyclerView = (RecyclerView) findViewById(R.id.project_recyclerview);
+        findViewById(R.id.imgbPlay).setOnClickListener(v -> {
+            Intent i = ProjectListActivity.newIntent(this, projects);
+            startActivity(i);
+        });
+
+        recyclerView = findViewById(R.id.project_recyclerview);
         recyclerView.setItemAnimator(null);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         projectAdapter = new GeoKeyProjectAdapter(SettingsActivity.this, disposables, new GeoKeyProjectAdapter.ProjectAdapterClickListener() {
@@ -189,7 +195,10 @@ public class SettingsActivity extends AppCompatActivity {
         disposables.add(
                 geoKeyclient.updateProjects()
                         .subscribe(
-                                projectInfos -> projectAdapter.setProjects(projectInfos),
+                                projectInfos -> {
+                                    projects = projectInfos;
+                                    projectAdapter.setProjects(projectInfos);
+                                },
                                 error -> {
                                     if (error instanceof NoConnectivityException)
                                         listProjects(); // if no internet connection -> get projects from db
@@ -206,6 +215,7 @@ public class SettingsActivity extends AppCompatActivity {
                         .subscribeWith(new DisposableSingleObserver<List<ProjectInfo>>() {
                             @Override
                             public void onSuccess(List<ProjectInfo> projectInfos) {
+                                projects = projectInfos;
                                 projectAdapter.setProjects(projectInfos);
                                 recyclerView.setAdapter(projectAdapter);
                             }
@@ -336,7 +346,7 @@ public class SettingsActivity extends AppCompatActivity {
 
     @Override
     public void onRequestPermissionsResult(int requestCode,
-                                           @NonNull String permissions[], @NonNull int[] grantResults) {
+                                           @NonNull String[] permissions, @NonNull int[] grantResults) {
         switch (requestCode) {
             case PERMISSIONS_REQUEST_CODE: {
                 if (grantResults.length > 0

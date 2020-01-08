@@ -2,12 +2,14 @@ package uk.ac.excites.ucl.sapelliviewer.datamodel;
 
 import android.arch.persistence.room.Entity;
 
+import java.io.Serializable;
+
 /**
  * Created by Julia on 13/02/2018.
  */
 
 @Entity
-public class UserPrivlg {
+public class UserPrivlg implements Serializable {
     private boolean is_involved;
     private boolean can_moderate;
     private boolean is_admin;
