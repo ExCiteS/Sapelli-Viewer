@@ -13,6 +13,7 @@ import io.reactivex.schedulers.Schedulers;
 import okhttp3.ResponseBody;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Contribution;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.ContributionProperty;
+import uk.ac.excites.ucl.sapelliviewer.datamodel.Field;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.ProjectInfo;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.ProjectProperties;
 import uk.ac.excites.ucl.sapelliviewer.db.AppDatabase;
@@ -99,13 +100,19 @@ public class GeoKeyClient {
     public Observable<ContributionProperty> getContributionsWithProperties(int projectID) {
         return getContributions(projectID)
                 .doOnNext(contribution -> {
-                    contribution.setDisplayFieldId(db.projectInfoDao().getFieldByKey(contribution.getDisplayFieldKey(), contribution.getCategoryId()).getId());
-                    db.contributionDao().insertContribution(contribution);
+                    Field field = db.projectInfoDao().getFieldByKey(contribution.getDisplayFieldKey(), contribution.getCategoryId());
+                    if (field != null) {
+                        contribution.setDisplayFieldId(field.getId());
+                        db.contributionDao().insertContribution(contribution);
+                    }
                 })
                 .flatMap(contribution -> Observable.fromIterable(contribution.getContributionProperties())
                         .doOnNext(contributionProperty -> {
-                            contributionProperty.setFieldId(db.projectInfoDao().getFieldByKey(contributionProperty.getKey(), contribution.getCategoryId()).getId());
-                            db.contributionDao().insertContributionProperties(contributionProperty);
+                            Field field = db.projectInfoDao().getFieldByKey(contribution.getDisplayFieldKey(), contribution.getCategoryId());
+                            if (field != null) {
+                                contributionProperty.setFieldId(field.getId());
+                                db.contributionDao().insertContributionProperties(contributionProperty);
+                            }
                         })
                 );
     }

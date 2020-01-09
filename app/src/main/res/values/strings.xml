@@ -43,5 +43,6 @@
     <string name="show_all_fields_and_values">Show all fields and values</string>
     <string name="show_no_fields_but_all_values">Show no fields but all values</string>
     <string name="show_no_fields_but_display_values">Show no fields but display values</string>
-
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
 </resources>

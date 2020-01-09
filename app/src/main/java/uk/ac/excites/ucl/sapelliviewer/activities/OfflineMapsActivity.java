@@ -2,18 +2,16 @@ package uk.ac.excites.ucl.sapelliviewer.activities;
 
 import android.animation.LayoutTransition;
 import android.annotation.SuppressLint;
+import android.app.Dialog;
 import android.content.Context;
 import android.content.pm.ActivityInfo;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
-
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.res.ResourcesCompat;
-import androidx.fragment.app.FragmentManager;
-
 import android.util.Log;
+import android.view.Gravity;
 import android.view.KeyEvent;
+import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
@@ -21,8 +19,22 @@ import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.ImageButton;
+import android.widget.ImageView;
+import android.widget.ListView;
 import android.widget.RelativeLayout;
+import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.ActionBarDrawerToggle;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.res.ResourcesCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
+import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import com.bumptech.glide.Glide;
 import com.esri.arcgisruntime.concurrent.ListenableFuture;
 import com.esri.arcgisruntime.geometry.GeometryEngine;
 import com.esri.arcgisruntime.geometry.Point;
@@ -60,9 +72,11 @@ import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.schedulers.Schedulers;
 import uk.ac.excites.ucl.sapelliviewer.R;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Contribution;
+import uk.ac.excites.ucl.sapelliviewer.datamodel.LookUpValue;
 import uk.ac.excites.ucl.sapelliviewer.db.AppDatabase;
 import uk.ac.excites.ucl.sapelliviewer.db.DatabaseClient;
 import uk.ac.excites.ucl.sapelliviewer.ui.DetailsFragment;
+import uk.ac.excites.ucl.sapelliviewer.ui.NavigationFragment;
 import uk.ac.excites.ucl.sapelliviewer.ui.ValueController;
 import uk.ac.excites.ucl.sapelliviewer.utils.Logger;
 import uk.ac.excites.ucl.sapelliviewer.utils.MediaHelpers;
@@ -72,7 +86,7 @@ import uk.ac.excites.ucl.sapelliviewer.utils.TokenManager;
 /**
  * Created by julia
  */
-public class OfflineMapsActivity extends AppCompatActivity {
+public class OfflineMapsActivity extends AppCompatActivity implements NavigationFragment.OnShowClickListener {
     private static final String DETAILS_FRAGMENT = "detailsFragment";
     public static String CONTRIBUTION_ID = "contribution_id";
     public static String DB_NAME = "/mosaicdb.sqlite";
@@ -87,6 +101,7 @@ public class OfflineMapsActivity extends AppCompatActivity {
     private int backCounter;
     private DatabaseClient dbClient;
     private int resetAngle;
+    private DrawerLayout drawer;
 
 
     @SuppressLint("ClickableViewAccessibility")
@@ -110,7 +125,11 @@ public class OfflineMapsActivity extends AppCompatActivity {
 
         ((ViewGroup) findViewById(R.id.root)).getLayoutTransition().enableTransitionType(LayoutTransition.CHANGE_APPEARING);
 
-
+        drawer = (DrawerLayout) findViewById(R.id.drawerLayout);
+        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
+                this, drawer, null, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
+        drawer.setDrawerListener(toggle);
+        toggle.syncState();
 
         /* Load Vector base map*/
         ArcGISVectorTiledLayer vtpk = new ArcGISVectorTiledLayer(MediaHelpers.dataPath + File.separator + getString(R.string.blank_map));
@@ -206,6 +225,14 @@ public class OfflineMapsActivity extends AppCompatActivity {
         );
     }
 
+    @Override
+    public void onBackPressed() {
+        if (drawer.isDrawerOpen(Gravity.LEFT)) {
+            drawer.closeDrawer(Gravity.LEFT);
+        } else {
+            super.onBackPressed();
+        }
+    }
 
     public void updateMarkers(List<Contribution> contributionsToDisplay) {
         Iterator contributionIterator;
@@ -336,12 +363,14 @@ public class OfflineMapsActivity extends AppCompatActivity {
                                 case "display":
                                     db.contributionDao()
                                             .getDisplayField(projectId)
+                                            .subscribeOn(Schedulers.io())
+                                            .observeOn(AndroidSchedulers.mainThread())
                                             .subscribe(displayField ->
-                                                    new ValueController(this, findViewById(R.id.value_recycler_view), disposables, dbClient, displayField)
+                                                    new ValueController(this, getRecyclerView(), disposables, dbClient, displayField)
                                             );
                                     break;
                                 case "none":
-                                    new ValueController(this, findViewById(R.id.value_recycler_view), disposables, dbClient, null);
+                                    new ValueController(this, getRecyclerView(), disposables, dbClient, null);
                             }
                         }
 
@@ -352,10 +381,45 @@ public class OfflineMapsActivity extends AppCompatActivity {
             @Override
             public void run() {
                 Log.e("LoadStatus", map.getLoadStatus().name());
-                disposables.add(db.contributionDao().getContributions(projectId).observeOn(Schedulers.io()).subscribeOn(Schedulers.io()).subscribe(contributions -> showMarkers(contributions, true))); // initially load all markers
+                disposables.add(
+                        db.contributionDao().getContributions(projectId)
+                                .observeOn(Schedulers.io())
+                                .subscribeOn(Schedulers.io())
+                                .subscribe(contributions -> showMarkers(contributions, true))); // initially load all markers
                 disposables.add(db.projectInfoDao().getMapPath(projectId).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe(OfflineMapsActivity.this::createMosaicDataset));
             }
         });
+    }
+
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent ev) {
+
+        float eventX = ev.getX();
+        float eventY = ev.getY();
+        int[] posXY = new int[2];
+
+        getRecyclerView().getLocationOnScreen(posXY);
+        int viewX = posXY[0];
+        int viewY = posXY[1];
+
+        boolean isOnView = eventX > viewX && eventX < viewX + getRecyclerView().getWidth() &&
+                eventY > viewY && eventY < viewY + getRecyclerView().getHeight() &&
+                getRecyclerView().getVisibility() == View.VISIBLE;
+
+        if (isOnView)
+            drawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_OPEN);
+        else
+            drawer.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED);
+
+        return super.dispatchTouchEvent(ev);
+    }
+
+    private RecyclerView getRecyclerView() {
+        Fragment fragment = getSupportFragmentManager().findFragmentById(R.id.flContainerNavigationMenu);
+        if (fragment instanceof NavigationFragment)
+            return ((NavigationFragment) fragment).rvNavigation;
+        else
+            return null;
     }
 
     @Override
@@ -512,6 +576,82 @@ public class OfflineMapsActivity extends AppCompatActivity {
     }
 
 
+    @Override
+    public void onShowClicked(List<LookUpValue> lookUpValues) {
+        drawer.closeDrawer(Gravity.LEFT);
+
+        Dialog dialog = new Dialog(this);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        dialog.setContentView(R.layout.dialog_confirmation);
+        dialog.getWindow().setLayout(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT);
+
+        RecyclerView rv = dialog.findViewById(R.id.rvConfirm);
+        rv.setAdapter(new ConfirmRVAdapter(lookUpValues));
+        rv.setLayoutManager(new GridLayoutManager(this, 5));
+
+        dialog.findViewById(R.id.imgConfirm).setOnClickListener(v -> {
+            dialog.dismiss();
+            Toast.makeText(this, "Filter selection succeeded!", Toast.LENGTH_SHORT).show();
+        });
+
+        dialog.findViewById(R.id.imgReselect).setOnClickListener(v -> {
+            dialog.dismiss();
+            drawer.openDrawer(Gravity.LEFT);
+        });
+
+        dialog.show();
+    }
+
+    private class ConfirmRVAdapter extends RecyclerView.Adapter<ConfirmRVAdapter.ViewHolder>{
+
+        private final List<LookUpValue> lookupValues;
+
+        public ConfirmRVAdapter(List<LookUpValue> lookUpValues) {
+            this.lookupValues = lookUpValues;
+        }
+
+        @Override
+        public int getItemViewType(int position) {
+            return position;
+        }
+
+        @NonNull
+        @Override
+        public ConfirmRVAdapter.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            return new ViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.item_value, parent, false));
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull ConfirmRVAdapter.ViewHolder holder, int position) {
+            String path = MediaHelpers.dataPath + lookupValues.get(position).getSymbol();
+            if (MediaHelpers.isRasterImageFileName(path)) {
+                Glide.with(holder.itemView.getContext())
+                        .asBitmap()
+                        .load(MediaHelpers.dataPath + lookupValues.get(position).getSymbol())
+                        .into(holder.value_image);
+            } else if (MediaHelpers.isVectorImageFileName(path)) {
+                Glide.with(holder.itemView.getContext())
+                        .asDrawable()
+                        .load(MediaHelpers.svgToDrawable(path))
+                        .into(holder.value_image);
+            }
+        }
+
+        @Override
+        public int getItemCount() {
+            return lookupValues.size();
+        }
+
+        private class ViewHolder extends RecyclerView.ViewHolder{
+
+            ImageView value_image;
+
+            ViewHolder(@NonNull View itemView) {
+                super(itemView);
+                value_image = itemView.findViewById(R.id.value_image);
+            }
+        }
+    }
 }
 
 

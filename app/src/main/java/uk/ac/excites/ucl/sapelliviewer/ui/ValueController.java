@@ -1,5 +1,6 @@
 package uk.ac.excites.ucl.sapelliviewer.ui;
 
+import android.annotation.SuppressLint;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageButton;
@@ -44,12 +45,14 @@ public class ValueController {
                 dbClient.getLookUpValues(displayField)
                         .observeOn(AndroidSchedulers.mainThread())
                         .subscribeWith(new DisposableSingleObserver<List<LookUpValue>>() {
+                            @SuppressLint("CheckResult")
                             @Override
                             public void onSuccess(List<LookUpValue> lookUpValues) {
                                 valueAdapter = new ValueAdapter(mapsActivity.getContext(), lookUpValues, (View v, LookUpValue value) -> {
                                     value.setActive(!value.isActive());
                                     valueAdapter.notifyDataSetChanged();
-                                    dbClient.loadMarkers(valueAdapter.getVisibleAndActiveLookupValues()).subscribe(contributions -> updateMarkers(contributions));
+                                    dbClient.loadMarkers(valueAdapter.getVisibleAndActiveLookupValues())
+                                            .subscribe(contributions -> updateMarkers(contributions));
                                     if (value.isActive())
                                         dbClient.insertLog(Logger.VALUE_CHECKED, value.getId());
                                     else dbClient.insertLog(Logger.VALUE_UNCHECKED, value.getId());

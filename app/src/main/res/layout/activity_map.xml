@@ -1,108 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/root"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:animateLayoutChanges="true"
-    android:background="#EAECEE">
+    android:layout_height="match_parent">
 
-    <com.esri.arcgisruntime.mapping.view.MapView
-        android:id="@+id/map"
+    <androidx.drawerlayout.widget.DrawerLayout
+        android:id="@+id/drawerLayout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_above="@id/value_recycler_view"
-        android:layout_marginBottom="-24dp">
+        tools:openDrawer="start">
 
-    </com.esri.arcgisruntime.mapping.view.MapView>
+        <include layout="@layout/content_maps"/>
 
-    <FrameLayout
-        android:id="@+id/fragment_container"
-        android:layout_width="230dp"
-        android:layout_height="match_parent"
-        android:layout_above="@id/value_recycler_view"
-        tools:layout="@layout/fragment_details" />
+        <fragment
+            android:id="@+id/flContainerNavigationMenu"
+            android:name="uk.ac.excites.ucl.sapelliviewer.ui.NavigationFragment"
+            android:layout_width="360dp"
+            android:layout_height="match_parent"
+            android:layout_gravity="left"
+            tools:layout="@layout/fragment_navigation_drawer"/>
 
-
-    <androidx.appcompat.widget.AppCompatImageButton
-        android:id="@+id/zoom_in"
-        android:layout_width="80dp"
-        android:layout_height="80dp"
-        android:layout_alignParentEnd="true"
-        android:layout_alignParentRight="true"
-        android:layout_marginRight="10dp"
-        android:layout_marginTop="10dp"
-        android:onClick="zoomIn"
-        android:padding="3dp"
-        app:srcCompat="@drawable/tree_large" />
-
-    <androidx.appcompat.widget.AppCompatImageButton
-        android:id="@+id/zoom_out"
-        android:layout_width="80dp"
-        android:layout_height="80dp"
-        android:layout_alignEnd="@+id/zoom_in"
-        android:layout_alignLeft="@+id/zoom_in"
-        android:layout_alignRight="@+id/zoom_in"
-        android:layout_alignStart="@+id/zoom_in"
-        android:layout_below="@+id/zoom_in"
-        android:layout_marginTop="5dp"
-        android:onClick="zoomOut"
-        android:padding="3dp"
-        app:srcCompat="@drawable/tree_small" />
-
-
-    <androidx.appcompat.widget.AppCompatImageButton
-        android:id="@+id/rotate_north_btn"
-        android:layout_width="80dp"
-        android:layout_height="80dp"
-        android:layout_alignEnd="@+id/zoom_in"
-        android:layout_alignStart="@+id/zoom_in"
-        android:layout_below="@+id/zoom_out"
-        android:layout_marginTop="5dp"
-        android:contentDescription="@string/content_desc_rotate_north"
-        android:onClick="rotateNorth" />
-
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/value_recycler_view"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_above="@id/field_recycler_view"
-        android:background="@color/background_dark"
-        android:orientation="horizontal" />
-
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/field_recycler_view"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_toLeftOf="@+id/button_toggle_on"
-        android:background="@color/background_light"
-        android:orientation="horizontal" />
-
-    <ImageButton
-        android:id="@+id/button_toggle_off"
-        android:layout_width="50dp"
-        android:layout_height="50dp"
-        android:layout_alignParentBottom="true"
-        android:layout_alignParentRight="true"
-        android:background="@color/background_dark"
-        android:visibility="invisible" />
-
-    <ImageButton
-        android:id="@+id/button_toggle_on"
-        android:layout_width="50dp"
-        android:layout_height="50dp"
-        android:layout_alignParentBottom="true"
-        android:layout_toLeftOf="@id/button_toggle_off"
-        android:background="@color/colorPrimary"
-        android:visibility="gone" />
-
-    <FrameLayout
-        android:id="@+id/fragment_media_container"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_margin="20dp"
-        android:layout_toRightOf="@id/fragment_container" />
-
+    </androidx.drawerlayout.widget.DrawerLayout>
 </RelativeLayout>
