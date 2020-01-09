@@ -8,7 +8,6 @@
     android:animateLayoutChanges="true"
     android:background="#EAECEE">
 
-
     <com.esri.arcgisruntime.mapping.view.MapView
         android:id="@+id/map"
         android:layout_width="match_parent"
@@ -26,7 +25,7 @@
         tools:layout="@layout/fragment_details" />
 
 
-    <android.support.v7.widget.AppCompatImageButton
+    <androidx.appcompat.widget.AppCompatImageButton
         android:id="@+id/zoom_in"
         android:layout_width="80dp"
         android:layout_height="80dp"
@@ -38,7 +37,7 @@
         android:padding="3dp"
         app:srcCompat="@drawable/tree_large" />
 
-    <android.support.v7.widget.AppCompatImageButton
+    <androidx.appcompat.widget.AppCompatImageButton
         android:id="@+id/zoom_out"
         android:layout_width="80dp"
         android:layout_height="80dp"
@@ -53,7 +52,7 @@
         app:srcCompat="@drawable/tree_small" />
 
 
-    <android.support.v7.widget.AppCompatImageButton
+    <androidx.appcompat.widget.AppCompatImageButton
         android:id="@+id/rotate_north_btn"
         android:layout_width="80dp"
         android:layout_height="80dp"
@@ -64,22 +63,22 @@
         android:contentDescription="@string/content_desc_rotate_north"
         android:onClick="rotateNorth" />
 
-    <android.support.v7.widget.RecyclerView
+    <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/value_recycler_view"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_above="@id/field_recycler_view"
         android:background="@color/background_dark"
-        android:orientation="horizontal"></android.support.v7.widget.RecyclerView>
+        android:orientation="horizontal" />
 
-    <android.support.v7.widget.RecyclerView
+    <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/field_recycler_view"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:layout_toLeftOf="@+id/button_toggle_on"
         android:background="@color/background_light"
-        android:orientation="horizontal"></android.support.v7.widget.RecyclerView>
+        android:orientation="horizontal" />
 
     <ImageButton
         android:id="@+id/button_toggle_off"

@@ -3,11 +3,11 @@ package uk.ac.excites.ucl.sapelliviewer.datamodel;
 //import com.github.filosganga.geogson.model.Polygon;
 
 
-import android.arch.persistence.room.Embedded;
-import android.arch.persistence.room.Entity;
-import android.arch.persistence.room.Ignore;
-import android.arch.persistence.room.PrimaryKey;
-import android.arch.persistence.room.TypeConverters;
+import androidx.room.Embedded;
+import androidx.room.Entity;
+import androidx.room.Ignore;
+import androidx.room.PrimaryKey;
+import androidx.room.TypeConverters;
 
 import java.util.List;
 
@@ -36,45 +36,44 @@ public class Project {
         return id;
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-
-    public List<Category> getCategories() {
-        return categories;
-    }
-
-    public UserPrivlg getUser_info() {
-        return user_info;
-    }
-
-    public Extent getGeographic_extent() {
-        return geographic_extent;
-    }
-
     public void setId(int id) {
         this.id = id;
+    }
+
+    public String getName() {
+        return name;
     }
 
     public void setName(String name) {
         this.name = name;
     }
 
+    public String getDescription() {
+        return description;
+    }
+
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public List<Category> getCategories() {
+        return categories;
     }
 
     public void setCategories(List<Category> categories) {
         this.categories = categories;
     }
 
+    public UserPrivlg getUser_info() {
+        return user_info;
+    }
+
     public void setUser_info(UserPrivlg user_info) {
         this.user_info = user_info;
+    }
+
+    public Extent getGeographic_extent() {
+        return geographic_extent;
     }
 
     public void setGeographic_extent(Extent geographic_extent) {
@@ -92,12 +91,12 @@ public class Project {
             return type;
         }
 
-        public double[][] getCoordinates() {
-            return coordinates[0];
-        }
-
         public void setType(String type) {
             this.type = type;
+        }
+
+        public double[][] getCoordinates() {
+            return coordinates[0];
         }
 
         public void setCoordinates(double[][][] coordinates) {

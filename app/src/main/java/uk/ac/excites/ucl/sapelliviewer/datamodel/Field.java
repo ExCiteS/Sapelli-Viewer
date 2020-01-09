@@ -1,8 +1,9 @@
 package uk.ac.excites.ucl.sapelliviewer.datamodel;
 
-import android.arch.persistence.room.Entity;
-import android.arch.persistence.room.Ignore;
-import android.arch.persistence.room.PrimaryKey;
+
+import androidx.room.Entity;
+import androidx.room.Ignore;
+import androidx.room.PrimaryKey;
 
 import java.util.List;
 
@@ -34,52 +35,96 @@ public class Field {
         return id;
     }
 
+    public void setId(int id) {
+        this.id = id;
+    }
+
     public String getName() {
         return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     public String getDescription() {
         return description;
     }
 
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
     public String getKey() {
         return key;
+    }
+
+    public void setKey(String key) {
+        this.key = key;
     }
 
     public boolean isRequired() {
         return required;
     }
 
+    public void setRequired(boolean required) {
+        this.required = required;
+    }
+
     public String getFieldtype() {
         return fieldtype;
+    }
+
+    public void setFieldtype(String fieldtype) {
+        this.fieldtype = fieldtype;
     }
 
     public double getMinval() {
         return minval;
     }
 
+    public void setMinval(double minval) {
+        this.minval = minval;
+    }
+
     public double getMaxval() {
         return maxval;
+    }
+
+    public void setMaxval(double maxval) {
+        this.maxval = maxval;
     }
 
     public boolean isTextarea() {
         return textarea;
     }
 
+    public void setTextarea(boolean textarea) {
+        this.textarea = textarea;
+    }
+
     public double getMaxlength() {
         return maxlength;
+    }
+
+    public void setMaxlength(double maxlength) {
+        this.maxlength = maxlength;
     }
 
     public List<LookUpValue> getLookupvalues() {
         return lookupvalues;
     }
 
+    public void setLookupvalues(List<LookUpValue> lookupvalues) {
+        this.lookupvalues = lookupvalues;
+    }
+
     public int getOrder() {
         return order;
     }
 
-    public void setId(int id) {
-        this.id = id;
+    public void setOrder(int order) {
+        this.order = order;
     }
 
     public int getCategory_id() {
@@ -88,50 +133,6 @@ public class Field {
 
     public void setCategory_id(int category_id) {
         this.category_id = category_id;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public void setKey(String key) {
-        this.key = key;
-    }
-
-    public void setRequired(boolean required) {
-        this.required = required;
-    }
-
-    public void setFieldtype(String fieldtype) {
-        this.fieldtype = fieldtype;
-    }
-
-    public void setMinval(double minval) {
-        this.minval = minval;
-    }
-
-    public void setMaxval(double maxval) {
-        this.maxval = maxval;
-    }
-
-    public void setTextarea(boolean textarea) {
-        this.textarea = textarea;
-    }
-
-    public void setMaxlength(double maxlength) {
-        this.maxlength = maxlength;
-    }
-
-    public void setLookupvalues(List<LookUpValue> lookupvalues) {
-        this.lookupvalues = lookupvalues;
-    }
-
-    public void setOrder(int order) {
-        this.order = order;
     }
 
     public boolean isActive() {

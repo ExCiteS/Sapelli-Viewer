@@ -1,13 +1,15 @@
 package uk.ac.excites.ucl.sapelliviewer.ui;
 
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageButton;
 
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
 import java.util.List;
 
+import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.observers.DisposableSingleObserver;
 import uk.ac.excites.ucl.sapelliviewer.activities.OfflineMapsActivity;
@@ -40,6 +42,7 @@ public class ValueController {
     private void getValueAdapter(Integer displayField) {
         disposables.add(
                 dbClient.getLookUpValues(displayField)
+                        .observeOn(AndroidSchedulers.mainThread())
                         .subscribeWith(new DisposableSingleObserver<List<LookUpValue>>() {
                             @Override
                             public void onSuccess(List<LookUpValue> lookUpValues) {

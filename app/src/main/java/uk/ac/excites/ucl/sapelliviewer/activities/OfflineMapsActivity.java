@@ -7,9 +7,11 @@ import android.content.pm.ActivityInfo;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
-import android.support.v4.app.FragmentManager;
-import android.support.v4.content.res.ResourcesCompat;
-import android.support.v7.app.AppCompatActivity;
+
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.res.ResourcesCompat;
+import androidx.fragment.app.FragmentManager;
+
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
@@ -97,6 +99,7 @@ public class OfflineMapsActivity extends AppCompatActivity {
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         setContentView(R.layout.activity_map);
+
         db = AppDatabase.getAppDatabase(getApplicationContext());
         projectId = getIntent().getIntExtra(SettingsActivity.PROJECT_ID, 0);
         disposables = new CompositeDisposable();
@@ -302,6 +305,7 @@ public class OfflineMapsActivity extends AppCompatActivity {
         mapView.resume();
         ImageButton northButton = findViewById(R.id.rotate_north_btn);
         disposables.add(dbClient.getProjectProperties()
+                .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(projectProperties -> {
                             switch (projectProperties.getUpDirection()) {
                                 case "east":
@@ -325,10 +329,16 @@ public class OfflineMapsActivity extends AppCompatActivity {
                             switch (projectProperties.getShowFields()) {
                                 case "all":
                                     ValueController valueControllerAll = new ValueController(this, findViewById(R.id.value_recycler_view), disposables, dbClient, null);
-                                    valueControllerAll.addFieldController(findViewById(R.id.field_recycler_view)).addToggleButtons(findViewById(R.id.button_toggle_on), findViewById(R.id.button_toggle_off));
+                                    valueControllerAll
+                                            .addFieldController(findViewById(R.id.field_recycler_view))
+                                            .addToggleButtons(findViewById(R.id.button_toggle_on), findViewById(R.id.button_toggle_off));
                                     break;
                                 case "display":
-                                    db.contributionDao().getDisplayField(projectId).subscribe(displayField -> new ValueController(this, findViewById(R.id.value_recycler_view), disposables, dbClient, displayField));
+                                    db.contributionDao()
+                                            .getDisplayField(projectId)
+                                            .subscribe(displayField ->
+                                                    new ValueController(this, findViewById(R.id.value_recycler_view), disposables, dbClient, displayField)
+                                            );
                                     break;
                                 case "none":
                                     new ValueController(this, findViewById(R.id.value_recycler_view), disposables, dbClient, null);
@@ -414,7 +424,6 @@ public class OfflineMapsActivity extends AppCompatActivity {
         } catch (Exception e) {
             Log.e("copyBlankMap", e.getMessage());
         }
-
     }
 
     public Context getContext() {

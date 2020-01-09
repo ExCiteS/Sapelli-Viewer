@@ -1,11 +1,8 @@
 package uk.ac.excites.ucl.sapelliviewer.datamodel;
 
-import android.arch.persistence.room.Embedded;
-import android.arch.persistence.room.Entity;
-import android.arch.persistence.room.ForeignKey;
-import android.arch.persistence.room.PrimaryKey;
-
-import java.sql.Timestamp;
+import androidx.room.Embedded;
+import androidx.room.Entity;
+import androidx.room.PrimaryKey;
 
 @Entity
 public class Logs {

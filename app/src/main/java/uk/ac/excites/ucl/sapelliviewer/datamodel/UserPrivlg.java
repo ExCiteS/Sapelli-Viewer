@@ -1,6 +1,6 @@
 package uk.ac.excites.ucl.sapelliviewer.datamodel;
 
-import android.arch.persistence.room.Entity;
+import androidx.room.Entity;
 
 import java.io.Serializable;
 

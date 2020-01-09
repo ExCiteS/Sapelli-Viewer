@@ -1,12 +1,12 @@
 package uk.ac.excites.ucl.sapelliviewer.db;
 
-import android.arch.persistence.db.SupportSQLiteDatabase;
-import android.arch.persistence.room.Database;
-import android.arch.persistence.room.Room;
-import android.arch.persistence.room.RoomDatabase;
 import android.content.Context;
 
-import uk.ac.excites.ucl.sapelliviewer.R;
+import androidx.room.Database;
+import androidx.room.Room;
+import androidx.room.RoomDatabase;
+import androidx.sqlite.db.SupportSQLiteDatabase;
+
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Category;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Contribution;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.ContributionProperty;
@@ -47,12 +47,12 @@ public abstract class AppDatabase extends RoomDatabase {
                     "                 FROM ContributionProperty))\n" +
                     "  WHERE contribPropertyId = new.contribPropertyId;\n" +
                     "END;";
-
-    public abstract UserDao userDao();
-
-    public abstract ProjectInfoDao projectInfoDao();
-
-    public abstract ContributionDao contributionDao();
+    static RoomDatabase.Callback rdc = new RoomDatabase.Callback() {
+        public void onCreate(SupportSQLiteDatabase db) {
+            if (LOOKUP_INJECTION_CONTRIBUTIONPROPERTY != null)
+                db.execSQL(LOOKUP_INJECTION_CONTRIBUTIONPROPERTY);
+        }
+    };
 
     public static AppDatabase getAppDatabase(Context context) {
         if (INSTANCE == null) {
@@ -67,15 +67,13 @@ public abstract class AppDatabase extends RoomDatabase {
         return INSTANCE;
     }
 
-    static RoomDatabase.Callback rdc = new RoomDatabase.Callback() {
-        public void onCreate(SupportSQLiteDatabase db) {
-            if (LOOKUP_INJECTION_CONTRIBUTIONPROPERTY != null)
-                db.execSQL(LOOKUP_INJECTION_CONTRIBUTIONPROPERTY);
-        }
-    };
-
-
     public static void destroyInstance() {
         INSTANCE = null;
     }
+
+    public abstract UserDao userDao();
+
+    public abstract ProjectInfoDao projectInfoDao();
+
+    public abstract ContributionDao contributionDao();
 }
