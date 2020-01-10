@@ -69,6 +69,7 @@ public class SettingsActivity extends AppCompatActivity {
     private int mapPathPosition;
     private GeoKeyClient geoKeyclient;
     private List<ProjectInfo> projects;
+    private ImageView imgPlay;
 
 
     @Override
@@ -86,7 +87,8 @@ public class SettingsActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
         toolbar.setLogo(R.mipmap.ic_sapelli_viewer);
 
-        findViewById(R.id.imgbPlay).setOnClickListener(v -> {
+        imgPlay = findViewById(R.id.imgbPlay);
+        imgPlay.setOnClickListener(v -> {
             Intent i = ProjectListActivity.newIntent(this, projects);
             startActivity(i);
         });
@@ -196,6 +198,7 @@ public class SettingsActivity extends AppCompatActivity {
                 geoKeyclient.updateProjects()
                         .subscribe(
                                 projectInfos -> {
+                                    imgPlay.setVisibility(View.VISIBLE);
                                     projects = projectInfos;
                                     projectAdapter.setProjects(projectInfos);
                                 },
@@ -215,6 +218,7 @@ public class SettingsActivity extends AppCompatActivity {
                         .subscribeWith(new DisposableSingleObserver<List<ProjectInfo>>() {
                             @Override
                             public void onSuccess(List<ProjectInfo> projectInfos) {
+                                imgPlay.setVisibility(View.VISIBLE);
                                 projects = projectInfos;
                                 projectAdapter.setProjects(projectInfos);
                                 recyclerView.setAdapter(projectAdapter);

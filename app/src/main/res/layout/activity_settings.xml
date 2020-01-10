@@ -52,10 +52,12 @@
         android:layout_centerHorizontal="true"
         android:layout_marginBottom="32dp"
         android:background="@null"
+        android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintVertical_chainStyle="spread"
-        app:srcCompat="@drawable/ic_play_arrow_black" />
+        app:srcCompat="@drawable/ic_play_arrow_black"
+        tools:visibility="visible" />
 </androidx.constraintlayout.widget.ConstraintLayout>

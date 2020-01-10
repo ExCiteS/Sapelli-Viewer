@@ -8,6 +8,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import android.util.Log;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,6 +23,8 @@ import uk.ac.excites.ucl.sapelliviewer.db.AppDatabase;
 import uk.ac.excites.ucl.sapelliviewer.service.GeoKeyClient;
 import uk.ac.excites.ucl.sapelliviewer.ui.ProjectIconListAdapter;
 import uk.ac.excites.ucl.sapelliviewer.utils.NoConnectivityException;
+
+import static uk.ac.excites.ucl.sapelliviewer.activities.SettingsActivity.PROJECT_ID;
 
 public class ProjectListActivity extends AppCompatActivity {
     private static final String ARG_PROJECTS = "arg_projects";
@@ -47,6 +50,8 @@ public class ProjectListActivity extends AppCompatActivity {
         geoKeyclient = new GeoKeyClient(ProjectListActivity.this);
         setContentView(R.layout.activity_project_list);
 
+        findViewById(R.id.imgbUser).setOnClickListener(v -> Toast.makeText(this, "User Logout!", Toast.LENGTH_SHORT).show());
+
         RecyclerView rvProjectLocal = findViewById(R.id.rvProjectLocal);
         rvProjectLocal.setLayoutManager(new GridLayoutManager(this, 2, GridLayoutManager.VERTICAL, false));
         localProjectListAdapter = new ProjectIconListAdapter(projectInfo -> {
@@ -56,11 +61,15 @@ public class ProjectListActivity extends AppCompatActivity {
 
         RecyclerView rvProjectRemote = findViewById(R.id.rvProjectRemote);
         rvProjectRemote.setLayoutManager(new GridLayoutManager(this, 2, GridLayoutManager.VERTICAL, false));
-        remoteProjectListAdapter = new ProjectIconListAdapter(projectInfo -> {
-
-        });
+        remoteProjectListAdapter = new ProjectIconListAdapter(projectInfo -> openMapView(projectInfo.getId()));
         rvProjectRemote.setAdapter(remoteProjectListAdapter);
         handleIntent();
+    }
+
+    public void openMapView(int projectId) {
+        Intent mapIntent = new Intent(this, OfflineMapsActivity.class);
+        mapIntent.putExtra(PROJECT_ID, projectId);
+        startActivity(mapIntent);
     }
 
     private void handleIntent() {
