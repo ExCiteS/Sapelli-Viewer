@@ -104,7 +104,7 @@ public class ValueAdapter extends RecyclerView.Adapter<ValueAdapter.ValueViewHol
             valueImage.setOnClickListener(new ImageView.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    listener.onClick(v, getVisibleLookupValues().get(getAdapterPosition()));
+//                    listener.onClick(v, getVisibleLookupValues().get(getAdapterPosition()));
                 }
             });
         }
