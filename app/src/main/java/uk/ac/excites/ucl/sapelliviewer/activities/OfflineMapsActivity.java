@@ -6,6 +6,7 @@ import android.app.Dialog;
 import android.content.Context;
 import android.content.pm.ActivityInfo;
 import android.graphics.Color;
+import android.graphics.Rect;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
@@ -355,10 +356,10 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
 
                             switch (projectProperties.getShowFields()) {
                                 case "all":
-                                    ValueController valueControllerAll = new ValueController(this, findViewById(R.id.value_recycler_view), disposables, dbClient, null);
-                                    valueControllerAll
-                                            .addFieldController(findViewById(R.id.field_recycler_view))
-                                            .addToggleButtons(findViewById(R.id.button_toggle_on), findViewById(R.id.button_toggle_off));
+                                    ValueController valueControllerAll = new ValueController(this, getRecyclerView(), disposables, dbClient, null);
+//                                    valueControllerAll
+//                                            .addFieldController(findViewById(R.id.field_recycler_view))
+//                                            .addToggleButtons(findViewById(R.id.button_toggle_on), findViewById(R.id.button_toggle_off));
                                     break;
                                 case "display":
                                     db.contributionDao()
