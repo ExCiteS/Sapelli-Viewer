@@ -35,7 +35,7 @@ public class ValueController {
         this.dbClient = dbClient;
         this.mapsActivity = mapActivity;
         this.valueRecyclerView = valueRecyclerView;
-        valueRecyclerView.setLayoutManager(new LinearLayoutManager(mapActivity.getContext(), LinearLayoutManager.HORIZONTAL, false));
+        valueRecyclerView.setLayoutManager(new LinearLayoutManager(mapActivity.getContext(), LinearLayoutManager.VERTICAL, false));
         this.disposables = disposables;
         getValueAdapter(displayField);
     }
@@ -62,9 +62,9 @@ public class ValueController {
                                 valueRecyclerView.setAdapter(valueAdapter);
                                 FieldController fieldController;
                                 if (fieldRecyclerView != null) {
-                                    fieldController = new FieldController(mapsActivity.getContext(), fieldRecyclerView, ValueController.this, mapsActivity.getProjectId(), disposables, dbClient);
-                                    if (toggleOffButton != null && toggleOnButton != null)
-                                        fieldController.setToggleAllValuesButtons(toggleOnButton, toggleOffButton);
+//                                    fieldController = new FieldController(mapsActivity.getContext(), fieldRecyclerView, ValueController.this, mapsActivity.getProjectId(), disposables, dbClient);
+//                                    if (toggleOffButton != null && toggleOnButton != null)
+//                                        fieldController.setToggleAllValuesButtons(toggleOnButton, toggleOffButton);
                                 }
                             }
 

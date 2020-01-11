@@ -57,34 +57,43 @@ class FieldController {
                         .observeOn(AndroidSchedulers.mainThread())
                         .subscribeWith(new DisposableSingleObserver<List<Field>>() {
 
+                            @SuppressLint("CheckResult")
                             @Override
                             public void onSuccess(List<Field> fields) {
-                                FieldAdapter fieldAdapter = new FieldAdapter(context, fields, new FieldAdapter.FieldCheckedChangeListener() {
-                                    @SuppressLint("CheckResult")
-                                    @Override
-                                    public void checkedChanged(ToggleButton buttonView, boolean isChecked, Field field) {
-                                        for (LookUpValue lookUpValue : valueAdapter.getAllLookUpValues()) {
-                                            if (lookUpValue.getFieldId() == field.getId())
-                                                lookUpValue.setVisible(isChecked);
-                                        }
-                                        if (isChecked) {
-                                            buttonView.setBackgroundColor(ContextCompat.getColor(context, R.color.colorPrimary));
-                                            dbClient.insertLog(Logger.FIELD_CHECKED, field.getId());
-
-                                        } else {
-                                            buttonView.setBackgroundColor(Color.WHITE);
-                                            dbClient.insertLog(Logger.FIELD_UNCHECKED, field.getId());
-
-                                        }
-                                        valueAdapter.notifyDataSetChanged();
-                                        dbClient.loadMarkers(valueAdapter.getVisibleAndActiveLookupValues()).subscribe(valueController::updateMarkers);
+                                for (Field field: fields){
+                                    for (LookUpValue lookUpValue : valueAdapter.getAllLookUpValues()) {
+//                                        if (lookUpValue.getFieldId() == field.getId())
+//                                            lookUpValue.setVisible(isChecked);
                                     }
-                                });
-                                fieldRecyclerView.setAdapter(fieldAdapter);
-                                if (!fields.isEmpty()) {
-                                    toggleOffButton.setVisibility(View.VISIBLE);
-                                    toggleOnButton.setVisibility(View.VISIBLE);
                                 }
+                                dbClient.loadMarkers(valueAdapter.getVisibleAndActiveLookupValues()).subscribe(valueController::updateMarkers);
+
+
+//                                FieldAdapter fieldAdapter = new FieldAdapter(context, fields, new FieldAdapter.FieldCheckedChangeListener() {
+//                                    @Override
+//                                    public void checkedChanged(ToggleButton buttonView, boolean isChecked, Field field) {
+//                                        for (LookUpValue lookUpValue : valueAdapter.getAllLookUpValues()) {
+//                                            if (lookUpValue.getFieldId() == field.getId())
+//                                                lookUpValue.setVisible(isChecked);
+//                                        }
+//                                        if (isChecked) {
+//                                            buttonView.setBackgroundColor(ContextCompat.getColor(context, R.color.colorPrimary));
+//                                            dbClient.insertLog(Logger.FIELD_CHECKED, field.getId());
+//
+//                                        } else {
+//                                            buttonView.setBackgroundColor(Color.WHITE);
+//                                            dbClient.insertLog(Logger.FIELD_UNCHECKED, field.getId());
+//
+//                                        }
+//                                        valueAdapter.notifyDataSetChanged();
+//                                        dbClient.loadMarkers(valueAdapter.getVisibleAndActiveLookupValues()).subscribe(valueController::updateMarkers);
+//                                    }
+//                                });
+//                                fieldRecyclerView.setAdapter(fieldAdapter);
+//                                if (!fields.isEmpty()) {
+//                                    toggleOffButton.setVisibility(View.VISIBLE);
+//                                    toggleOnButton.setVisibility(View.VISIBLE);
+//                                }
 
                             }
 

@@ -15,10 +15,12 @@
         <fragment
             android:id="@+id/flContainerNavigationMenu"
             android:name="uk.ac.excites.ucl.sapelliviewer.ui.NavigationFragment"
-            android:layout_width="360dp"
+            android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:layout_marginRight="30dp"
             android:layout_gravity="left"
-            tools:layout="@layout/fragment_navigation_drawer"/>
+            tools:layout="@layout/fragment_navigation_drawer"
+            tools:ignore="RtlHardcoded" />
 
     </androidx.drawerlayout.widget.DrawerLayout>
 </RelativeLayout>

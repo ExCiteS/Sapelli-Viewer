@@ -110,10 +110,6 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // set full screen and landscape
-        requestWindowFeature(Window.FEATURE_NO_TITLE);
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
-        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         setContentView(R.layout.activity_map);
 
         db = AppDatabase.getAppDatabase(getApplicationContext());
@@ -357,9 +353,9 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
                             switch (projectProperties.getShowFields()) {
                                 case "all":
                                     ValueController valueControllerAll = new ValueController(this, getRecyclerView(), disposables, dbClient, null);
-//                                    valueControllerAll
-//                                            .addFieldController(findViewById(R.id.field_recycler_view))
-//                                            .addToggleButtons(findViewById(R.id.button_toggle_on), findViewById(R.id.button_toggle_off));
+                                    valueControllerAll
+                                            .addFieldController(findViewById(R.id.field_recycler_view))
+                                            .addToggleButtons(findViewById(R.id.button_toggle_on), findViewById(R.id.button_toggle_off));
                                     break;
                                 case "display":
                                     db.contributionDao()
