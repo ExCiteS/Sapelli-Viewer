@@ -38,7 +38,7 @@ public class NavigationFragment extends Fragment {
                 if (adapter instanceof ValueAdapter) {
                     ValueAdapter valueAdapter = (ValueAdapter) adapter;
 
-                    listener.onShowClicked(valueAdapter.getVisibleAndActiveLookupValues());
+                    listener.onShowClicked(valueAdapter.getAllActiveValues());
                 }
             }
         });

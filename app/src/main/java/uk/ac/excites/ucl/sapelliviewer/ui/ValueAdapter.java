@@ -53,6 +53,22 @@ public class ValueAdapter extends RecyclerView.Adapter<ValueAdapter.ValueListVie
         }
     }
 
+    public ArrayList<LookUpValue> getAllActiveValues() {
+        if (valueMap.keySet().size() == 0) return null;
+
+        ArrayList<LookUpValue> activeOnes = new ArrayList<>();
+
+        for (ArrayList<LookUpValue> values : valueMap.values()) {
+            for (LookUpValue v : values) {
+                if (v.isActive()) activeOnes.add(v);
+            }
+        }
+
+        if (activeOnes.size() == 0) return null;
+
+        return activeOnes;
+    }
+
     @NonNull
     @Override
     public ValueListViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
@@ -63,7 +79,7 @@ public class ValueAdapter extends RecyclerView.Adapter<ValueAdapter.ValueListVie
 
     @Override
     public void onBindViewHolder(@NonNull ValueListViewHolder holder, int position) {
-        holder.bindTo(valueMap.get((valueMap.keySet().toArray())[position]));
+        holder.bindTo(valueMap.get((valueMap.keySet().toArray())[position]), listener);
     }
 
     @Override
@@ -97,6 +113,10 @@ public class ValueAdapter extends RecyclerView.Adapter<ValueAdapter.ValueListVie
         void onClick(View v, LookUpValue value);
     }
 
+    private interface OnValueClickListener{
+        void onValueClicked(View v, LookUpValue value, int position);
+    }
+
     class ValueListViewHolder extends RecyclerView.ViewHolder {
 
         RecyclerView rvValueList;
@@ -106,20 +126,25 @@ public class ValueAdapter extends RecyclerView.Adapter<ValueAdapter.ValueListVie
             rvValueList = itemView.findViewById(R.id.rvValueList);
         }
 
-        void bindTo(ArrayList<LookUpValue> lookUpValues) {
+
+        void bindTo(ArrayList<LookUpValue> lookUpValues, ValueAdapterClickListener listener) {
             if (lookUpValues == null) return;
             if (lookUpValues.size() == 0) return;
 
-            rvValueList.setLayoutManager(new LinearLayoutManager(rvValueList.getContext(), LinearLayoutManager.HORIZONTAL,false));
-            rvValueList.setAdapter(new ValueListAdapter(lookUpValues));
+            rvValueList.setLayoutManager(new LinearLayoutManager(rvValueList.getContext(), LinearLayoutManager.HORIZONTAL, false));
+
+            ValueListAdapter adapter = new ValueListAdapter();
+            OnValueClickListener onValueClickListener = (v, value, position) -> {
+                listener.onClick(v,value);
+                adapter.notifyItemChanged(position);
+            };
+            adapter.initAdapter(lookUpValues, onValueClickListener);
+            rvValueList.setAdapter(adapter);
         }
 
         private class ValueListAdapter extends RecyclerView.Adapter<ValueListAdapter.ValueViewHolder> {
-            private final ArrayList<LookUpValue> lookUpValues;
-
-            ValueListAdapter(ArrayList<LookUpValue> lookUpValues) {
-                this.lookUpValues = lookUpValues;
-            }
+            private ArrayList<LookUpValue> lookUpValues;
+            private OnValueClickListener listener;
 
             @NonNull
             @Override
@@ -129,12 +154,18 @@ public class ValueAdapter extends RecyclerView.Adapter<ValueAdapter.ValueListVie
 
             @Override
             public void onBindViewHolder(@NonNull ValueListAdapter.ValueViewHolder holder, int position) {
-                holder.bindTo(lookUpValues.get(position));
+                holder.bindTo(lookUpValues.get(position), listener);
             }
 
             @Override
             public int getItemCount() {
                 return lookUpValues.size();
+            }
+
+            void initAdapter(ArrayList<LookUpValue> lookUpValues, OnValueClickListener onValueClickListener) {
+                this.lookUpValues = lookUpValues;
+                this.listener = onValueClickListener;
+                notifyDataSetChanged();
             }
 
             class ValueViewHolder extends RecyclerView.ViewHolder {
@@ -147,7 +178,7 @@ public class ValueAdapter extends RecyclerView.Adapter<ValueAdapter.ValueListVie
                     valueImage = itemView.findViewById(R.id.value_image);
                 }
 
-                void bindTo(LookUpValue value) {
+                void bindTo(LookUpValue value, OnValueClickListener listener) {
 
                     String path = MediaHelpers.dataPath + value.getSymbol();
                     if (MediaHelpers.isRasterImageFileName(path)) {
@@ -162,14 +193,15 @@ public class ValueAdapter extends RecyclerView.Adapter<ValueAdapter.ValueListVie
                                 .into(valueImage);
                     }
 
-                    if (value.isActive())
+                    if (value.isActive()) {
+                        valueImage.setAlpha(1f);
                         valueFrame.setBackgroundColor(ResourcesCompat.getColor(context.getResources(), R.color.colorPrimary, null));
-                    else
+                    } else {
+                        valueImage.setAlpha(0.5f);
                         valueFrame.setBackgroundColor(ResourcesCompat.getColor(context.getResources(), R.color.background_dark, null));
+                    }
 
-                    valueImage.setOnClickListener(v -> {
-//                    listener.onClick(v, getVisibleLookupValues().get(getAdapterPosition()));
-                    });
+                    valueImage.setOnClickListener(v -> listener.onValueClicked(v, value, getAdapterPosition()));
                 }
             }
         }

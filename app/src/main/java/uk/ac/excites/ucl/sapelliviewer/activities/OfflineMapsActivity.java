@@ -584,7 +584,7 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
 
         RecyclerView rv = dialog.findViewById(R.id.rvConfirm);
         rv.setAdapter(new ConfirmRVAdapter(lookUpValues));
-        rv.setLayoutManager(new GridLayoutManager(this, 5));
+        rv.setLayoutManager(new GridLayoutManager(this, 3));
 
         dialog.findViewById(R.id.imgConfirm).setOnClickListener(v -> {
             dialog.dismiss();

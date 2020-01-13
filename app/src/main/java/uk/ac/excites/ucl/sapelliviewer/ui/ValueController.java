@@ -50,7 +50,7 @@ public class ValueController {
                             public void onSuccess(List<LookUpValue> lookUpValues) {
                                 valueAdapter = new ValueAdapter(mapsActivity.getContext(), lookUpValues, (View v, LookUpValue value) -> {
                                     value.setActive(!value.isActive());
-                                    valueAdapter.notifyDataSetChanged();
+//                                    valueAdapter.notifyDataSetChanged();
                                     dbClient.loadMarkers(valueAdapter.getVisibleAndActiveLookupValues())
                                             .subscribe(contributions -> updateMarkers(contributions));
                                     if (value.isActive())
