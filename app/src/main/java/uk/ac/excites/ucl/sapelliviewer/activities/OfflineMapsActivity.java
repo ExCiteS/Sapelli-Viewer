@@ -4,9 +4,7 @@ import android.animation.LayoutTransition;
 import android.annotation.SuppressLint;
 import android.app.Dialog;
 import android.content.Context;
-import android.content.pm.ActivityInfo;
 import android.graphics.Color;
-import android.graphics.Rect;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
@@ -21,7 +19,6 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.widget.ImageButton;
 import android.widget.ImageView;
-import android.widget.ListView;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
 
@@ -350,25 +347,8 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
                             }
                             mapView.setViewpointRotationAsync(resetAngle);
 
-                            switch (projectProperties.getShowFields()) {
-                                case "all":
-                                    ValueController valueControllerAll = new ValueController(this, getRecyclerView(), disposables, dbClient, null);
-                                    valueControllerAll
-                                            .addFieldController(findViewById(R.id.field_recycler_view))
-                                            .addToggleButtons(findViewById(R.id.button_toggle_on), findViewById(R.id.button_toggle_off));
-                                    break;
-                                case "display":
-                                    db.contributionDao()
-                                            .getDisplayField(projectId)
-                                            .subscribeOn(Schedulers.io())
-                                            .observeOn(AndroidSchedulers.mainThread())
-                                            .subscribe(displayField ->
-                                                    new ValueController(this, getRecyclerView(), disposables, dbClient, displayField)
-                                            );
-                                    break;
-                                case "none":
-                                    new ValueController(this, getRecyclerView(), disposables, dbClient, null);
-                            }
+                            // TODO: For now other projectProperties.getShowFields() are ignored, they will be implemented as needed in the future
+                            new ValueController(this, getRecyclerView(), disposables, dbClient, null);
                         }
 
 
@@ -599,7 +579,7 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
         dialog.show();
     }
 
-    private class ConfirmRVAdapter extends RecyclerView.Adapter<ConfirmRVAdapter.ViewHolder>{
+    private class ConfirmRVAdapter extends RecyclerView.Adapter<ConfirmRVAdapter.ViewHolder> {
 
         private final List<LookUpValue> lookupValues;
 
@@ -639,7 +619,7 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
             return lookupValues.size();
         }
 
-        private class ViewHolder extends RecyclerView.ViewHolder{
+        private class ViewHolder extends RecyclerView.ViewHolder {
 
             ImageView value_image;
 

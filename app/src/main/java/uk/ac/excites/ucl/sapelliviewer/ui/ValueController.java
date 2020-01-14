@@ -3,7 +3,6 @@ package uk.ac.excites.ucl.sapelliviewer.ui;
 import android.annotation.SuppressLint;
 import android.util.Log;
 import android.view.View;
-import android.widget.ImageButton;
 
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -26,10 +25,6 @@ public class ValueController {
     private ValueAdapter valueAdapter;
     private RecyclerView valueRecyclerView;
     private CompositeDisposable disposables;
-    private RecyclerView fieldRecyclerView;
-    private ImageButton toggleOnButton;
-    private ImageButton toggleOffButton;
-
 
     public ValueController(OfflineMapsActivity mapActivity, RecyclerView valueRecyclerView, CompositeDisposable disposables, DatabaseClient dbClient, Integer displayField) {
         this.dbClient = dbClient;
@@ -50,22 +45,14 @@ public class ValueController {
                             public void onSuccess(List<LookUpValue> lookUpValues) {
                                 valueAdapter = new ValueAdapter(mapsActivity.getContext(), lookUpValues, (View v, LookUpValue value) -> {
                                     value.setActive(!value.isActive());
-//                                    valueAdapter.notifyDataSetChanged();
                                     dbClient.loadMarkers(valueAdapter.getVisibleAndActiveLookupValues())
                                             .subscribe(contributions -> updateMarkers(contributions));
                                     if (value.isActive())
                                         dbClient.insertLog(Logger.VALUE_CHECKED, value.getId());
-                                    else dbClient.insertLog(Logger.VALUE_UNCHECKED, value.getId());
-
-
+                                    else
+                                        dbClient.insertLog(Logger.VALUE_UNCHECKED, value.getId());
                                 });
                                 valueRecyclerView.setAdapter(valueAdapter);
-                                FieldController fieldController;
-                                if (fieldRecyclerView != null) {
-//                                    fieldController = new FieldController(mapsActivity.getContext(), fieldRecyclerView, ValueController.this, mapsActivity.getProjectId(), disposables, dbClient);
-//                                    if (toggleOffButton != null && toggleOnButton != null)
-//                                        fieldController.setToggleAllValuesButtons(toggleOnButton, toggleOffButton);
-                                }
                             }
 
                             @Override
@@ -75,19 +62,6 @@ public class ValueController {
                         }));
     }
 
-    public ValueController addFieldController(RecyclerView recyclerView) {
-        this.fieldRecyclerView = recyclerView;
-        fieldRecyclerView.setLayoutManager(new LinearLayoutManager(mapsActivity.getContext(), LinearLayoutManager.HORIZONTAL, false));
-        return this;
-
-    }
-
-    public ValueController addToggleButtons(ImageButton toggleOnButton, ImageButton toggleOffButton) {
-        this.toggleOnButton = toggleOnButton;
-        this.toggleOffButton = toggleOffButton;
-        return this;
-    }
-
     public ValueAdapter getAdapter() {
         return valueAdapter;
     }
@@ -95,6 +69,4 @@ public class ValueController {
     public void updateMarkers(List<Contribution> contributions) {
         mapsActivity.updateMarkers(contributions);
     }
-
-
 }
