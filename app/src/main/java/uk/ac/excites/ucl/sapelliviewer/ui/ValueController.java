@@ -45,8 +45,6 @@ public class ValueController {
                             public void onSuccess(List<LookUpValue> lookUpValues) {
                                 valueAdapter = new ValueAdapter(mapsActivity.getContext(), lookUpValues, (View v, LookUpValue value) -> {
                                     value.setActive(!value.isActive());
-                                    dbClient.loadMarkers(valueAdapter.getVisibleAndActiveLookupValues())
-                                            .subscribe(contributions -> updateMarkers(contributions));
                                     if (value.isActive())
                                         dbClient.insertLog(Logger.VALUE_CHECKED, value.getId());
                                     else

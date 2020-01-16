@@ -57,6 +57,7 @@ import org.json.JSONException;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -251,7 +252,7 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
                 graphicsIterator.remove();
             }
         }
-        showMarkers(contributionsToDisplay, false);
+        showMarkers(contributionsToDisplay, true);
     }
 
 
@@ -267,6 +268,12 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
         graphicsOverlay.setSelectionColor(ResourcesCompat.getColor(getResources(), R.color.colorPrimary, null));
         SimpleMarkerSymbol sms = new SimpleMarkerSymbol(SimpleMarkerSymbol.Style.CIRCLE, Color.RED, 20);
         Map<String, Object> contributionId = new HashMap<String, Object>();
+        // If list is empty clean map
+        if (contributions == null || contributions.size() == 0) {
+            graphicsOverlay.getGraphics().clear();
+            return;
+        }
+
         for (Contribution contribution : contributions) {
             if (contribution.getGeometry().getType().equals("Point")) {
                 try {
@@ -553,6 +560,8 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
     }
 
 
+    @SuppressWarnings("ResultOfMethodCallIgnored")
+    @SuppressLint("CheckResult")
     @Override
     public void onShowClicked(List<LookUpValue> lookUpValues) {
         drawer.closeDrawer(Gravity.LEFT);
@@ -568,6 +577,11 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
 
         dialog.findViewById(R.id.imgConfirm).setOnClickListener(v -> {
             dialog.dismiss();
+            if (lookUpValues == null || lookUpValues.size() == 0)
+                cleanMarkers();
+            else
+                dbClient.loadMarkers(lookUpValues).subscribe(this::updateMarkers);
+
             Toast.makeText(this, "Filter selection succeeded!", Toast.LENGTH_SHORT).show();
         });
 
@@ -579,12 +593,19 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
         dialog.show();
     }
 
+    private void cleanMarkers() {
+        showMarkers(null, false);
+    }
+
     private class ConfirmRVAdapter extends RecyclerView.Adapter<ConfirmRVAdapter.ViewHolder> {
 
         private final List<LookUpValue> lookupValues;
 
         public ConfirmRVAdapter(List<LookUpValue> lookUpValues) {
-            this.lookupValues = lookUpValues;
+            if (lookUpValues == null)
+                this.lookupValues = new ArrayList<>();
+            else
+                this.lookupValues = lookUpValues;
         }
 
         @Override

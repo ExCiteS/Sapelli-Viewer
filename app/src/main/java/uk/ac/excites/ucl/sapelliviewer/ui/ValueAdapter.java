@@ -109,6 +109,13 @@ public class ValueAdapter extends RecyclerView.Adapter<ValueAdapter.ValueListVie
         return filteredList;
     }
 
+    void selectAll(boolean isSelect) {
+        for (LookUpValue value : getAllLookUpValues()){
+            value.setActive(isSelect);
+        }
+        notifyDataSetChanged();
+    }
+
     public interface ValueAdapterClickListener {
         void onClick(View v, LookUpValue value);
     }
