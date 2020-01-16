@@ -77,6 +77,7 @@ import uk.ac.excites.ucl.sapelliviewer.db.DatabaseClient;
 import uk.ac.excites.ucl.sapelliviewer.ui.DetailsFragment;
 import uk.ac.excites.ucl.sapelliviewer.ui.NavigationFragment;
 import uk.ac.excites.ucl.sapelliviewer.ui.ValueController;
+import uk.ac.excites.ucl.sapelliviewer.utils.ClusterVectorLayer;
 import uk.ac.excites.ucl.sapelliviewer.utils.Logger;
 import uk.ac.excites.ucl.sapelliviewer.utils.MediaHelpers;
 import uk.ac.excites.ucl.sapelliviewer.utils.TokenManager;
@@ -90,6 +91,7 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
     public static String CONTRIBUTION_ID = "contribution_id";
     public static String DB_NAME = "/mosaicdb.sqlite";
     public static String RASTER_NAME = "raster";
+    private GraphicsOverlay graphicsOverlay;
 
 
     private MapView mapView;
@@ -101,7 +103,7 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
     private DatabaseClient dbClient;
     private int resetAngle;
     private DrawerLayout drawer;
-
+    private ArcGISVectorTiledLayer vtpk;
 
     @SuppressLint("ClickableViewAccessibility")
     @Override
@@ -127,13 +129,18 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
         toggle.syncState();
 
         /* Load Vector base map*/
-        ArcGISVectorTiledLayer vtpk = new ArcGISVectorTiledLayer(MediaHelpers.dataPath + File.separator + getString(R.string.blank_map));
+        vtpk = new ArcGISVectorTiledLayer(MediaHelpers.dataPath + File.separator + getString(R.string.blank_map));
         map = new ArcGISMap(new Basemap(vtpk));
 
-
         mapView.setMap(map);
+        mapView.addNavigationChangedListener(navigationChangedEvent -> {
+            if (!mapView.isNavigating()) {
+                showCluster();
+            }
+        });
+        mapView.addMapScaleChangedListener(mapScaleChangedEvent -> {
 
-
+        });
         mapView.setOnTouchListener(new DefaultMapViewOnTouchListener(this, mapView) {
                                        @Override
                                        public boolean onSingleTapConfirmed(MotionEvent e) {
@@ -271,6 +278,7 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
         // If list is empty clean map
         if (contributions == null || contributions.size() == 0) {
             graphicsOverlay.getGraphics().clear();
+            showCluster();
             return;
         }
 
@@ -293,14 +301,32 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
             disposables.add(
                     Observable.timer(500, TimeUnit.MILLISECONDS).subscribe(__ -> {
                         if (graphicsOverlay.getGraphics().size() > 1)
-                            mapView.setViewpointGeometryAsync(graphicsOverlay.getExtent(), 70).addDoneListener(() -> dbClient.insertLog(Logger.INITIAL_EXTENT));
+                            mapView.setViewpointGeometryAsync(graphicsOverlay.getExtent(), 70).addDoneListener(() -> {
+                                dbClient.insertLog(Logger.INITIAL_EXTENT);
+                                showCluster();
+                            });
                         else if (graphicsOverlay.getGraphics().size() == 1)
-                            mapView.setViewpointCenterAsync(graphicsOverlay.getExtent().getCenter(), 3000).addDoneListener(() -> dbClient.insertLog(Logger.INITIAL_EXTENT));
+                            mapView.setViewpointCenterAsync(graphicsOverlay.getExtent().getCenter(), 3000).addDoneListener(() -> {
+                                dbClient.insertLog(Logger.INITIAL_EXTENT);
+                                showCluster();
+                            });
                     }, e -> Log.e("Set Viewpoint", e.getMessage())));
-        }
-
+        } else
+            showCluster();
     }
 
+    private void showCluster() {
+        // Setting clustering up
+        if (mapView.getGraphicsOverlays().isEmpty()) {
+            graphicsOverlay = new GraphicsOverlay();
+            mapView.getGraphicsOverlays().add(graphicsOverlay);
+        } else {
+            graphicsOverlay = mapView.getGraphicsOverlays().get(0);
+        }
+
+        ClusterVectorLayer clusterVectorLayer = new ClusterVectorLayer(mapView, graphicsOverlay);
+        clusterVectorLayer.setGraphicVisible(true);
+    }
 
     public void zoomIn(View view) {
         Viewpoint viewpoint = new Viewpoint(mapView.getVisibleArea().getExtent().getCenter(), mapView.getMapScale() / 2, mapView.getMapRotation());
@@ -370,7 +396,10 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
                                 .observeOn(Schedulers.io())
                                 .subscribeOn(Schedulers.io())
                                 .subscribe(contributions -> showMarkers(contributions, true))); // initially load all markers
-                disposables.add(db.projectInfoDao().getMapPath(projectId).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe(OfflineMapsActivity.this::createMosaicDataset));
+                disposables.add(db.projectInfoDao().getMapPath(projectId)
+                        .subscribeOn(Schedulers.io())
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .subscribe(OfflineMapsActivity.this::createMosaicDataset));
             }
         });
     }
@@ -579,10 +608,9 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
             dialog.dismiss();
             if (lookUpValues == null || lookUpValues.size() == 0)
                 cleanMarkers();
-            else
+            else {
                 dbClient.loadMarkers(lookUpValues).subscribe(this::updateMarkers);
-
-            Toast.makeText(this, "Filter selection succeeded!", Toast.LENGTH_SHORT).show();
+            }
         });
 
         dialog.findViewById(R.id.imgReselect).setOnClickListener(v -> {
