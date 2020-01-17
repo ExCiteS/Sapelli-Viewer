@@ -1,6 +1,5 @@
 package uk.ac.excites.ucl.sapelliviewer.utils;
 
-import android.content.Context;
 import android.graphics.Color;
 
 import com.esri.arcgisruntime.geometry.Envelope;
@@ -9,8 +8,6 @@ import com.esri.arcgisruntime.geometry.Point;
 import com.esri.arcgisruntime.geometry.Polygon;
 import com.esri.arcgisruntime.mapping.view.Graphic;
 import com.esri.arcgisruntime.mapping.view.GraphicsOverlay;
-import com.esri.arcgisruntime.mapping.view.MapScaleChangedEvent;
-import com.esri.arcgisruntime.mapping.view.MapScaleChangedListener;
 import com.esri.arcgisruntime.mapping.view.MapView;
 import com.esri.arcgisruntime.symbology.CompositeSymbol;
 import com.esri.arcgisruntime.symbology.SimpleMarkerSymbol;
@@ -22,32 +19,24 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Created by jiang on 2017/9/5.
- */
-
-/**
- * update by jiang on 2019/7/23.
- */
 
 public class ClusterVectorLayer {
-    final private int _clusterTolerance = 150;
-
+    final private int _clusterTolerance = 250;
+    private ArrayList<Graphic> _clusterGraphics = new ArrayList<Graphic>();
+    private SimpleMarkerSymbol markerSymbolL = new SimpleMarkerSymbol(SimpleMarkerSymbol.Style.CIRCLE,
+            Color.RED, 36);
+    private SimpleMarkerSymbol markerSymbolM = new SimpleMarkerSymbol(SimpleMarkerSymbol.Style.CIRCLE,
+            Color.BLUE, 30);
+    private SimpleMarkerSymbol markerSymbolS = new SimpleMarkerSymbol(SimpleMarkerSymbol.Style.CIRCLE,
+            Color.GREEN, 24);
+    private SimpleMarkerSymbol markerSymbol = new SimpleMarkerSymbol(SimpleMarkerSymbol.Style.CIRCLE,
+            Color.YELLOW, 18);
     private double _clusterResolution;
-
     private MapView _mapView;
-
     private GraphicsOverlay _GraphicsOverlay;
-
     private GraphicsOverlay _clusterGraphicsOverlay;
-
     private List<Map<String, Object>> _clusterData;
-
-    private Context _context;
-
     private int clusterID = 0;
-
-    ArrayList<Graphic> _clusterGraphics = new ArrayList<Graphic>();
 
     public ClusterVectorLayer(final MapView mapView, GraphicsOverlay GraphicsOverlay) {
         if (mapView == null || GraphicsOverlay == null) {
@@ -58,26 +47,22 @@ public class ClusterVectorLayer {
         this._mapView = mapView;
         this._GraphicsOverlay = GraphicsOverlay;
         GraphicsOverlay.setVisible(false);
-        this._clusterData = new ArrayList<Map<String, Object>>();
+        this._clusterData = new ArrayList<>();
         this._clusterGraphicsOverlay = new GraphicsOverlay();
         this._mapView.getGraphicsOverlays().clear();
         this._mapView.getGraphicsOverlays().add(_GraphicsOverlay);
         this._mapView.getGraphicsOverlays().add(this._clusterGraphicsOverlay);
-        this._context = mapView.getContext();
 
         this._clusterGraphics();
 
-        mapView.addMapScaleChangedListener(new MapScaleChangedListener() {
-            @Override
-            public void mapScaleChanged(MapScaleChangedEvent mapScaleChangedEvent) {
-                if (!mapView.isNavigating()) {
+        mapView.addMapScaleChangedListener(mapScaleChangedEvent -> {
+            if (!mapView.isNavigating()) {
 //                    _clusterResolution = _getExtent(_mapView.getVisibleArea())
 //                            .getWidth() / _mapView.getWidth();
 //                    _clusterData.clear();
 //                    _clusterGraphics.clear();
 //                    _clusterGraphicsOverlay.getGraphics().clear();
 //                    _clusterGraphics();
-                }
             }
         });
     }
@@ -122,10 +107,10 @@ public class ClusterVectorLayer {
     private void _clusterGraphics() {
         clusterID = 0;
 
-        for (Graphic graphic: _GraphicsOverlay.getGraphics()) {
+        for (Graphic graphic : _GraphicsOverlay.getGraphics()) {
             Point point = (Point) graphic.getGeometry();
             boolean clustered = false;
-            for (Map<String, Object> cluster: this._clusterData) {
+            for (Map<String, Object> cluster : this._clusterData) {
                 Point pointCluster = new Point((Double) cluster.get("x"),
                         (Double) cluster.get("y"), _mapView.getSpatialReference());
 
@@ -163,7 +148,6 @@ public class ClusterVectorLayer {
         xMax = envelope.getXMax();
         yMax = envelope.getYMax();
 
-        // 建立extent，把所有的point都包含在cluster中
         if (point.getX() < xMin) {
             xMin = point.getX();
         }
@@ -200,7 +184,6 @@ public class ClusterVectorLayer {
         hashMap.put("count", 1);
         Point point = (Point) graphic.getGeometry();
         hashMap.put("extent", new Envelope((Point) graphic.getGeometry(), 0, 0).toJson());
-//        hashMap.put("graphics", graphics);
         hashMap.put("x", point.getX());
         hashMap.put("y", point.getY());
         hashMap.put("clusterID", clusterID);
@@ -253,15 +236,6 @@ public class ClusterVectorLayer {
 
         return null;
     }
-
-    SimpleMarkerSymbol markerSymbolL = new SimpleMarkerSymbol(SimpleMarkerSymbol.Style.CIRCLE,
-            Color.RED, 36);
-    SimpleMarkerSymbol markerSymbolM = new SimpleMarkerSymbol(SimpleMarkerSymbol.Style.CIRCLE,
-            Color.BLUE, 30);
-    SimpleMarkerSymbol markerSymbolS = new SimpleMarkerSymbol(SimpleMarkerSymbol.Style.CIRCLE,
-            Color.GREEN, 24);
-    SimpleMarkerSymbol markerSymbol = new SimpleMarkerSymbol(SimpleMarkerSymbol.Style.CIRCLE,
-            Color.YELLOW, 18);
 
     private Envelope _getExtent(Polygon polygon) {
         return polygon.getExtent();
