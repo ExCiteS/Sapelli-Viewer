@@ -49,7 +49,8 @@ public class ClusterVectorLayer {
         GraphicsOverlay.setVisible(false);
         this._clusterData = new ArrayList<>();
         this._clusterGraphicsOverlay = new GraphicsOverlay();
-        this._mapView.getGraphicsOverlays().clear();
+        if (this._mapView.getGraphicsOverlays() != null)
+            this._mapView.getGraphicsOverlays().clear();
         this._mapView.getGraphicsOverlays().add(_GraphicsOverlay);
         this._mapView.getGraphicsOverlays().add(this._clusterGraphicsOverlay);
 
