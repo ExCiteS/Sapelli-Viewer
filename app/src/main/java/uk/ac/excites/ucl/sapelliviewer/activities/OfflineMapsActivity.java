@@ -272,13 +272,13 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
             mapView.getGraphicsOverlays().add(graphicsOverlay);
         } else {
             graphicsOverlay = mapView.getGraphicsOverlays().get(0);
+            graphicsOverlay.getGraphics().clear();
         }
         graphicsOverlay.setSelectionColor(ResourcesCompat.getColor(getResources(), R.color.colorPrimary, null));
         SimpleMarkerSymbol sms = new SimpleMarkerSymbol(SimpleMarkerSymbol.Style.CIRCLE, Color.RED, 20);
         Map<String, Object> contributionId = new HashMap<String, Object>();
         // If list is empty clean map
         if (contributions == null || contributions.size() == 0) {
-            graphicsOverlay.getGraphics().clear();
             showCluster();
             return;
         }
