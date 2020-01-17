@@ -131,6 +131,7 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
         /* Load Vector base map*/
         vtpk = new ArcGISVectorTiledLayer(MediaHelpers.dataPath + File.separator + getString(R.string.blank_map));
         map = new ArcGISMap(new Basemap(vtpk));
+        map.setMaxScale(1);
 
         mapView.setMap(map);
         mapView.addNavigationChangedListener(navigationChangedEvent -> {
