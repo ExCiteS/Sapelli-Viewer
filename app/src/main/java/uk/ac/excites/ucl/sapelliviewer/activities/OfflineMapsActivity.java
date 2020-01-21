@@ -4,6 +4,7 @@ import android.animation.LayoutTransition;
 import android.annotation.SuppressLint;
 import android.app.Dialog;
 import android.content.Context;
+import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -22,11 +23,13 @@ import android.view.WindowManager;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.content.res.ResourcesCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
@@ -35,6 +38,9 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.esri.arcgisruntime.concurrent.ListenableFuture;
+import com.esri.arcgisruntime.geometry.Geometry;
+import com.esri.arcgisruntime.geometry.GeometryEngine;
+import com.esri.arcgisruntime.geometry.GeometryType;
 import com.esri.arcgisruntime.geometry.Point;
 import com.esri.arcgisruntime.geometry.SpatialReferences;
 import com.esri.arcgisruntime.layers.ArcGISVectorTiledLayer;
@@ -57,11 +63,16 @@ import com.esri.arcgisruntime.symbology.SimpleLineSymbol;
 import com.esri.arcgisruntime.symbology.SimpleMarkerSymbol;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
@@ -117,6 +128,7 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
     private Toolbar toolbar;
     private Menu menu;
     private View toolbarInclude;
+    private GraphicsOverlay drawingGraphicsOverlay;
 
     private void setupNavigationDrawer() {
         toolbar = findViewById(R.id.toolbar);
@@ -198,6 +210,8 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
                                        @Override
                                        public boolean onSingleTapConfirmed(MotionEvent e) {
 
+                                           if (mSketchEditor.isVisible()) return super.onSingleTapConfirmed(e);
+
                                            // get the screen point where user tapped
                                            android.graphics.Point clickedPoint = new android.graphics.Point((int) e.getX(), (int) e.getY());
 
@@ -208,7 +222,7 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
                                                try {
                                                    IdentifyGraphicsOverlayResult grOverlayResult = identifyGraphic.get();
                                                    // get the list of graphics returned by identify graphic overlay
-                                                   if (!grOverlayResult.getGraphicsOverlay().getGraphics().isEmpty()) {
+                                                   if (!grOverlayResult.getGraphics().isEmpty()) {
                                                        Graphic graphic = grOverlayResult.getGraphics().get(0);
                                                        if (!graphic.isSelected()) {
                                                            Integer contributionId = (Integer) graphic.getAttributes().get(CONTRIBUTION_ID);
@@ -295,13 +309,13 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
                     if (menu != null) {
                         menu.clear();
                         toolbarInclude.setVisibility(View.GONE);
+                        setTitle(getResources().getString(R.string.view));
                     }
                     return true;
                 case R.id.navigation_draw:
                     if (menu != null) {
-                        menu.clear();
-                        getMenuInflater().inflate(R.menu.undo_redo_stop_menu, menu);
                         toolbarInclude.setVisibility(View.VISIBLE);
+                        setTitle(getResources().getString(R.string.draw));
                     }
                     return true;
             }
@@ -317,19 +331,42 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
         return super.onPrepareOptionsMenu(menu);
     }
 
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+        if (id == R.id.undo) {
+            undo();
+        } else if (id == R.id.redo) {
+            redo();
+        } else if (id == R.id.stop) {
+            stop();
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
     private void createModePoint() {
+        showDrawingMenu(true);
         resetButtons();
         mPointButton.setSelected(true);
         mSketchEditor.start(SketchCreationMode.POINT);
     }
 
+    private void showDrawingMenu(boolean show) {
+        if (menu != null) {
+            menu.clear();
+            if (show) getMenuInflater().inflate(R.menu.undo_redo_stop_menu, menu);
+        }
+    }
+
     private void createModePolygon() {
+        showDrawingMenu(true);
         resetButtons();
         mPolygonButton.setSelected(true);
         mSketchEditor.start(SketchCreationMode.POLYGON);
     }
 
     private void createModePolyline() {
+        showDrawingMenu(true);
         resetButtons();
         mPolylineButton.setSelected(true);
         mSketchEditor.start(SketchCreationMode.POLYLINE);
@@ -346,6 +383,57 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
         if (mSketchEditor.canRedo()) {
             mSketchEditor.redo();
         }
+    }
+
+    private void stop() {
+        showDrawingMenu(false);
+        resetButtons();
+
+        if (!mSketchEditor.isSketchValid()) {
+            reportNotValid();
+            mSketchEditor.stop();
+            return;
+        }
+
+        Geometry sketchGeometry = mSketchEditor.getGeometry();
+        mSketchEditor.stop();
+
+        if (sketchGeometry != null) {
+            Graphic graphic = new Graphic(sketchGeometry);
+
+            if (graphic.getGeometry().getGeometryType() == GeometryType.POLYGON) {
+                graphic.setSymbol(mFillSymbol);
+            } else if (graphic.getGeometry().getGeometryType() == GeometryType.POLYLINE) {
+                graphic.setSymbol(mLineSymbol);
+            } else if (graphic.getGeometry().getGeometryType() == GeometryType.POINT ||
+                    graphic.getGeometry().getGeometryType() == GeometryType.MULTIPOINT) {
+                graphic.setSymbol(mPointSymbol);
+            }
+
+            if (drawingGraphicsOverlay == null) {
+                drawingGraphicsOverlay = new GraphicsOverlay();
+                mapView.getGraphicsOverlays().add(drawingGraphicsOverlay);
+            }
+
+            drawingGraphicsOverlay.getGraphics().add(graphic);
+
+//            showAddContributionDialog();
+        }
+    }
+
+    private void reportNotValid() {
+        String validIf;
+        if (mSketchEditor.getSketchCreationMode() == SketchCreationMode.POINT) {
+            validIf = "Point only valid if it contains an x & y coordinate.";
+        } else if (mSketchEditor.getSketchCreationMode() == SketchCreationMode.POLYLINE) {
+            validIf = "Polyline only valid if it contains at least one part of 2 or more vertices.";
+        } else if (mSketchEditor.getSketchCreationMode() == SketchCreationMode.POLYGON) {
+            validIf = "Polygon only valid if it contains at least one part of 3 or more vertices which form a closed ring.";
+        } else {
+            validIf = "No sketch creation mode selected.";
+        }
+        String report = "Sketch geometry invalid:\n" + validIf;
+        Toast.makeText(this, report, Toast.LENGTH_SHORT).show();
     }
 
     private void resetButtons() {
@@ -392,39 +480,39 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
     protected void showMarkers(List<Contribution> contributions, boolean reCenter) {
         Log.e("Show Markers entered", String.valueOf(reCenter));
 
-        clusterVectorLayer.updateCluster(contributions);
+//        clusterVectorLayer.updateCluster(contributions);
 
-//        GraphicsOverlay graphicsOverlay;
-//        if (mapView.getGraphicsOverlays().isEmpty()) {
-//            graphicsOverlay = new GraphicsOverlay();
-//            mapView.getGraphicsOverlays().add(graphicsOverlay);
-//        } else {
-//            graphicsOverlay = mapView.getGraphicsOverlays().get(0);
-//            graphicsOverlay.getGraphics().clear();
-//        }
-//        graphicsOverlay.setSelectionColor(ResourcesCompat.getColor(getResources(), R.color.colorPrimary, null));
-//        SimpleMarkerSymbol sms = new SimpleMarkerSymbol(SimpleMarkerSymbol.Style.CIRCLE, Color.RED, 20);
-//        Map<String, Object> contributionId = new HashMap<String, Object>();
-//        // If list is empty clean map
-//        if (contributions == null || contributions.size() == 0) {
-//            showCluster();
-//            return;
-//        }
-//
-//        for (Contribution contribution : contributions) {
-//            if (contribution.getGeometry().getType().equals("Point")) {
-//                try {
-//                    contributionId.put(CONTRIBUTION_ID, contribution.getId());
-//                    JSONArray latLngCoordinates = new JSONArray(contribution.getGeometry().getCoordinates());
-//                    Point pnt = (Point) GeometryEngine.project(new Point(latLngCoordinates.getDouble(0), latLngCoordinates.getDouble(1)), SpatialReferences.getWgs84());
-//                    pnt = (Point) GeometryEngine.project(pnt, SpatialReferences.getWebMercator());
-//                    Graphic graphic = new Graphic(pnt, contributionId, sms);
-//                    graphicsOverlay.getGraphics().add(graphic);
-//                } catch (JSONException e) {
-//                    e.printStackTrace();
-//                }
-//            }
-//        }
+        GraphicsOverlay graphicsOverlay;
+        if (mapView.getGraphicsOverlays().isEmpty()) {
+            graphicsOverlay = new GraphicsOverlay();
+            mapView.getGraphicsOverlays().add(graphicsOverlay);
+        } else {
+            graphicsOverlay = mapView.getGraphicsOverlays().get(0);
+            graphicsOverlay.getGraphics().clear();
+        }
+        graphicsOverlay.setSelectionColor(ResourcesCompat.getColor(getResources(), R.color.colorPrimary, null));
+        SimpleMarkerSymbol sms = new SimpleMarkerSymbol(SimpleMarkerSymbol.Style.CIRCLE, Color.RED, 20);
+        Map<String, Object> contributionId = new HashMap<String, Object>();
+        // If list is empty clean map
+        if (contributions == null || contributions.size() == 0) {
+            showCluster();
+            return;
+        }
+
+        for (Contribution contribution : contributions) {
+            if (contribution.getGeometry().getType().equals("Point")) {
+                try {
+                    contributionId.put(CONTRIBUTION_ID, contribution.getId());
+                    JSONArray latLngCoordinates = new JSONArray(contribution.getGeometry().getCoordinates());
+                    Point pnt = (Point) GeometryEngine.project(new Point(latLngCoordinates.getDouble(0), latLngCoordinates.getDouble(1)), SpatialReferences.getWgs84());
+                    pnt = (Point) GeometryEngine.project(pnt, SpatialReferences.getWebMercator());
+                    Graphic graphic = new Graphic(pnt, contributionId, sms);
+                    graphicsOverlay.getGraphics().add(graphic);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
 
         if (reCenter) {
             disposables.add(
@@ -453,7 +541,7 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
             graphicsOverlay = mapView.getGraphicsOverlays().get(0);
         }
 
-        ClusterVectorLayer clusterVectorLayer = new ClusterVectorLayer(mapView, graphicsOverlay);
+        ClusterVectorLayer clusterVectorLayer = new ClusterVectorLayer(mapView, graphicsOverlay, drawingGraphicsOverlay);
         clusterVectorLayer.setGraphicVisible(true);
     }
 

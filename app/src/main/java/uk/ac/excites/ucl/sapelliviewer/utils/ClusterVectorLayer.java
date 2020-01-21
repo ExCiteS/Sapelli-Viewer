@@ -38,7 +38,7 @@ public class ClusterVectorLayer {
     private List<Map<String, Object>> _clusterData;
     private int clusterID = 0;
 
-    public ClusterVectorLayer(final MapView mapView, GraphicsOverlay GraphicsOverlay) {
+    public ClusterVectorLayer(final MapView mapView, GraphicsOverlay GraphicsOverlay, GraphicsOverlay drawingOverlay) {
         if (mapView == null || GraphicsOverlay == null) {
             return;
         }
@@ -53,19 +53,9 @@ public class ClusterVectorLayer {
             this._mapView.getGraphicsOverlays().clear();
         this._mapView.getGraphicsOverlays().add(_GraphicsOverlay);
         this._mapView.getGraphicsOverlays().add(this._clusterGraphicsOverlay);
+        if (drawingOverlay != null) this._mapView.getGraphicsOverlays().add(drawingOverlay);
 
         this._clusterGraphics();
-
-        mapView.addMapScaleChangedListener(mapScaleChangedEvent -> {
-            if (!mapView.isNavigating()) {
-//                    _clusterResolution = _getExtent(_mapView.getVisibleArea())
-//                            .getWidth() / _mapView.getWidth();
-//                    _clusterData.clear();
-//                    _clusterGraphics.clear();
-//                    _clusterGraphicsOverlay.getGraphics().clear();
-//                    _clusterGraphics();
-            }
-        });
     }
 
     public GraphicsOverlay getGraphicLayer() {
