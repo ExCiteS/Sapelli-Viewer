@@ -25,7 +25,7 @@
     <string name="content_desc_zoom_out">Zoom out</string>
     <string name="content_desc_zoom_in">Zoom in</string>
     <string name="choose_directory">Choose directory with raster files</string>
-    <string name="blank_map">blank.vtpk</string>
+    <string name="blank_map">kenya4.vtpk</string>
     <string name="ssl_exception">Connection closed by peer</string>
     <string name="project_settings">Project settings</string>
     <string name="show_fields">Layer options:</string>
@@ -45,4 +45,12 @@
     <string name="show_no_fields_but_display_values">Show no fields but display values</string>
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
+    <string name="pointButtonDescription">Draw new point</string>
+    <string name="polylineButtonDescription">Draw new polyline</string>
+    <string name="polygonButtonDescription">Draw new polygon</string>
+    <string name="undoButtonDescription">Undo</string>
+    <string name="redoButtonDescription">Redo</string>
+    <string name="stopButtonDescription">Stop</string>
+    <string name="view">View</string>
+    <string name="draw">Draw</string>
 </resources>

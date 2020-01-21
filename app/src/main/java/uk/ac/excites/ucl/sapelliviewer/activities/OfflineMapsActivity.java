@@ -4,13 +4,15 @@ import android.animation.LayoutTransition;
 import android.annotation.SuppressLint;
 import android.app.Dialog;
 import android.content.Context;
-import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
@@ -20,12 +22,11 @@ import android.view.WindowManager;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.res.ResourcesCompat;
+import androidx.appcompat.widget.Toolbar;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
@@ -34,7 +35,6 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.esri.arcgisruntime.concurrent.ListenableFuture;
-import com.esri.arcgisruntime.geometry.GeometryEngine;
 import com.esri.arcgisruntime.geometry.Point;
 import com.esri.arcgisruntime.geometry.SpatialReferences;
 import com.esri.arcgisruntime.layers.ArcGISVectorTiledLayer;
@@ -48,20 +48,20 @@ import com.esri.arcgisruntime.mapping.view.Graphic;
 import com.esri.arcgisruntime.mapping.view.GraphicsOverlay;
 import com.esri.arcgisruntime.mapping.view.IdentifyGraphicsOverlayResult;
 import com.esri.arcgisruntime.mapping.view.MapView;
+import com.esri.arcgisruntime.mapping.view.SketchCreationMode;
+import com.esri.arcgisruntime.mapping.view.SketchEditor;
 import com.esri.arcgisruntime.raster.AddRastersParameters;
 import com.esri.arcgisruntime.raster.MosaicDatasetRaster;
+import com.esri.arcgisruntime.symbology.SimpleFillSymbol;
+import com.esri.arcgisruntime.symbology.SimpleLineSymbol;
 import com.esri.arcgisruntime.symbology.SimpleMarkerSymbol;
-
-import org.json.JSONArray;
-import org.json.JSONException;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
@@ -78,6 +78,7 @@ import uk.ac.excites.ucl.sapelliviewer.ui.DetailsFragment;
 import uk.ac.excites.ucl.sapelliviewer.ui.NavigationFragment;
 import uk.ac.excites.ucl.sapelliviewer.ui.ValueController;
 import uk.ac.excites.ucl.sapelliviewer.utils.ClusterVectorLayer;
+import uk.ac.excites.ucl.sapelliviewer.utils.ClusterVectorLayer2;
 import uk.ac.excites.ucl.sapelliviewer.utils.Logger;
 import uk.ac.excites.ucl.sapelliviewer.utils.MediaHelpers;
 import uk.ac.excites.ucl.sapelliviewer.utils.TokenManager;
@@ -89,6 +90,7 @@ import uk.ac.excites.ucl.sapelliviewer.utils.TokenManager;
 public class OfflineMapsActivity extends AppCompatActivity implements NavigationFragment.OnShowClickListener {
     private static final String DETAILS_FRAGMENT = "detailsFragment";
     public static String CONTRIBUTION_ID = "contribution_id";
+    public static String CLUSTER_ID = "clusterID";
     public static String DB_NAME = "/mosaicdb.sqlite";
     public static String RASTER_NAME = "raster";
     private GraphicsOverlay graphicsOverlay;
@@ -104,8 +106,38 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
     private int resetAngle;
     private DrawerLayout drawer;
     private ArcGISVectorTiledLayer vtpk;
+    private ClusterVectorLayer2 clusterVectorLayer;
+    private SimpleMarkerSymbol mPointSymbol;
+    private SimpleLineSymbol mLineSymbol;
+    private SimpleFillSymbol mFillSymbol;
+    private SketchEditor mSketchEditor;
+    private ImageButton mPointButton;
+    private ImageButton mPolylineButton;
+    private ImageButton mPolygonButton;
+    private Toolbar toolbar;
+    private Menu menu;
+    private View toolbarInclude;
 
-    @SuppressLint("ClickableViewAccessibility")
+    private void setupNavigationDrawer() {
+        toolbar = findViewById(R.id.toolbar);
+        drawer = findViewById(R.id.drawerLayout);
+        setSupportActionBar(toolbar);
+
+        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
+                this, drawer, toolbar,
+                R.string.navigation_drawer_open,
+                R.string.navigation_drawer_close
+        );
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            toggle.getDrawerArrowDrawable().setColor(getColor(R.color.white));
+        } else {
+            toggle.getDrawerArrowDrawable().setColor(getResources().getColor(R.color.white));
+        }
+        drawer.addDrawerListener(toggle);
+        toggle.syncState();
+    }
+
+    @SuppressLint({"ClickableViewAccessib2ility", "ClickableViewAccessibility"})
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -115,18 +147,26 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
         db = AppDatabase.getAppDatabase(getApplicationContext());
         projectId = getIntent().getIntExtra(SettingsActivity.PROJECT_ID, 0);
         disposables = new CompositeDisposable();
-        mapView = (MapView) findViewById(R.id.map);
+        mapView = findViewById(R.id.map);
         dbClient = new DatabaseClient(OfflineMapsActivity.this, projectId, mapView);
+        mPointSymbol = new SimpleMarkerSymbol(SimpleMarkerSymbol.Style.CIRCLE, 0xFFFF0000, 15);
+        mLineSymbol = new SimpleLineSymbol(SimpleLineSymbol.Style.SOLID, 0xFFFF8800, 3);
+        mFillSymbol = new SimpleFillSymbol(SimpleFillSymbol.Style.CROSS, 0x40FFA9A9, mLineSymbol);
 
+        toolbarInclude = findViewById(R.id.toolbarInclude);
+        mPointButton = findViewById(R.id.pointButton);
+        mPolylineButton = findViewById(R.id.polylineButton);
+        mPolygonButton = findViewById(R.id.polygonButton);
+
+        mPointButton.setOnClickListener(view1 -> createModePoint());
+        mPolylineButton.setOnClickListener(view1 -> createModePolyline());
+        mPolygonButton.setOnClickListener(view1 -> createModePolygon());
+
+        setupNavigationDrawer();
+        setBottomNavigationView();
         copyBlankMap();
 
         ((ViewGroup) findViewById(R.id.root)).getLayoutTransition().enableTransitionType(LayoutTransition.CHANGE_APPEARING);
-
-        drawer = (DrawerLayout) findViewById(R.id.drawerLayout);
-        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
-                this, drawer, null, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
-        drawer.setDrawerListener(toggle);
-        toggle.syncState();
 
         /* Load Vector base map*/
         vtpk = new ArcGISVectorTiledLayer(MediaHelpers.dataPath + File.separator + getString(R.string.blank_map));
@@ -139,8 +179,20 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
                 showCluster();
             }
         });
-        mapView.addMapScaleChangedListener(mapScaleChangedEvent -> {
-
+        // Listener on change in map load status
+        map.addDoneLoadingListener(() -> {
+            Log.e("LoadStatus", map.getLoadStatus().name());
+            mSketchEditor = new SketchEditor();
+            mapView.setSketchEditor(mSketchEditor);
+            disposables.add(
+                    db.contributionDao().getContributions(projectId)
+                            .observeOn(Schedulers.io())
+                            .subscribeOn(Schedulers.io())
+                            .subscribe(contributions -> showMarkers(contributions, true))); // initially load all markers
+            disposables.add(db.projectInfoDao().getMapPath(projectId)
+                    .subscribeOn(Schedulers.io())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe(OfflineMapsActivity.this::createMosaicDataset));
         });
         mapView.setOnTouchListener(new DefaultMapViewOnTouchListener(this, mapView) {
                                        @Override
@@ -151,31 +203,38 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
 
 
                                            // identify graphics on the graphics overlay
-                                           final ListenableFuture<IdentifyGraphicsOverlayResult> identifyGraphic = mapView.identifyGraphicsOverlayAsync(mapView.getGraphicsOverlays().get(0), clickedPoint, 10.0, false, 1);
-                                           identifyGraphic.addDoneListener(new Runnable() {
-                                               @Override
-                                               public void run() {
-                                                   try {
-                                                       IdentifyGraphicsOverlayResult grOverlayResult = identifyGraphic.get();
-                                                       // get the list of graphics returned by identify graphic overlay
-                                                       if (!grOverlayResult.getGraphics().isEmpty()) {
-                                                           Graphic graphic = grOverlayResult.getGraphics().get(0);
-                                                           if (!graphic.isSelected()) {
-                                                               Integer contributionId = (Integer) graphic.getAttributes().get(CONTRIBUTION_ID);
-                                                               displayDetails(contributionId);
-                                                               mapView.getGraphicsOverlays().get(0).clearSelection();
-                                                               graphic.setSelected(true);
-                                                               dbClient.insertLog(Logger.CONTRIBUTION_DETAILS_OPENED, contributionId);
-                                                           } else {
-                                                               closeFragment();
-                                                               graphic.setSelected(false);
-                                                               dbClient.insertLog(Logger.CONTRIBUTION_DETAILS_CLOSED, (Integer) graphic.getAttributes().get(CONTRIBUTION_ID));
+                                           final ListenableFuture<IdentifyGraphicsOverlayResult> identifyGraphic = mapView.identifyGraphicsOverlayAsync(mapView.getGraphicsOverlays().get(1), clickedPoint, 10.0, false, 1);
+                                           identifyGraphic.addDoneListener(() -> {
+                                               try {
+                                                   IdentifyGraphicsOverlayResult grOverlayResult = identifyGraphic.get();
+                                                   // get the list of graphics returned by identify graphic overlay
+                                                   if (!grOverlayResult.getGraphicsOverlay().getGraphics().isEmpty()) {
+                                                       Graphic graphic = grOverlayResult.getGraphics().get(0);
+                                                       if (!graphic.isSelected()) {
+                                                           Integer contributionId = (Integer) graphic.getAttributes().get(CONTRIBUTION_ID);
+                                                           Integer clusterID = (Integer) graphic.getAttributes().get(CLUSTER_ID);
+                                                           Integer count = (Integer) graphic.getAttributes().get("count");
+                                                           if (count != null && count != 1) {
+                                                               mapView.setViewpointCenterAsync(new Point(((Point) graphic.getGeometry()).getX(), ((Point) graphic.getGeometry()).getY())).addDoneListener(() -> {
+                                                                   zoomIn(null);
+                                                               });
+                                                               return;
                                                            }
-//                                                           mapView.setViewpointCenterAsync(new Point(((Point) graphic.getGeometry()).getX(), ((Point) graphic.getGeometry()).getY()));
+
+                                                           // Open detail
+//                                                               if (contributionId == null) return;
+//                                                               displayDetails(contributionId);
+//                                                               mapView.getGraphicsOverlays().get(0).clearSelection();
+                                                           graphic.setSelected(true);
+//                                                               dbClient.insertLog(Logger.CONTRIBUTION_DETAILS_OPENED, contributionId);
+                                                       } else {
+//                                                               closeFragment();
+//                                                               graphic.setSelected(false);
+//                                                               dbClient.insertLog(Logger.CONTRIBUTION_DETAILS_CLOSED, (Integer) graphic.getAttributes().get(CONTRIBUTION_ID));
                                                        }
-                                                   } catch (InterruptedException | ExecutionException ie) {
-                                                       Log.e("getGraphic", ie.getMessage());
                                                    }
+                                               } catch (InterruptedException | ExecutionException ie) {
+                                                   Log.e("getGraphic", ie.getMessage());
                                                }
                                            });
                                            return super.onSingleTapConfirmed(e);
@@ -228,6 +287,73 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
         );
     }
 
+    private void setBottomNavigationView() {
+        BottomNavigationView.OnNavigationItemSelectedListener mOnNavigationItemSelectedListener
+                = item -> {
+            switch (item.getItemId()) {
+                case R.id.navigation_view:
+                    if (menu != null) {
+                        menu.clear();
+                        toolbarInclude.setVisibility(View.GONE);
+                    }
+                    return true;
+                case R.id.navigation_draw:
+                    if (menu != null) {
+                        menu.clear();
+                        getMenuInflater().inflate(R.menu.undo_redo_stop_menu, menu);
+                        toolbarInclude.setVisibility(View.VISIBLE);
+                    }
+                    return true;
+            }
+            return false;
+        };
+        BottomNavigationView bottomNavigation = findViewById(R.id.bottomNavigationView);
+        bottomNavigation.setOnNavigationItemSelectedListener(mOnNavigationItemSelectedListener);
+    }
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        this.menu = menu;
+        return super.onPrepareOptionsMenu(menu);
+    }
+
+    private void createModePoint() {
+        resetButtons();
+        mPointButton.setSelected(true);
+        mSketchEditor.start(SketchCreationMode.POINT);
+    }
+
+    private void createModePolygon() {
+        resetButtons();
+        mPolygonButton.setSelected(true);
+        mSketchEditor.start(SketchCreationMode.POLYGON);
+    }
+
+    private void createModePolyline() {
+        resetButtons();
+        mPolylineButton.setSelected(true);
+        mSketchEditor.start(SketchCreationMode.POLYLINE);
+
+    }
+
+    private void undo() {
+        if (mSketchEditor.canUndo()) {
+            mSketchEditor.undo();
+        }
+    }
+
+    private void redo() {
+        if (mSketchEditor.canRedo()) {
+            mSketchEditor.redo();
+        }
+    }
+
+    private void resetButtons() {
+        mPointButton.setSelected(false);
+        mPolylineButton.setSelected(false);
+        mPolygonButton.setSelected(false);
+    }
+
     @Override
     public void onBackPressed() {
         if (drawer.isDrawerOpen(Gravity.LEFT)) {
@@ -263,40 +389,42 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
         showMarkers(contributionsToDisplay, true);
     }
 
-
     protected void showMarkers(List<Contribution> contributions, boolean reCenter) {
         Log.e("Show Markers entered", String.valueOf(reCenter));
-        GraphicsOverlay graphicsOverlay;
-        if (mapView.getGraphicsOverlays().isEmpty()) {
-            graphicsOverlay = new GraphicsOverlay();
-            mapView.getGraphicsOverlays().add(graphicsOverlay);
-        } else {
-            graphicsOverlay = mapView.getGraphicsOverlays().get(0);
-            graphicsOverlay.getGraphics().clear();
-        }
-        graphicsOverlay.setSelectionColor(ResourcesCompat.getColor(getResources(), R.color.colorPrimary, null));
-        SimpleMarkerSymbol sms = new SimpleMarkerSymbol(SimpleMarkerSymbol.Style.CIRCLE, Color.RED, 20);
-        Map<String, Object> contributionId = new HashMap<String, Object>();
-        // If list is empty clean map
-        if (contributions == null || contributions.size() == 0) {
-            showCluster();
-            return;
-        }
 
-        for (Contribution contribution : contributions) {
-            if (contribution.getGeometry().getType().equals("Point")) {
-                try {
-                    contributionId.put(CONTRIBUTION_ID, contribution.getId());
-                    JSONArray latLngCoordinates = new JSONArray(contribution.getGeometry().getCoordinates());
-                    Point pnt = (Point) GeometryEngine.project(new Point(latLngCoordinates.getDouble(0), latLngCoordinates.getDouble(1)), SpatialReferences.getWgs84());
-                    pnt = (Point) GeometryEngine.project(pnt, SpatialReferences.getWebMercator());
-                    Graphic graphic = new Graphic(pnt, contributionId, sms);
-                    graphicsOverlay.getGraphics().add(graphic);
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
+        clusterVectorLayer.updateCluster(contributions);
+
+//        GraphicsOverlay graphicsOverlay;
+//        if (mapView.getGraphicsOverlays().isEmpty()) {
+//            graphicsOverlay = new GraphicsOverlay();
+//            mapView.getGraphicsOverlays().add(graphicsOverlay);
+//        } else {
+//            graphicsOverlay = mapView.getGraphicsOverlays().get(0);
+//            graphicsOverlay.getGraphics().clear();
+//        }
+//        graphicsOverlay.setSelectionColor(ResourcesCompat.getColor(getResources(), R.color.colorPrimary, null));
+//        SimpleMarkerSymbol sms = new SimpleMarkerSymbol(SimpleMarkerSymbol.Style.CIRCLE, Color.RED, 20);
+//        Map<String, Object> contributionId = new HashMap<String, Object>();
+//        // If list is empty clean map
+//        if (contributions == null || contributions.size() == 0) {
+//            showCluster();
+//            return;
+//        }
+//
+//        for (Contribution contribution : contributions) {
+//            if (contribution.getGeometry().getType().equals("Point")) {
+//                try {
+//                    contributionId.put(CONTRIBUTION_ID, contribution.getId());
+//                    JSONArray latLngCoordinates = new JSONArray(contribution.getGeometry().getCoordinates());
+//                    Point pnt = (Point) GeometryEngine.project(new Point(latLngCoordinates.getDouble(0), latLngCoordinates.getDouble(1)), SpatialReferences.getWgs84());
+//                    pnt = (Point) GeometryEngine.project(pnt, SpatialReferences.getWebMercator());
+//                    Graphic graphic = new Graphic(pnt, contributionId, sms);
+//                    graphicsOverlay.getGraphics().add(graphic);
+//                } catch (JSONException e) {
+//                    e.printStackTrace();
+//                }
+//            }
+//        }
 
         if (reCenter) {
             disposables.add(
@@ -333,14 +461,12 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
         Viewpoint viewpoint = new Viewpoint(mapView.getVisibleArea().getExtent().getCenter(), mapView.getMapScale() / 2, mapView.getMapRotation());
         mapView.setViewpointAsync(viewpoint, 0.5f);
         dbClient.insertLog(Logger.ZOOM_IN_BUTTON);
-
     }
 
     public void zoomOut(View view) {
         Viewpoint viewpoint = new Viewpoint(mapView.getVisibleArea().getExtent().getCenter(), mapView.getMapScale() * 2, mapView.getMapRotation());
         mapView.setViewpointAsync(viewpoint, 0.5f);
         dbClient.insertLog(Logger.ZOOM_OUT_BUTTON);
-
     }
 
     public void rotateNorth(View view) {
@@ -387,22 +513,6 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
 
 
                 ));
-        // Listener on change in map load status
-        map.addDoneLoadingListener(new Runnable() {
-            @Override
-            public void run() {
-                Log.e("LoadStatus", map.getLoadStatus().name());
-                disposables.add(
-                        db.contributionDao().getContributions(projectId)
-                                .observeOn(Schedulers.io())
-                                .subscribeOn(Schedulers.io())
-                                .subscribe(contributions -> showMarkers(contributions, true))); // initially load all markers
-                disposables.add(db.projectInfoDao().getMapPath(projectId)
-                        .subscribeOn(Schedulers.io())
-                        .observeOn(AndroidSchedulers.mainThread())
-                        .subscribe(OfflineMapsActivity.this::createMosaicDataset));
-            }
-        });
     }
 
     @Override

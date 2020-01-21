@@ -59,8 +59,7 @@
 
         <activity
             android:name=".activities.OfflineMapsActivity"
-            android:screenOrientation="portrait"
-            android:label="Offline Map" />
+            android:screenOrientation="portrait"/>
     </application>
 
 </manifest>

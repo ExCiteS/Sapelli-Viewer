@@ -1,42 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:animateLayoutChanges="true"
     android:background="#EAECEE">
 
+    <include
+        android:id="@+id/toolbar_main"
+        layout="@layout/app_bar_main"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:layout_alignParentTop="true"
+        android:background="?attr/colorPrimary" />
+
     <com.esri.arcgisruntime.mapping.view.MapView
         android:id="@+id/map"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_above="@id/value_recycler_view"
-        android:layout_marginBottom="-24dp"/>
-
-    <FrameLayout
-        android:id="@+id/fragment_container"
-        tools:layout="@layout/fragment_details"
-        android:layout_width="230dp"
-        android:layout_height="match_parent"
-        android:layout_above="@id/value_recycler_view" />
+        android:layout_above="@id/bottomNavigationView"
+        android:layout_below="@id/toolbar_main" />
 
     <androidx.appcompat.widget.AppCompatImageButton
         android:id="@+id/zoom_in"
-        app:srcCompat="@drawable/tree_large"
         android:layout_width="80dp"
         android:layout_height="80dp"
+        android:layout_below="@+id/toolbar_main"
         android:layout_alignParentEnd="true"
         android:layout_alignParentRight="true"
         android:layout_marginTop="10dp"
         android:layout_marginRight="10dp"
         android:onClick="zoomIn"
-        android:padding="3dp" />
+        android:padding="3dp"
+        app:srcCompat="@drawable/tree_large" />
 
     <androidx.appcompat.widget.AppCompatImageButton
         android:id="@+id/zoom_out"
-        app:srcCompat="@drawable/tree_small"
         android:layout_width="80dp"
         android:layout_height="80dp"
         android:layout_below="@+id/zoom_in"
@@ -46,7 +47,8 @@
         android:layout_alignRight="@+id/zoom_in"
         android:layout_marginTop="5dp"
         android:onClick="zoomOut"
-        android:padding="3dp" />
+        android:padding="3dp"
+        app:srcCompat="@drawable/tree_small" />
 
     <androidx.appcompat.widget.AppCompatImageButton
         android:id="@+id/rotate_north_btn"
@@ -59,45 +61,32 @@
         android:contentDescription="@string/content_desc_rotate_north"
         android:onClick="rotateNorth" />
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/value_recycler_view"
+    <include
+        android:id="@+id/toolbarInclude"
+        layout="@layout/point_line_polygon_toolbar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_above="@id/field_recycler_view"
-        android:background="@color/background_dark"
-        android:orientation="horizontal" />
+        android:layout_above="@+id/bottomNavigationView"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        tools:visibility="visible" />
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/field_recycler_view"
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottomNavigationView"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
-        android:layout_toLeftOf="@+id/button_toggle_on"
-        android:background="@color/background_light"
-        android:orientation="horizontal" />
-
-    <ImageButton
-        android:id="@+id/button_toggle_off"
-        android:layout_width="50dp"
-        android:layout_height="50dp"
-        android:layout_alignParentRight="true"
-        android:layout_alignParentBottom="true"
-        android:background="@color/background_dark"
-        android:visibility="invisible" />
-
-    <ImageButton
-        android:id="@+id/button_toggle_on"
-        android:layout_width="50dp"
-        android:layout_height="50dp"
-        android:layout_alignParentBottom="true"
-        android:layout_toLeftOf="@id/button_toggle_off"
         android:background="@color/colorPrimary"
-        android:visibility="gone" />
+        android:elevation="4dp"
+        app:itemIconSize="40dp"
+        app:itemIconTint="@drawable/nav_item_selector"
+        app:itemTextColor="@drawable/nav_item_selector"
+        app:labelVisibilityMode="unlabeled"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:menu="@menu/bottom_navigation_menu" />
 
-    <FrameLayout
-        android:id="@+id/fragment_media_container"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_margin="20dp"
-        android:layout_toRightOf="@id/fragment_container" />
 </RelativeLayout>
