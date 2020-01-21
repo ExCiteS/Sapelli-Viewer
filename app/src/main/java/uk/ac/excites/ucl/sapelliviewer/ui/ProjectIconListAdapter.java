@@ -1,14 +1,15 @@
 package uk.ac.excites.ucl.sapelliviewer.ui;
 
-import androidx.annotation.NonNull;
-import androidx.constraintlayout.widget.ConstraintLayout;
-import androidx.core.content.ContextCompat;
-import androidx.recyclerview.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.core.content.ContextCompat;
+import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,7 +34,8 @@ public class ProjectIconListAdapter extends RecyclerView.Adapter<RecyclerView.Vi
         recyclerViewItems.clear();
 
         for (ProjectInfo p : projects) {
-            recyclerViewItems.add(new ProjectData(p));
+            if (p.getContributionCount() != 0)
+                recyclerViewItems.add(new ProjectData(p));
         }
 
         notifyDataSetChanged();
