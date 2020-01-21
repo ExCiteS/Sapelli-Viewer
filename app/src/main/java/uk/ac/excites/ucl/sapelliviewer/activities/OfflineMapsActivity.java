@@ -129,9 +129,9 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
                 R.string.navigation_drawer_close
         );
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            toggle.getDrawerArrowDrawable().setColor(getColor(R.color.white));
+            toggle.getDrawerArrowDrawable().setColor(getColor(android.R.color.white));
         } else {
-            toggle.getDrawerArrowDrawable().setColor(getResources().getColor(R.color.white));
+            toggle.getDrawerArrowDrawable().setColor(getResources().getColor(android.R.color.white));
         }
         drawer.addDrawerListener(toggle);
         toggle.syncState();
