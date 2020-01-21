@@ -81,6 +81,7 @@ import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.schedulers.Schedulers;
 import uk.ac.excites.ucl.sapelliviewer.R;
+import uk.ac.excites.ucl.sapelliviewer.activities.ui.addContribution.AddContributionDialog;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Contribution;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.LookUpValue;
 import uk.ac.excites.ucl.sapelliviewer.db.AppDatabase;
@@ -89,7 +90,6 @@ import uk.ac.excites.ucl.sapelliviewer.ui.DetailsFragment;
 import uk.ac.excites.ucl.sapelliviewer.ui.NavigationFragment;
 import uk.ac.excites.ucl.sapelliviewer.ui.ValueController;
 import uk.ac.excites.ucl.sapelliviewer.utils.ClusterVectorLayer;
-import uk.ac.excites.ucl.sapelliviewer.utils.ClusterVectorLayer2;
 import uk.ac.excites.ucl.sapelliviewer.utils.Logger;
 import uk.ac.excites.ucl.sapelliviewer.utils.MediaHelpers;
 import uk.ac.excites.ucl.sapelliviewer.utils.TokenManager;
@@ -116,8 +116,6 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
     private DatabaseClient dbClient;
     private int resetAngle;
     private DrawerLayout drawer;
-    private ArcGISVectorTiledLayer vtpk;
-    private ClusterVectorLayer2 clusterVectorLayer;
     private SimpleMarkerSymbol mPointSymbol;
     private SimpleLineSymbol mLineSymbol;
     private SimpleFillSymbol mFillSymbol;
@@ -125,13 +123,12 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
     private ImageButton mPointButton;
     private ImageButton mPolylineButton;
     private ImageButton mPolygonButton;
-    private Toolbar toolbar;
     private Menu menu;
     private View toolbarInclude;
     private GraphicsOverlay drawingGraphicsOverlay;
 
     private void setupNavigationDrawer() {
-        toolbar = findViewById(R.id.toolbar);
+        Toolbar toolbar = findViewById(R.id.toolbar);
         drawer = findViewById(R.id.drawerLayout);
         setSupportActionBar(toolbar);
 
@@ -181,7 +178,7 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
         ((ViewGroup) findViewById(R.id.root)).getLayoutTransition().enableTransitionType(LayoutTransition.CHANGE_APPEARING);
 
         /* Load Vector base map*/
-        vtpk = new ArcGISVectorTiledLayer(MediaHelpers.dataPath + File.separator + getString(R.string.blank_map));
+        ArcGISVectorTiledLayer vtpk = new ArcGISVectorTiledLayer(MediaHelpers.dataPath + File.separator + getString(R.string.blank_map));
         map = new ArcGISMap(new Basemap(vtpk));
         map.setMaxScale(1);
 
@@ -209,8 +206,6 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
         mapView.setOnTouchListener(new DefaultMapViewOnTouchListener(this, mapView) {
                                        @Override
                                        public boolean onSingleTapConfirmed(MotionEvent e) {
-
-                                           if (mSketchEditor.isVisible()) return super.onSingleTapConfirmed(e);
 
                                            // get the screen point where user tapped
                                            android.graphics.Point clickedPoint = new android.graphics.Point((int) e.getX(), (int) e.getY());
@@ -417,8 +412,12 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
 
             drawingGraphicsOverlay.getGraphics().add(graphic);
 
-//            showAddContributionDialog();
+            showAddContributionDialog();
         }
+    }
+
+    private void showAddContributionDialog(){
+        AddContributionDialog.newInstance().show(getSupportFragmentManager());
     }
 
     private void reportNotValid() {
