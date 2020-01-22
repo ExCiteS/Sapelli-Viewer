@@ -61,6 +61,7 @@ import com.esri.arcgisruntime.raster.MosaicDatasetRaster;
 import com.esri.arcgisruntime.symbology.SimpleFillSymbol;
 import com.esri.arcgisruntime.symbology.SimpleLineSymbol;
 import com.esri.arcgisruntime.symbology.SimpleMarkerSymbol;
+import com.google.android.gms.maps.model.LatLng;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 import org.json.JSONArray;
@@ -126,6 +127,7 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
     private Menu menu;
     private View toolbarInclude;
     private GraphicsOverlay drawingGraphicsOverlay;
+    private ImageButton imgbLocation;
 
     private void setupNavigationDrawer() {
         Toolbar toolbar = findViewById(R.id.toolbar);
@@ -161,6 +163,9 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
         mPointSymbol = new SimpleMarkerSymbol(SimpleMarkerSymbol.Style.CIRCLE, 0xFFFF0000, 15);
         mLineSymbol = new SimpleLineSymbol(SimpleLineSymbol.Style.SOLID, 0xFFFF8800, 3);
         mFillSymbol = new SimpleFillSymbol(SimpleFillSymbol.Style.CROSS, 0x40FFA9A9, mLineSymbol);
+
+        imgbLocation = findViewById(R.id.imgbLocation);
+        imgbLocation.setOnClickListener(v -> gotoLocation(null));
 
         toolbarInclude = findViewById(R.id.toolbarInclude);
         mPointButton = findViewById(R.id.pointButton);
@@ -231,14 +236,13 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
                                                            }
 
                                                            // Open detail
-//                                                               if (contributionId == null) return;
-//                                                               displayDetails(contributionId);
-//                                                               mapView.getGraphicsOverlays().get(0).clearSelection();
+                                                           contributionId = 25937;
+                                                           if (contributionId != null) startActivity(ContributionDetailActivity.newIntent(OfflineMapsActivity.this, contributionId));
+                                                           Toast.makeText(OfflineMapsActivity.this, "Contribution detail screen!", Toast.LENGTH_SHORT).show();
                                                            graphic.setSelected(true);
 //                                                               dbClient.insertLog(Logger.CONTRIBUTION_DETAILS_OPENED, contributionId);
                                                        } else {
-//                                                               closeFragment();
-//                                                               graphic.setSelected(false);
+                                                           graphic.setSelected(false);
 //                                                               dbClient.insertLog(Logger.CONTRIBUTION_DETAILS_CLOSED, (Integer) graphic.getAttributes().get(CONTRIBUTION_ID));
                                                        }
                                                    }
@@ -294,6 +298,23 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
                                        }
                                    }
         );
+    }
+
+    private void gotoLocation(LatLng coordinate) {
+//        if (coordinate == null) return;
+
+//        Viewpoint viewPoint = new Viewpoint(new Point(35.50166209558555, 0.5463748308284934), 1000000);
+//        mapView.setViewpoint(viewPoint);
+
+        Point pnt = new Point(3942293.910191868,63973.13723311785);
+        mapView.setViewpointCenterAsync(pnt, 3000).addDoneListener(() -> {
+            GraphicsOverlay graphicsOverlay = mapView.getGraphicsOverlays().get(1);
+
+            SimpleMarkerSymbol sms = new SimpleMarkerSymbol(SimpleMarkerSymbol.Style.TRIANGLE, Color.BLUE, 20);
+            Graphic graphic = new Graphic(pnt, sms);
+            graphic.setSelected(true);
+            graphicsOverlay.getGraphics().add(graphic);
+        });
     }
 
     private void setBottomNavigationView() {
@@ -416,7 +437,7 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
         }
     }
 
-    private void showAddContributionDialog(){
+    private void showAddContributionDialog() {
         AddContributionDialog.newInstance().show(getSupportFragmentManager());
     }
 
