@@ -185,18 +185,20 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
 
         /* Load Vector base map*/
         ArcGISVectorTiledLayer vtpk = new ArcGISVectorTiledLayer(MediaHelpers.dataPath + File.separator + getString(R.string.blank_map));
-        map = new ArcGISMap(Basemap.Type.IMAGERY_WITH_LABELS_VECTOR,0.797094, 35.535340, 2);
+        map = new ArcGISMap(Basemap.Type.IMAGERY_WITH_LABELS_VECTOR,0.797094, 35.535340, 1);
         map.setMaxScale(1);
 
         mapView.setMap(map);
-        mapView.addNavigationChangedListener(navigationChangedEvent -> {
-            if (!mapView.isNavigating()) {
-                showCluster();
-            }
-        });
         // Listener on change in map load status
         map.addDoneLoadingListener(() -> {
             Log.e("LoadStatus", map.getLoadStatus().name());
+
+            mapView.addNavigationChangedListener(navigationChangedEvent -> {
+                if (!mapView.isNavigating()) {
+                    showCluster();
+                }
+            });
+
             mSketchEditor = new SketchEditor();
             mapView.setSketchEditor(mSketchEditor);
             disposables.add(
@@ -238,7 +240,7 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
 
                                                            // Open detail
                                                            contributionId = 25937;
-                                                           if (contributionId != null) startActivity(ContributionDetailActivity.newIntent(OfflineMapsActivity.this, contributionId));
+//                                                           if (contributionId != null) startActivity(ContributionDetailActivity.newIntent(OfflineMapsActivity.this, contributionId));
                                                            Toast.makeText(OfflineMapsActivity.this, "Contribution detail screen!", Toast.LENGTH_SHORT).show();
                                                            graphic.setSelected(true);
 //                                                               dbClient.insertLog(Logger.CONTRIBUTION_DETAILS_OPENED, contributionId);

@@ -42,6 +42,7 @@ public class ClusterVectorLayer {
         if (mapView == null || GraphicsOverlay == null) {
             return;
         }
+        if (mapView.getVisibleArea() == null) return;
         this._clusterResolution = _getExtent(mapView.getVisibleArea()).getWidth()
                 / mapView.getWidth();
         this._mapView = mapView;
