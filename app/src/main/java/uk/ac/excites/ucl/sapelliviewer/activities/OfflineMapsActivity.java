@@ -303,9 +303,7 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
     private void gotoLocation(LatLng coordinate) {
 //        if (coordinate == null) return;
 
-//        Viewpoint viewPoint = new Viewpoint(new Point(35.50166209558555, 0.5463748308284934), 1000000);
-//        mapView.setViewpoint(viewPoint);
-
+        // TODO: fake location, will be connected to location service
         Point pnt = new Point(3942293.910191868,63973.13723311785);
         mapView.setViewpointCenterAsync(pnt, 3000).addDoneListener(() -> {
             GraphicsOverlay graphicsOverlay = mapView.getGraphicsOverlays().get(1);
