@@ -322,7 +322,8 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
                     mSketchEditor = new SketchEditor();
                     mapView.setSketchEditor(mSketchEditor);
 
-                    showContributionDetail(0);
+                    clusterVectorLayer2 = new ClusterVectorLayer2(mapView);
+//                    showContributionDetail(0);
                     getContributions();
                 }
             });
@@ -354,7 +355,6 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
     }
 
     private void clusterContributions(List<Contribution> contributions) {
-        ClusterVectorLayer2 clusterVectorLayer2 = new ClusterVectorLayer2(mapView);
         clusterVectorLayer2.updateCluster(contributions);
     }
 
