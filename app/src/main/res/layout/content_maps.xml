@@ -24,55 +24,17 @@
         android:layout_below="@id/toolbar_main" />
 
     <androidx.appcompat.widget.AppCompatImageButton
-        android:id="@+id/zoom_in"
-        android:layout_width="80dp"
-        android:layout_height="80dp"
-        android:layout_below="@+id/toolbar_main"
-        android:layout_alignParentEnd="true"
-        android:layout_alignParentRight="true"
-        android:layout_marginTop="10dp"
-        android:layout_marginRight="10dp"
-        android:onClick="zoomIn"
-        android:padding="3dp"
-        app:srcCompat="@drawable/tree_large" />
-
-    <androidx.appcompat.widget.AppCompatImageButton
-        android:id="@+id/zoom_out"
-        android:layout_width="80dp"
-        android:layout_height="80dp"
-        android:layout_below="@+id/zoom_in"
-        android:layout_alignStart="@+id/zoom_in"
-        android:layout_alignLeft="@+id/zoom_in"
-        android:layout_alignEnd="@+id/zoom_in"
-        android:layout_alignRight="@+id/zoom_in"
-        android:layout_marginTop="5dp"
-        android:onClick="zoomOut"
-        android:padding="3dp"
-        app:srcCompat="@drawable/tree_small" />
-
-    <androidx.appcompat.widget.AppCompatImageButton
-        android:id="@+id/rotate_north_btn"
-        android:layout_width="80dp"
-        android:layout_height="80dp"
-        android:layout_below="@+id/zoom_out"
-        android:layout_alignStart="@+id/zoom_in"
-        android:layout_alignEnd="@+id/zoom_in"
-        android:layout_marginTop="5dp"
-        android:contentDescription="@string/content_desc_rotate_north"
-        android:onClick="rotateNorth" />
-
-    <androidx.appcompat.widget.AppCompatImageButton
         android:id="@+id/imgbLocation"
         android:layout_width="80dp"
         android:layout_height="80dp"
-        android:layout_below="@+id/rotate_north_btn"
-        android:layout_alignStart="@+id/zoom_in"
-        android:layout_alignEnd="@+id/zoom_in"
-        android:layout_marginTop="5dp"
-        app:srcCompat="@drawable/ic_my_location"
-
+        android:layout_above="@+id/toolbarInclude"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentRight="true"
+        android:layout_marginBottom="10dp"
+        android:layout_marginRight="10dp"
         android:contentDescription="@string/content_desc_rotate_north"
-        android:onClick="rotateNorth" />
+        android:onClick="rotateNorth"
+        app:srcCompat="@drawable/ic_my_location" />
 
     <include
         android:id="@+id/toolbarInclude"
