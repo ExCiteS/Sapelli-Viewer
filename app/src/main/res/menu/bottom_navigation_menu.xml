@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!--id ile navigation içerisindeki fragment idleri aynı olmalı-->
-
     <item android:id="@+id/navigation_view"
         android:title="@string/view"
         android:icon="@drawable/ic_eye" />

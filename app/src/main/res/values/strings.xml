@@ -53,4 +53,5 @@
     <string name="stopButtonDescription">Stop</string>
     <string name="view">View</string>
     <string name="draw">Draw</string>
+    <string name="static_contribution_name">Contribution Name:</string>
 </resources>

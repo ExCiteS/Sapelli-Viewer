@@ -28,8 +28,6 @@
         android:theme="@style/AppTheme"
         tools:ignore="GoogleAppIndexingWarning"
         tools:replace="android:appComponentFactory">
-        <activity android:name=".activities.ContributionDetailActivity"
-            android:screenOrientation="portrait"/>
         <activity
             android:name=".activities.ProjectListActivity"
             android:screenOrientation="portrait" />
