@@ -6,67 +6,92 @@ import com.esri.arcgisruntime.geometry.Envelope;
 import com.esri.arcgisruntime.geometry.Geometry;
 import com.esri.arcgisruntime.geometry.GeometryEngine;
 import com.esri.arcgisruntime.geometry.Point;
+import com.esri.arcgisruntime.geometry.PointCollection;
 import com.esri.arcgisruntime.geometry.Polygon;
+import com.esri.arcgisruntime.geometry.Polyline;
 import com.esri.arcgisruntime.geometry.SpatialReferences;
 import com.esri.arcgisruntime.mapping.view.Graphic;
 import com.esri.arcgisruntime.mapping.view.GraphicsOverlay;
 import com.esri.arcgisruntime.mapping.view.MapView;
 import com.esri.arcgisruntime.symbology.CompositeSymbol;
+import com.esri.arcgisruntime.symbology.SimpleFillSymbol;
+import com.esri.arcgisruntime.symbology.SimpleLineSymbol;
 import com.esri.arcgisruntime.symbology.SimpleMarkerSymbol;
 import com.esri.arcgisruntime.symbology.Symbol;
 import com.esri.arcgisruntime.symbology.TextSymbol;
-
-import org.json.JSONArray;
-import org.json.JSONException;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Contribution;
 
-import static uk.ac.excites.ucl.sapelliviewer.activities.OfflineMapsActivity.CONTRIBUTION_ID;
-
 
 public class ClusterVectorLayer2 {
-    final private int _clusterTolerance = 250;
+    final private int _clusterTolerance = 150;
     private ArrayList<Graphic> clusterGraphics = new ArrayList<>();
-    private SimpleMarkerSymbol markerSymbolL = new SimpleMarkerSymbol(SimpleMarkerSymbol.Style.CIRCLE,
-            Color.RED, 36);
-    private SimpleMarkerSymbol markerSymbolM = new SimpleMarkerSymbol(SimpleMarkerSymbol.Style.CIRCLE,
-            Color.BLUE, 30);
-    private SimpleMarkerSymbol markerSymbolS = new SimpleMarkerSymbol(SimpleMarkerSymbol.Style.CIRCLE,
-            Color.GREEN, 24);
     private SimpleMarkerSymbol markerSymbol = new SimpleMarkerSymbol(SimpleMarkerSymbol.Style.CIRCLE,
             Color.YELLOW, 18);
+    private CompositeSymbol markerSymbolL;
+    private CompositeSymbol markerSymbolM;
+    private CompositeSymbol markerSymbolS;
     private double clusterResolution;
     private MapView mapView;
     private GraphicsOverlay clusterGraphicsOverlay;
     private List<Map<String, Object>> clusterData;
     private int clusterID = 0;
+    private List<Contribution> contributions;
+    private Random random = new Random();
+    private int[] colors = new int[]{Color.DKGRAY, Color.GRAY, Color.LTGRAY, Color.WHITE, Color.RED, Color.GREEN, Color.BLUE, Color.YELLOW, Color.CYAN, Color.MAGENTA};
 
     public ClusterVectorLayer2(final MapView mapView) {
         if (mapView == null) {
             return;
         }
-        this.clusterResolution = _getExtent(mapView.getVisibleArea()).getWidth()
-                / mapView.getWidth();
+        this.clusterResolution = _getExtent(mapView.getVisibleArea()).getWidth() / mapView.getWidth();
         this.mapView = mapView;
         this.clusterData = new ArrayList<>();
         this.clusterGraphicsOverlay = new GraphicsOverlay();
         this.mapView.getGraphicsOverlays().add(clusterGraphicsOverlay);
 
+        prepareSymbols();
         mapView.addNavigationChangedListener(mapScaleChangedEvent -> {
             if (!mapView.isNavigating()) {
-//                    clusterResolution = _getExtent(mapView.getVisibleArea())
-//                            .getWidth() / mapView.getWidth();
-//                    clusterData.clear();
-//                    clusterGraphics.clear();
-//                    clusterGraphicsOverlay.getGraphics().clear();
-//                    clusterGraphics();
+                clusterResolution = _getExtent(mapView.getVisibleArea())
+                        .getWidth() / mapView.getWidth();
+                clusterData.clear();
+                clusterGraphics.clear();
+                clusterGraphicsOverlay.getGraphics().clear();
+                clusterGraphics(contributions);
             }
         });
+    }
+
+    private void prepareSymbols() {
+        markerSymbolL = generateSymbol(30, 8);
+        markerSymbolM = generateSymbol(20, 5);
+        markerSymbolS = generateSymbol(15, 3);
+    }
+
+    private CompositeSymbol generateSymbol(int size, int count) {
+        List<Symbol> symbols = new ArrayList<>();
+
+
+        for (int i = 0; i <= count; i++) {
+            SimpleMarkerSymbol markerSymbol = new SimpleMarkerSymbol(SimpleMarkerSymbol.Style.CIRCLE,
+                    colors[random.nextInt(10)], size);
+
+            int offsetX = random.nextInt(30);
+            int offsetY = random.nextInt(30);
+            markerSymbol.setOffsetX((float) offsetX);
+            markerSymbol.setOffsetY((float) offsetY);
+
+            symbols.add(markerSymbol);
+        }
+
+        return new CompositeSymbol(symbols);
     }
 
     public GraphicsOverlay getGraphicLayer() {
@@ -112,56 +137,87 @@ public class ClusterVectorLayer2 {
         Map<String, Object> contributionMap = new HashMap<>();
 
         for (Contribution contribution : contributions) {
-            if (contribution.getGeometry().getType().equals("Point")) {
-                try {
-                    contributionMap.put(CONTRIBUTION_ID, contribution.getId());
-                    JSONArray latLngCoordinates = new JSONArray(contribution.getGeometry().getCoordinates());
-                    Point pnt = (Point) GeometryEngine.project(new Point(latLngCoordinates.getDouble(0), latLngCoordinates.getDouble(1)), SpatialReferences.getWgs84());
-                    pnt = (Point) GeometryEngine.project(pnt, SpatialReferences.getWebMercator());
+            uk.ac.excites.ucl.sapelliviewer.datamodel.Geometry geometry = contribution.getGeometry();
 
-                    SimpleMarkerSymbol sms = new SimpleMarkerSymbol(SimpleMarkerSymbol.Style.CIRCLE, Color.RED, 20);
-                    Graphic graphic = new Graphic(pnt, contributionMap, sms);
+            contributionMap.put("contributionId", contribution.getId());
 
-                    boolean clustered = false;
-                    for (Map<String, Object> cluster : this.clusterData) {
-                        Point pointCluster = new Point((Double) cluster.get("x"),
-                                (Double) cluster.get("y"), mapView.getSpatialReference());
+            Graphic graphic = null;
+            Point centerPoint = null;
+            if ("Point".equals(geometry.getType())) {
+                Point point = GeoJsonGeometryConverter.convertToPoint(geometry.getCoordinates());
+                Point pnt = (Point) GeometryEngine.project(point, SpatialReferences.getWgs84());
+                centerPoint = (Point) GeometryEngine.project(pnt, SpatialReferences.getWebMercator());
+                graphic = createPointGraphics(pnt, contributionMap);
+            } else if ("Polyline".equals(geometry.getType())) {
+                PointCollection points = GeoJsonGeometryConverter.convertToLine(geometry.getCoordinates());
+                graphic = createPolylineGraphics(points, contributionMap);
+                centerPoint = graphic.getGraphicsOverlay().getExtent().getCenter();
+            } else if ("Polygon".equals(geometry.getType())) {
+                PointCollection points = GeoJsonGeometryConverter.convertToPolygon(geometry.getCoordinates());
+                graphic = createPolygonGraphics(points, contributionMap);
+                centerPoint = graphic.getGraphicsOverlay().getExtent().getCenter();
+            }
+            // TODO: else case will be handled
 
-                        if (this._clusterTest(pnt, pointCluster)) {
-                            this._clusterAddGraphic(graphic, cluster);
-                            clustered = true;
-                            break;
-                        }
-                    }
+            boolean clustered = false;
+            for (Map<String, Object> clusterAttrs : this.clusterData) {
+                Point pointCluster = new Point(
+                        (Double) clusterAttrs.get("x"),
+                        (Double) clusterAttrs.get("y"),
+                        mapView.getSpatialReference()
+                );
 
-                    if (!clustered) {
-                        this._clusterCreate(graphic);
-                    }
-                } catch (JSONException e) {
-                    e.printStackTrace();
+                if (this._clusterTest(centerPoint, pointCluster)) {
+                    this._clusterAddGraphic(graphic, clusterAttrs);
+                    clustered = true;
+                    break;
                 }
             }
-        }
 
-//        for (Graphic graphic : clusterGraphicsOverlay.getGraphics()) {
-//            Point point = (Point) graphic.getGeometry();
-//            boolean clustered = false;
-//            for (Map<String, Object> cluster : this.clusterData) {
-//                Point pointCluster = new Point((Double) cluster.get("x"),
-//                        (Double) cluster.get("y"), mapView.getSpatialReference());
-//
-//                if (this._clusterTest(point, pointCluster)) {
-//                    this._clusterAddGraphic(graphic, cluster);
-//                    clustered = true;
-//                    break;
-//                }
-//            }
-//
-//            if (!clustered) {
-//                this._clusterCreate(graphic);
-//            }
-//        }
-//        this._showAllClusters();
+            if (!clustered) {
+                this._clusterCreate(graphic, contribution.getId());
+            }
+        }
+        this._showAllClusters();
+    }
+
+    private Graphic createPointGraphics(Point point, Map<String, Object> contributionData) {
+        // Create symbol
+        SimpleMarkerSymbol pointSymbol = new SimpleMarkerSymbol(SimpleMarkerSymbol.Style.CIRCLE, Color.rgb(226, 119, 40), 10.0f);
+        pointSymbol.setOutline(new SimpleLineSymbol(SimpleLineSymbol.Style.SOLID, Color.BLUE, 2.0f));
+
+        // Create point
+        Point pnt = (Point) GeometryEngine.project(point, SpatialReferences.getWgs84());
+        pnt = (Point) GeometryEngine.project(pnt, SpatialReferences.getWebMercator());
+
+        // Create graphic
+        Graphic pointGraphic = new Graphic(pnt, contributionData, pointSymbol);
+        return pointGraphic;
+    }
+
+    private Graphic createPolylineGraphics(PointCollection polylinePoints, Map<String, Object> contributionData) {
+        // Create symbol
+        SimpleLineSymbol polylineSymbol = new SimpleLineSymbol(SimpleLineSymbol.Style.SOLID, Color.BLUE, 3.0f);
+
+        // Create points
+        Polyline polyline = new Polyline(polylinePoints);
+
+        // Create graphic
+        Graphic polylineGraphic = new Graphic(polyline, contributionData, polylineSymbol);
+        return polylineGraphic;
+    }
+
+    private Graphic createPolygonGraphics(PointCollection polygonPoints, Map<String, Object> contributionData) {
+        // Create symbol
+        SimpleFillSymbol polygonSymbol = new SimpleFillSymbol(SimpleFillSymbol.Style.NULL, Color.rgb(226, 119, 40),
+                new SimpleLineSymbol(SimpleLineSymbol.Style.SOLID, Color.BLUE, 2.0f));
+
+        // Create points
+        Polygon polygon = new Polygon(polygonPoints);
+
+        // Create graphic
+        Graphic polygonGraphic = new Graphic(polygon, contributionData, polygonSymbol);
+        return polygonGraphic;
     }
 
     private void _clusterAddGraphic(Graphic graphic, Map<String, Object> cluster) {
@@ -214,7 +270,7 @@ public class ClusterVectorLayer2 {
         }
     }
 
-    private void _clusterCreate(Graphic graphic) {
+    private void _clusterCreate(Graphic graphic, int id) {
         clusterGraphics.add(graphic);
         Map<String, Object> hashMap = new HashMap<String, Object>();
         hashMap.put("count", 1);
@@ -223,6 +279,7 @@ public class ClusterVectorLayer2 {
         hashMap.put("x", point.getX());
         hashMap.put("y", point.getY());
         hashMap.put("clusterID", clusterID);
+        hashMap.put("contributionId", id);
         graphic.getAttributes().put("clusterID", clusterID);
         clusterID++;
 
@@ -254,20 +311,27 @@ public class ClusterVectorLayer2 {
         if (count == 1) {
             return markerSymbol;
         } else if (count > 1) {
+
             List<Symbol> symbols = new ArrayList<>();
             if (count <= 10) {
                 symbols.add(markerSymbolS);
-            } else if (count > 10 && count <= 20) {
+            } else if (count <= 100) {
                 symbols.add(markerSymbolM);
-            } else if (count > 20) {
+            } else {
                 symbols.add(markerSymbolL);
             }
-            TextSymbol textSymbol = new TextSymbol(18, count + "", Color.WHITE,
-                    TextSymbol.HorizontalAlignment.CENTER,
-                    TextSymbol.VerticalAlignment.MIDDLE);
-            symbols.add(textSymbol);
-            CompositeSymbol compositeSymbol = new CompositeSymbol(symbols);
-            return compositeSymbol;
+
+            return new CompositeSymbol(symbols);
+
+//            int size;
+//            if (count <= 10) {
+//                size = 12;
+//            } else if (count <= 100) {
+//                size = 24;
+//            } else {
+//                size = 32;
+//            }
+//            return generateSymbol(size, count);
         }
 
         return null;
@@ -278,6 +342,7 @@ public class ClusterVectorLayer2 {
     }
 
     public void updateCluster(List<Contribution> contributions) {
+        this.contributions = contributions;
         this.clusterGraphics(contributions);
     }
 }
