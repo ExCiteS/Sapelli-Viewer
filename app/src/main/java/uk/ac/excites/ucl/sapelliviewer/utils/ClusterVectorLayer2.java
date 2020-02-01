@@ -18,7 +18,6 @@ import com.esri.arcgisruntime.symbology.SimpleFillSymbol;
 import com.esri.arcgisruntime.symbology.SimpleLineSymbol;
 import com.esri.arcgisruntime.symbology.SimpleMarkerSymbol;
 import com.esri.arcgisruntime.symbology.Symbol;
-import com.esri.arcgisruntime.symbology.TextSymbol;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -30,7 +29,7 @@ import uk.ac.excites.ucl.sapelliviewer.datamodel.Contribution;
 
 
 public class ClusterVectorLayer2 {
-    final private int _clusterTolerance = 150;
+    final private int _clusterTolerance = 200;
     private ArrayList<Graphic> clusterGraphics = new ArrayList<>();
     private SimpleMarkerSymbol markerSymbol = new SimpleMarkerSymbol(SimpleMarkerSymbol.Style.CIRCLE,
             Color.YELLOW, 18);
@@ -44,23 +43,21 @@ public class ClusterVectorLayer2 {
     private int clusterID = 0;
     private List<Contribution> contributions;
     private Random random = new Random();
-    private int[] colors = new int[]{Color.DKGRAY, Color.GRAY, Color.LTGRAY, Color.WHITE, Color.RED, Color.GREEN, Color.BLUE, Color.YELLOW, Color.CYAN, Color.MAGENTA};
+    private int[] colors = new int[]{Color.DKGRAY, Color.GRAY, Color.RED, Color.GREEN, Color.BLUE, Color.YELLOW, Color.CYAN, Color.MAGENTA};
 
     public ClusterVectorLayer2(final MapView mapView) {
         if (mapView == null) {
             return;
         }
-        this.clusterResolution = _getExtent(mapView.getVisibleArea()).getWidth() / mapView.getWidth();
         this.mapView = mapView;
         this.clusterData = new ArrayList<>();
         this.clusterGraphicsOverlay = new GraphicsOverlay();
         this.mapView.getGraphicsOverlays().add(clusterGraphicsOverlay);
 
         prepareSymbols();
+
         mapView.addNavigationChangedListener(mapScaleChangedEvent -> {
             if (!mapView.isNavigating()) {
-                clusterResolution = _getExtent(mapView.getVisibleArea())
-                        .getWidth() / mapView.getWidth();
                 clusterData.clear();
                 clusterGraphics.clear();
                 clusterGraphicsOverlay.getGraphics().clear();
@@ -81,7 +78,7 @@ public class ClusterVectorLayer2 {
 
         for (int i = 0; i <= count; i++) {
             SimpleMarkerSymbol markerSymbol = new SimpleMarkerSymbol(SimpleMarkerSymbol.Style.CIRCLE,
-                    colors[random.nextInt(10)], size);
+                    colors[random.nextInt(8)], size);
 
             int offsetX = random.nextInt(30);
             int offsetY = random.nextInt(30);
@@ -132,6 +129,8 @@ public class ClusterVectorLayer2 {
     }
 
     private void clusterGraphics(List<Contribution> contributions) {
+        calculateResolution();
+
         clusterID = 0;
 
         Map<String, Object> contributionMap = new HashMap<>();
@@ -179,6 +178,10 @@ public class ClusterVectorLayer2 {
             }
         }
         this._showAllClusters();
+    }
+
+    private void calculateResolution() {
+        this.clusterResolution = _getExtent(mapView.getVisibleArea()).getWidth() / mapView.getWidth();
     }
 
     private Graphic createPointGraphics(Point point, Map<String, Object> contributionData) {
@@ -343,6 +346,7 @@ public class ClusterVectorLayer2 {
 
     public void updateCluster(List<Contribution> contributions) {
         this.contributions = contributions;
+
         this.clusterGraphics(contributions);
     }
 }
