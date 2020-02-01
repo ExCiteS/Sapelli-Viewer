@@ -59,7 +59,8 @@ public class DetailsFragment extends DialogFragment implements DocumentFragmentL
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
-            contributionId = 30334;//getArguments().getInt(CONTRIBUTION_ID);
+//            contributionId = 30334;
+            contributionId = getArguments().getInt(CONTRIBUTION_ID);
             projectId = getArguments().getInt(PROJECT_ID);
         }
     }
@@ -83,14 +84,12 @@ public class DetailsFragment extends DialogFragment implements DocumentFragmentL
         CompositeDisposable disposables = new CompositeDisposable();
         valueRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity(), LinearLayoutManager.HORIZONTAL, false));
         Log.d("contribution", "onStart: " + contributionId);
-        contributionId = 30340;
+//        contributionId = 30340;
         disposables.add(db.contributionDao().getPropertiesByContribution(contributionId)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(contributionProperties ->
                 {
-//                    Toast.makeText(getActivity(), "properties: " + contributionProperties.size(), Toast.LENGTH_SHORT).show();
-
                     valueRecyclerView.setAdapter(new ContributionValueAdapter(getActivity(), contributionProperties));
                 }));
 
@@ -100,7 +99,6 @@ public class DetailsFragment extends DialogFragment implements DocumentFragmentL
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(photos -> {
-//                    Toast.makeText(getActivity(), "photos: " + photos.size(), Toast.LENGTH_SHORT).show();
                     photoAdapter = new ContributionPhotoAdapter(getActivity(), photos, photo -> openPhotoView(photo));
                     photoRecyclerView.setAdapter(photoAdapter);
                 }));
@@ -110,7 +108,6 @@ public class DetailsFragment extends DialogFragment implements DocumentFragmentL
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(audios -> {
-//                    Toast.makeText(getActivity(), "audios: " + audios.size(), Toast.LENGTH_SHORT).show();
                     audioAdapter = new ContributionAudioAdapter(getActivity(), audios, audio -> openAudioView(audio));
                     audioRecyclerView.setAdapter(audioAdapter);
                 }));
