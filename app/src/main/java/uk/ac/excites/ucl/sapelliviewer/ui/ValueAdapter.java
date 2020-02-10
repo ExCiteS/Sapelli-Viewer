@@ -24,7 +24,6 @@ import uk.ac.excites.ucl.sapelliviewer.utils.MediaHelpers;
 
 public class ValueAdapter extends RecyclerView.Adapter<ValueAdapter.ValueListViewHolder> {
 
-    //    private ArrayList<RecyclerViewItemData> items = new ArrayList<>();
     @SuppressLint("UseSparseArrays")
     private LinkedHashMap<Integer, ArrayList<LookUpValue>> valueMap = new LinkedHashMap<>();
     private Context context;
@@ -37,8 +36,8 @@ public class ValueAdapter extends RecyclerView.Adapter<ValueAdapter.ValueListVie
         this.lookUpValues = lookUpValues;
         this.listener = listener;
 
-        if (lookUpValues != null && lookUpValues.size() > 0) {
-            int fieldId = lookUpValues.get(0).getFieldId();
+        if (lookUpValues != null && getVisibleLookupValues().size() > 0) {
+            int fieldId = getVisibleLookupValues().get(0).getFieldId();
             ArrayList<LookUpValue> list = new ArrayList<>();
             for (LookUpValue value : getVisibleLookupValues()) {
                 if (fieldId == value.getFieldId()) {
@@ -50,6 +49,7 @@ public class ValueAdapter extends RecyclerView.Adapter<ValueAdapter.ValueListVie
                     fieldId = value.getFieldId();
                 }
             }
+            valueMap.put(fieldId, list);
         }
     }
 
