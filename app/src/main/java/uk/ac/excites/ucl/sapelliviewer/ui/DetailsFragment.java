@@ -1,13 +1,17 @@
 package uk.ac.excites.ucl.sapelliviewer.ui;
 
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -46,6 +50,14 @@ public class DetailsFragment extends DialogFragment implements DocumentFragmentL
         // Required empty public constructor
     }
 
+    @Override
+    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+        getDialog().getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        getDialog().getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+        getDialog().getWindow().setGravity(Gravity.CENTER);
+    }
+
     public static DetailsFragment newInstance(int contributionId, int projectId) {
         DetailsFragment fragment = new DetailsFragment();
         Bundle args = new Bundle();
@@ -82,14 +94,14 @@ public class DetailsFragment extends DialogFragment implements DocumentFragmentL
         AppDatabase db = AppDatabase.getAppDatabase(getActivity());
         dbClient = new DatabaseClient(getContext(), projectId, null);
         CompositeDisposable disposables = new CompositeDisposable();
-        valueRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity(), LinearLayoutManager.HORIZONTAL, false));
+        valueRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity(), LinearLayoutManager.VERTICAL, false));
         Log.d("contribution", "onStart: " + contributionId);
+
 //        contributionId = 30340;
         disposables.add(db.contributionDao().getPropertiesByContribution(contributionId)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(contributionProperties ->
-                {
+                .subscribe(contributionProperties -> {
                     valueRecyclerView.setAdapter(new ContributionValueAdapter(getActivity(), contributionProperties));
                 }));
 
@@ -99,6 +111,9 @@ public class DetailsFragment extends DialogFragment implements DocumentFragmentL
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(photos -> {
+                    if (photos.isEmpty() && audioAdapter != null && audioAdapter.getItemCount() == 0)
+                        getView().findViewById(R.id.lnrMedia).setVisibility(View.GONE);
+
                     photoAdapter = new ContributionPhotoAdapter(getActivity(), photos, photo -> openPhotoView(photo));
                     photoRecyclerView.setAdapter(photoAdapter);
                 }));
@@ -108,6 +123,9 @@ public class DetailsFragment extends DialogFragment implements DocumentFragmentL
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(audios -> {
+                    if (audios.isEmpty() && photoAdapter != null && photoAdapter.getItemCount() == 0)
+                        getView().findViewById(R.id.lnrMedia).setVisibility(View.GONE);
+
                     audioAdapter = new ContributionAudioAdapter(getActivity(), audios, audio -> openAudioView(audio));
                     audioRecyclerView.setAdapter(audioAdapter);
                 }));
