@@ -51,7 +51,7 @@ public class GeoKeyClient {
                 .toList()
                 .doOnSuccess(projectInfos -> {
                     db.projectInfoDao().clearProjectInfos();
-                    for (ProjectInfo p : projectInfos){
+                    for (ProjectInfo p : projectInfos) {
                         p.setRemote(true);
                     }
                     db.projectInfoDao().insertProjectInfo(projectInfos);
@@ -75,15 +75,18 @@ public class GeoKeyClient {
                             db.projectInfoDao().insertField(field);
                         })
                         .filter(field -> field.getLookupvalues() != null)
-                        .flatMap(field -> Observable.fromIterable(field.getLookupvalues())
-                                .doOnNext(lookUpValue -> {
-                                    lookUpValue.setFieldId(field.getId());
-                                    db.projectInfoDao().insertLookupValue(lookUpValue);
-                                })
-                                .filter(lookUpValue -> lookUpValue.getSymbol() != null)
-                                .flatMap(lookUpValue -> geoKeyRequests.downloadFileByUrl(lookUpValue.getSymbol())
-                                        .doOnNext(symbol -> MediaHelpers.writeFileToDisk(symbol, lookUpValue.getSymbol()))
-                                )
+                        .flatMap(field ->
+                                Observable.fromIterable(field.getLookupvalues())
+                                        .doOnNext(lookUpValue -> {
+                                            lookUpValue.setFieldId(field.getId());
+                                            db.projectInfoDao().insertLookupValue(lookUpValue);
+                                        })
+                                        .filter(lookUpValue -> lookUpValue.getSymbol() != null)
+                                        .flatMap(lookUpValue ->
+                                                geoKeyRequests.downloadFileByUrl(lookUpValue.getSymbol())
+                                                        .onErrorResumeNext(Observable.empty())
+                                                        .doOnNext(symbol -> MediaHelpers.writeFileToDisk(symbol, lookUpValue.getSymbol()))
+                                        )
                         )
                 );
     }
@@ -128,6 +131,7 @@ public class GeoKeyClient {
                                 })
                                 .filter(mediaFile -> !(new File(MediaHelpers.dataPath + mediaFile.getUrl()).exists()))
                                 .flatMap(mediaFile -> geoKeyRequests.downloadFileByUrl(mediaFile.getUrl())
+                                        .onErrorResumeNext(Observable.empty())
                                         .doOnNext(symbol -> MediaHelpers.writeFileToDisk(symbol, mediaFile.getUrl())))
                         )
                 );
