@@ -7,7 +7,10 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.List;
+
+import uk.ac.excites.ucl.sapelliviewer.datamodel.Contribution;
 
 public class GeoJsonGeometryConverter {
 
@@ -15,7 +18,8 @@ public class GeoJsonGeometryConverter {
 
     public static Point convertToPoint(String coordinates) {
         if (coordinates != null) {
-            Type listType = new TypeToken<List<Double>>() {}.getType();
+            Type listType = new TypeToken<List<Double>>() {
+            }.getType();
             List<Double> data = gson.fromJson(coordinates, listType);
 
             return new Point(data.get(0), data.get(1));
@@ -27,7 +31,8 @@ public class GeoJsonGeometryConverter {
 
     public static PointCollection convertToLine(String coordinates) {
         if (coordinates != null) {
-            Type listType = new TypeToken<List<List<Double>>>() {}.getType();
+            Type listType = new TypeToken<List<List<Double>>>() {
+            }.getType();
 
             List<List<Double>> data = gson.fromJson(coordinates, listType);
             PointCollection points = new PointCollection(SpatialReferences.getWgs84());
@@ -43,7 +48,8 @@ public class GeoJsonGeometryConverter {
 
     public static PointCollection convertToPolygon(String coordinates) {
         if (coordinates != null) {
-            Type listType = new TypeToken<List<List<List<Double>>>>() {}.getType();
+            Type listType = new TypeToken<List<List<List<Double>>>>() {
+            }.getType();
             List<List<List<Double>>> data = gson.fromJson(coordinates, listType);
 
             PointCollection points = new PointCollection(SpatialReferences.getWgs84());
@@ -60,4 +66,21 @@ public class GeoJsonGeometryConverter {
         }
     }
 
+    public static String convertToString(Contribution contribution) {
+        return gson.toJson(contribution);
+    }
+
+    public static String convertToString(ArrayList<String> list) {
+        return gson.toJson(list);
+    }
+
+    public static ArrayList<String> convertFromString(String listJson) {
+        Type listType = new TypeToken<ArrayList<String>>() {
+        }.getType();
+        return gson.fromJson(listJson, listType);
+    }
+
+    public static Contribution convertToContribution(String contributionString) {
+        return gson.fromJson(contributionString, Contribution.class);
+    }
 }
