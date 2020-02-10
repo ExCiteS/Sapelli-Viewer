@@ -29,7 +29,6 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
-import androidx.core.content.res.ResourcesCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
@@ -40,11 +39,10 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.esri.arcgisruntime.concurrent.ListenableFuture;
-import com.esri.arcgisruntime.geometry.GeometryEngine;
 import com.esri.arcgisruntime.geometry.GeometryType;
 import com.esri.arcgisruntime.geometry.Point;
 import com.esri.arcgisruntime.geometry.SpatialReferences;
-import com.esri.arcgisruntime.layers.ArcGISVectorTiledLayer;
+import com.esri.arcgisruntime.layers.ArcGISTiledLayer;
 import com.esri.arcgisruntime.layers.RasterLayer;
 import com.esri.arcgisruntime.loadable.LoadStatus;
 import com.esri.arcgisruntime.mapping.ArcGISMap;
@@ -65,16 +63,11 @@ import com.esri.arcgisruntime.symbology.SimpleMarkerSymbol;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
@@ -85,13 +78,15 @@ import io.reactivex.schedulers.Schedulers;
 import uk.ac.excites.ucl.sapelliviewer.R;
 import uk.ac.excites.ucl.sapelliviewer.activities.ui.addContribution.AddContributionDialog;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.Contribution;
+import uk.ac.excites.ucl.sapelliviewer.datamodel.ContributionProperty;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.LookUpValue;
 import uk.ac.excites.ucl.sapelliviewer.db.AppDatabase;
 import uk.ac.excites.ucl.sapelliviewer.db.DatabaseClient;
 import uk.ac.excites.ucl.sapelliviewer.ui.DetailsFragment;
 import uk.ac.excites.ucl.sapelliviewer.ui.NavigationFragment;
 import uk.ac.excites.ucl.sapelliviewer.ui.ValueController;
-import uk.ac.excites.ucl.sapelliviewer.utils.ClusterVectorLayer2;
+import uk.ac.excites.ucl.sapelliviewer.utils.ClusterVectorLayer;
+import uk.ac.excites.ucl.sapelliviewer.utils.GeoJsonGeometryConverter;
 import uk.ac.excites.ucl.sapelliviewer.utils.Logger;
 import uk.ac.excites.ucl.sapelliviewer.utils.MediaHelpers;
 import uk.ac.excites.ucl.sapelliviewer.utils.TokenManager;
@@ -104,6 +99,7 @@ import uk.ac.excites.ucl.sapelliviewer.utils.TokenManager;
  */
 public class OfflineMapsActivity extends AppCompatActivity implements NavigationFragment.OnShowClickListener {
     private static final String DETAILS_FRAGMENT = "detailsFragment";
+    private static final String TAG = "OfflineMapsActivity";
     public static String CONTRIBUTION_ID = "contribution_id";
     public static String CLUSTER_ID = "clusterID";
     public static String DB_NAME = "/mosaicdb.sqlite";
@@ -131,6 +127,8 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
     private View toolbarInclude;
     private GraphicsOverlay drawingGraphicsOverlay;
     private ImageButton imgbLocation;
+    private ClusterVectorLayer clusterVectorLayer;
+    private List<ContributionProperty> properties;
 
     private void setupNavigationDrawer() {
         Toolbar toolbar = findViewById(R.id.toolbar);
@@ -205,23 +203,18 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
                                                    if (!grOverlayResult.getGraphics().isEmpty()) {
                                                        Graphic graphic = grOverlayResult.getGraphics().get(0);
                                                        if (!graphic.isSelected()) {
-                                                           Integer contributionId = (Integer) graphic.getAttributes().get(CONTRIBUTION_ID);
-                                                           Integer clusterID = (Integer) graphic.getAttributes().get(CLUSTER_ID);
                                                            Integer count = (Integer) graphic.getAttributes().get("count");
                                                            if (count != null && count != 1) {
-                                                               mapView.setViewpointCenterAsync(new Point(((Point) graphic.getGeometry()).getX(), ((Point) graphic.getGeometry()).getY())).addDoneListener(() -> {
-                                                                   zoomIn(null);
-                                                               });
+                                                               zoomIn(new Point(((Point) graphic.getGeometry()).getX(), ((Point) graphic.getGeometry()).getY()));
                                                                return;
                                                            }
 
                                                            // Open detail
-                                                           contributionId = (Integer) graphic.getAttributes().get("contributionId");//
-                                                           if (contributionId != null)
-                                                               showContributionDetail(contributionId);
-//                                                               startActivity(ContributionDetailActivity.newIntent(OfflineMapsActivity.this, contributionId));
-                                                           Toast.makeText(OfflineMapsActivity.this, "Contribution detail screen!", Toast.LENGTH_SHORT).show();
-                                                           graphic.setSelected(true);
+                                                           Integer contributionId = (Integer) graphic.getAttributes().get("contributionId");
+                                                           ArrayList<String> list = GeoJsonGeometryConverter.convertFromString(String.valueOf(graphic.getAttributes().get("contributions")));
+                                                           Contribution contribution = GeoJsonGeometryConverter.convertToContribution(list.get(0));
+                                                           if (contribution != null)
+                                                               showContributionDetail(contribution.getId());
 //                                                               dbClient.insertLog(Logger.CONTRIBUTION_DETAILS_OPENED, contributionId);
                                                        } else {
                                                            graphic.setSelected(false);
@@ -290,6 +283,7 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
         }
         ft.addToBackStack(null);
         DialogFragment dialogFragment = DetailsFragment.newInstance(contributionId, 0);
+        dialogFragment.setCancelable(true);
         dialogFragment.show(ft, "dialog");
     }
 
@@ -297,14 +291,14 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
         if (mapView != null) {
 
             /* Load Vector base map*/
-            ArcGISVectorTiledLayer vtpk = new ArcGISVectorTiledLayer(MediaHelpers.dataPath + File.separator + getString(R.string.blank_map));
+            ArcGISTiledLayer vtpk = new ArcGISTiledLayer(MediaHelpers.dataPath + File.separator + getString(R.string.blank_map));
 
             Basemap.Type basemapType = Basemap.Type.IMAGERY_WITH_LABELS_VECTOR;
             double latitude = 0.797094;
             double longitude = 35.535340;
 
             int levelOfDetail = 8;
-            ArcGISMap map = new ArcGISMap(basemapType, latitude, longitude, levelOfDetail);
+//            ArcGISMap map = new ArcGISMap(basemapType, latitude, longitude, levelOfDetail);
             map = new ArcGISMap(new Basemap(vtpk));
             map.setMaxScale(1);
             map.addLoadStatusChangedListener(loadStatusChangedEvent -> {
@@ -312,17 +306,11 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
                 mapLoadStatus = loadStatusChangedEvent.getNewLoadStatus().name();
 
                 if (mapLoadStatus.equals("LOADED")) {
-
-                    mapView.addNavigationChangedListener(navigationChangedEvent -> {
-                        if (!mapView.isNavigating()) {
-                            showCluster();
-                        }
-                    });
+                    Log.d(TAG, "Map is loaded");
 
                     mSketchEditor = new SketchEditor();
                     mapView.setSketchEditor(mSketchEditor);
 
-                    clusterVectorLayer2 = new ClusterVectorLayer2(mapView);
 //                    showContributionDetail(0);
                     getContributions();
                 }
@@ -332,15 +320,19 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
         }
     }
 
+    @SuppressLint("CheckResult")
     private void getContributions() {
         disposables.add(
                 db.contributionDao().getContributions(projectId)
-                        .observeOn(Schedulers.io())
+                        .observeOn(AndroidSchedulers.mainThread())
                         .subscribeOn(Schedulers.io())
-                        .doOnError(throwable -> showToast(throwable.getMessage()))
+                        .doOnError(throwable -> {
+                            Log.d(TAG, "getContributions failed");
+                            showToast(throwable.getMessage());
+                        })
                         .subscribe(contributions -> {
-//                            showMarkers(contributions, true);
-//                                    displayContributions(contributions);
+                                    Log.d(TAG, "getContributions is succeeded, size: " + contributions.size());
+                                    clusterVectorLayer = new ClusterVectorLayer(mapView);
                                     clusterContributions(contributions);
                                 }
                         ));
@@ -355,7 +347,7 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
     }
 
     private void clusterContributions(List<Contribution> contributions) {
-        clusterVectorLayer2.updateCluster(contributions);
+        clusterVectorLayer.updateCluster(contributions, properties);
     }
 
     private void gotoLocation(LatLng coordinate) {
@@ -364,7 +356,7 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
         // TODO: fake location, will be connected to location service
         Point pnt = new Point(3942293.910191868, 63973.13723311785);
         mapView.setViewpointCenterAsync(pnt, 3000).addDoneListener(() -> {
-            GraphicsOverlay graphicsOverlay = mapView.getGraphicsOverlays().get(1);
+            GraphicsOverlay graphicsOverlay = mapView.getGraphicsOverlays().get(0);
 
             SimpleMarkerSymbol sms = new SimpleMarkerSymbol(SimpleMarkerSymbol.Style.TRIANGLE, Color.BLUE, 20);
             Graphic graphic = new Graphic(pnt, sms);
@@ -550,108 +542,8 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
                 graphicsIterator.remove();
             }
         }
-        showMarkers(contributionsToDisplay, true);
+        clusterContributions(contributionsToDisplay);
     }
-
-    protected void showMarkers(List<Contribution> contributions, boolean reCenter) {
-        Log.e("Show Markers entered", String.valueOf(reCenter));
-
-//        clusterVectorLayer.updateCluster(contributions);
-
-        GraphicsOverlay graphicsOverlay;
-        if (mapView.getGraphicsOverlays().isEmpty()) {
-            graphicsOverlay = new GraphicsOverlay();
-            mapView.getGraphicsOverlays().add(graphicsOverlay);
-        } else {
-            graphicsOverlay = mapView.getGraphicsOverlays().get(0);
-            graphicsOverlay.getGraphics().clear();
-        }
-        graphicsOverlay.setSelectionColor(ResourcesCompat.getColor(getResources(), R.color.colorPrimary, null));
-        SimpleMarkerSymbol sms = new SimpleMarkerSymbol(SimpleMarkerSymbol.Style.CIRCLE, Color.RED, 20);
-        Map<String, Object> contributionId = new HashMap<String, Object>();
-        // If list is empty clean map
-        if (contributions == null || contributions.size() == 0) {
-            showCluster();
-            return;
-        }
-
-        // Contribution geometry icon is created
-        for (Contribution contribution : contributions) {
-            if (contribution.getGeometry().getType().equals("Point")) {
-                try {
-                    contributionId.put(CONTRIBUTION_ID, contribution.getId());
-                    JSONArray latLngCoordinates = new JSONArray(contribution.getGeometry().getCoordinates());
-                    Point pnt = (Point) GeometryEngine.project(new Point(latLngCoordinates.getDouble(0), latLngCoordinates.getDouble(1)), SpatialReferences.getWgs84());
-                    pnt = (Point) GeometryEngine.project(pnt, SpatialReferences.getWebMercator());
-                    Graphic graphic = new Graphic(pnt, contributionId, sms);
-                    graphicsOverlay.getGraphics().add(graphic);
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-            }
-            // PolyLine and Polygon types are created here
-        }
-
-        if (reCenter) {
-            disposables.add(
-                    Observable.timer(500, TimeUnit.MILLISECONDS).subscribe(__ -> {
-                        if (graphicsOverlay.getGraphics().size() > 1)
-                            mapView.setViewpointGeometryAsync(graphicsOverlay.getExtent(), 70).addDoneListener(() -> {
-                                dbClient.insertLog(Logger.INITIAL_EXTENT);
-                                showCluster();
-                            });
-                        else if (graphicsOverlay.getGraphics().size() == 1)
-                            mapView.setViewpointCenterAsync(graphicsOverlay.getExtent().getCenter(), 3000).addDoneListener(() -> {
-                                dbClient.insertLog(Logger.INITIAL_EXTENT);
-                                showCluster();
-                            });
-                    }, e -> Log.e("Set Viewpoint", e.getMessage())));
-        } else
-            showCluster();
-    }
-
-    private void showCluster() {
-        // Setting clustering up
-//        if (mapView.getGraphicsOverlays().isEmpty()) {
-//            graphicsOverlay = new GraphicsOverlay();
-//            mapView.getGraphicsOverlays().add(graphicsOverlay);
-//        } else {
-//            graphicsOverlay = mapView.getGraphicsOverlays().get(0);
-//        }
-//
-//        ClusterVectorLayer clusterVectorLayer = new ClusterVectorLayer(mapView, graphicsOverlay, drawingGraphicsOverlay);
-//        clusterVectorLayer.setGraphicVisible(true);
-    }
-
-//    public void displayContributions(List<Contribution> contributionList) {
-//        createGraphicsOverlay();
-
-//        for (Contribution contribution : contributionList) {
-//            Geometry geometry = contribution.getGeometry();
-//
-//            // Set graphic data
-//            Map<String, Object> contributionData = new HashMap<>();
-//            contributionData.put(CONTRIBUTION_ID, contribution.getId());
-//
-//            switch (geometry.getType()) {
-//                case "Point":
-//                    Point point = GeoJsonGeometryConverter.convertToPoint(geometry.getCoordinates());
-//                    createPointGraphics(point, contributionData);
-//                    break;
-//                case "Polyline": {
-//                    PointCollection points = GeoJsonGeometryConverter.convertToLine(geometry.getCoordinates());
-//                    createPolylineGraphics(points, contributionData);
-//                    break;
-//                }
-//                case "Polygon": {
-//                    PointCollection points = GeoJsonGeometryConverter.convertToPolygon(geometry.getCoordinates());
-//                    createPolygonGraphics(points, contributionData);
-//                    break;
-//                }
-//            }
-//        }
-//        reCenterMap();
-//    }
 
     private void reCenterMap() {
         disposables.add(
@@ -659,12 +551,10 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
                     if (graphicsOverlay.getGraphics().size() > 1)
                         mapView.setViewpointGeometryAsync(graphicsOverlay.getExtent(), 70).addDoneListener(() -> {
                             dbClient.insertLog(Logger.INITIAL_EXTENT);
-                            showCluster();
                         });
                     else if (graphicsOverlay.getGraphics().size() == 1)
                         mapView.setViewpointCenterAsync(graphicsOverlay.getExtent().getCenter(), 3000).addDoneListener(() -> {
                             dbClient.insertLog(Logger.INITIAL_EXTENT);
-                            showCluster();
                         });
                 }, e -> Log.e("Set Viewpoint", e.getMessage())));
     }
@@ -675,13 +565,17 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
         mapView.getGraphicsOverlays().add(graphicsOverlay);
     }
 
-    public void zoomIn(View view) {
-        Viewpoint viewpoint = new Viewpoint(mapView.getVisibleArea().getExtent().getCenter(), mapView.getMapScale() / 2, mapView.getMapRotation());
+    public void zoomIn() {
+        zoomIn(mapView.getVisibleArea().getExtent().getCenter());
+    }
+
+    public void zoomIn(Point point) {
+        Viewpoint viewpoint = new Viewpoint(point, mapView.getMapScale() / 2, mapView.getMapRotation());
         mapView.setViewpointAsync(viewpoint, 0.5f);
         dbClient.insertLog(Logger.ZOOM_IN_BUTTON);
     }
 
-    public void zoomOut(View view) {
+    public void zoomOut() {
         Viewpoint viewpoint = new Viewpoint(mapView.getVisibleArea().getExtent().getCenter(), mapView.getMapScale() * 2, mapView.getMapRotation());
         mapView.setViewpointAsync(viewpoint, 0.5f);
         dbClient.insertLog(Logger.ZOOM_OUT_BUTTON);
@@ -702,34 +596,25 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
     protected void onResume() {
         super.onResume();
         mapView.resume();
-        ImageButton northButton = findViewById(R.id.rotate_north_btn);
         disposables.add(dbClient.getProjectProperties()
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(projectProperties -> {
                             switch (projectProperties.getUpDirection()) {
                                 case "east":
                                     resetAngle = 90;
-                                    northButton.setImageDrawable(getResources().getDrawable(R.drawable.east));
                                     break;
                                 case "south":
                                     resetAngle = 180;
-                                    northButton.setImageDrawable(getResources().getDrawable(R.drawable.south));
                                     break;
                                 case "west":
                                     resetAngle = 270;
-                                    northButton.setImageDrawable(getResources().getDrawable(R.drawable.west));
                                     break;
-                                default:
-                                    northButton.setImageDrawable(getResources().getDrawable(R.drawable.north));
-
                             }
                             mapView.setViewpointRotationAsync(resetAngle);
 
                             // TODO: For now other projectProperties.getShowFields() are ignored, they will be implemented as needed in the future
                             new ValueController(this, getRecyclerView(), disposables, dbClient, null);
                         }
-
-
                 ));
     }
 
@@ -770,7 +655,6 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
         disposables.clear();
         mapView.dispose();
     }
-
 
     public void createMosaicDataset(String rasterPath) {
         map.getOperationalLayers().clear();
@@ -938,7 +822,7 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
             if (lookUpValues == null || lookUpValues.size() == 0)
                 cleanMarkers();
             else {
-                dbClient.loadMarkers(lookUpValues).subscribe(this::updateMarkers);
+                dbClient.loadMarkers(lookUpValues).subscribe(this::clusterContributions);
             }
         });
 
@@ -951,7 +835,7 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
     }
 
     private void cleanMarkers() {
-        showMarkers(null, false);
+        clusterContributions(null);
     }
 
     private class ConfirmRVAdapter extends RecyclerView.Adapter<ConfirmRVAdapter.ViewHolder> {
