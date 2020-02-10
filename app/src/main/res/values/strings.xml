@@ -25,7 +25,7 @@
     <string name="content_desc_zoom_out">Zoom out</string>
     <string name="content_desc_zoom_in">Zoom in</string>
     <string name="choose_directory">Choose directory with raster files</string>
-    <string name="blank_map">kenya4.vtpk</string>
+    <string name="blank_map">Layers.tpk</string>
     <string name="ssl_exception">Connection closed by peer</string>
     <string name="project_settings">Project settings</string>
     <string name="show_fields">Layer options:</string>
