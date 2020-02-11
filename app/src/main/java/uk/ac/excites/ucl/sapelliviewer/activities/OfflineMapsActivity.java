@@ -41,10 +41,9 @@ import com.bumptech.glide.Glide;
 import com.esri.arcgisruntime.concurrent.ListenableFuture;
 import com.esri.arcgisruntime.geometry.GeometryType;
 import com.esri.arcgisruntime.geometry.Point;
-import com.esri.arcgisruntime.geometry.SpatialReferences;
 import com.esri.arcgisruntime.layers.ArcGISTiledLayer;
-import com.esri.arcgisruntime.layers.RasterLayer;
-import com.esri.arcgisruntime.loadable.LoadStatus;
+import com.esri.arcgisruntime.layers.ArcGISVectorTiledLayer;
+import com.esri.arcgisruntime.layers.Layer;
 import com.esri.arcgisruntime.mapping.ArcGISMap;
 import com.esri.arcgisruntime.mapping.Basemap;
 import com.esri.arcgisruntime.mapping.Viewpoint;
@@ -55,8 +54,6 @@ import com.esri.arcgisruntime.mapping.view.IdentifyGraphicsOverlayResult;
 import com.esri.arcgisruntime.mapping.view.MapView;
 import com.esri.arcgisruntime.mapping.view.SketchCreationMode;
 import com.esri.arcgisruntime.mapping.view.SketchEditor;
-import com.esri.arcgisruntime.raster.AddRastersParameters;
-import com.esri.arcgisruntime.raster.MosaicDatasetRaster;
 import com.esri.arcgisruntime.symbology.SimpleFillSymbol;
 import com.esri.arcgisruntime.symbology.SimpleLineSymbol;
 import com.esri.arcgisruntime.symbology.SimpleMarkerSymbol;
@@ -74,6 +71,7 @@ import java.util.concurrent.TimeUnit;
 import io.reactivex.Observable;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.observers.DisposableMaybeObserver;
 import io.reactivex.schedulers.Schedulers;
 import uk.ac.excites.ucl.sapelliviewer.R;
 import uk.ac.excites.ucl.sapelliviewer.activities.ui.addContribution.AddContributionDialog;
@@ -183,7 +181,36 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
 
         ((ViewGroup) findViewById(R.id.root)).getLayoutTransition().enableTransitionType(LayoutTransition.CHANGE_APPEARING);
 
-        setupMap();
+        disposables.add(db.projectInfoDao().getMapPath(projectId)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribeWith(new DisposableMaybeObserver<String>() {
+                    @Override
+                    public void onSuccess(String filePath) {
+                        Log.d(TAG, "setupMap: ");
+
+                        Layer layer = null;
+                        switch (filePath.substring(filePath.lastIndexOf("."))) {
+                            case ".vtpk":
+                                layer = new ArcGISVectorTiledLayer(filePath);
+                                break;
+                            case ".tpk":
+                                layer = new ArcGISTiledLayer(filePath);
+                                break;
+                        }
+                        setupMap(layer);
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        Layer layer = new ArcGISVectorTiledLayer(MediaHelpers.dataPath + File.separator + getString(R.string.blank_map));
+                        setupMap(layer);
+                    }
+                }));
 
         mapView.setOnTouchListener(new DefaultMapViewOnTouchListener(this, mapView) {
                                        @Override
@@ -287,19 +314,9 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
         dialogFragment.show(ft, "dialog");
     }
 
-    private void setupMap() {
+    private void setupMap(Layer tileLayer) {
         if (mapView != null) {
-
-            /* Load Vector base map*/
-            ArcGISTiledLayer vtpk = new ArcGISTiledLayer(MediaHelpers.dataPath + File.separator + getString(R.string.blank_map));
-
-            Basemap.Type basemapType = Basemap.Type.IMAGERY_WITH_LABELS_VECTOR;
-            double latitude = 0.797094;
-            double longitude = 35.535340;
-
-            int levelOfDetail = 8;
-//            ArcGISMap map = new ArcGISMap(basemapType, latitude, longitude, levelOfDetail);
-            map = new ArcGISMap(new Basemap(vtpk));
+            map = new ArcGISMap(new Basemap(tileLayer));
             map.setMaxScale(1);
             map.addLoadStatusChangedListener(loadStatusChangedEvent -> {
                 String mapLoadStatus;
@@ -311,7 +328,6 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
                     mSketchEditor = new SketchEditor();
                     mapView.setSketchEditor(mSketchEditor);
 
-//                    showContributionDetail(0);
                     getContributions();
                 }
             });
@@ -336,10 +352,6 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
                                     clusterContributions(contributions);
                                 }
                         ));
-//        disposables.add(db.projectInfoDao().getMapPath(projectId)
-//                .subscribeOn(Schedulers.io())
-//                .observeOn(AndroidSchedulers.mainThread())
-//                .subscribe(OfflineMapsActivity.this::createMosaicDataset));
     }
 
     private void showToast(String message) {
@@ -656,56 +668,6 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
         mapView.dispose();
     }
 
-    public void createMosaicDataset(String rasterPath) {
-        map.getOperationalLayers().clear();
-        MosaicDatasetRaster mosaicDatasetRaster;
-        mosaicDatasetRaster = MosaicDatasetRaster.create(MediaHelpers.dataPath + DB_NAME, RASTER_NAME, SpatialReferences.getWebMercator());
-        mosaicDatasetRaster.loadAsync();
-        mosaicDatasetRaster.addDoneLoadingListener(new Runnable() {
-            @Override
-            public void run() {
-                Log.d("CREATED", mosaicDatasetRaster.getLoadStatus().name());
-                if (mosaicDatasetRaster.getLoadStatus() == LoadStatus.LOADED) {
-                    Log.d("CREATED", "successful");
-                    AddRastersParameters parameters = new AddRastersParameters();
-                    parameters.setInputDirectory(rasterPath);
-                    mosaicDatasetRaster.addRastersAsync(parameters).addDoneListener(new Runnable() {
-
-                        @Override
-                        public void run() {
-                            if (mosaicDatasetRaster.getLoadStatus() == LoadStatus.LOADED) {
-                                showRasters();
-                            } else if (mosaicDatasetRaster.getLoadStatus() == LoadStatus.FAILED_TO_LOAD) {
-                                Log.e("FAILED TO LOAD", mosaicDatasetRaster.getLoadError().getAdditionalMessage());
-                            }
-                        }
-                    });
-                } else if (mosaicDatasetRaster.getLoadStatus() == LoadStatus.FAILED_TO_LOAD) {
-                    Log.e("FAILED TO LOAD", mosaicDatasetRaster.getLoadError().getAdditionalMessage());
-                    mosaicDatasetRaster.retryLoadAsync();
-                }
-            }
-        });
-    }
-
-    public void showRasters() {
-        if (!(new File(MediaHelpers.dataPath + DB_NAME).exists())) {
-            disposables.add(db.projectInfoDao().getMapPath(projectId).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe(OfflineMapsActivity.this::createMosaicDataset));
-        } else {
-            MosaicDatasetRaster mosaicDatasetRaster = new MosaicDatasetRaster(MediaHelpers.dataPath + DB_NAME, RASTER_NAME);
-            RasterLayer mosaicDatasetRasterLayer = new RasterLayer(mosaicDatasetRaster);
-            map.getOperationalLayers().add(mosaicDatasetRasterLayer);
-            map.loadAsync();
-            map.addDoneLoadingListener(new Runnable() {
-                @Override
-                public void run() {
-                    Log.e("LAYERS", "SHOWN");
-                }
-            });
-        }
-    }
-
-
     public void copyBlankMap() {
         try {
             String name = getString(R.string.blank_map);
@@ -723,32 +685,6 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
     public int getProjectId() {
         return projectId;
     }
-
-    public void displayDetails(int contributionId) {
-        DetailsFragment shownFragment = (DetailsFragment) getSupportFragmentManager().findFragmentByTag(DETAILS_FRAGMENT);
-        FragmentManager fragmentManager = getSupportFragmentManager();
-        if (shownFragment != null && shownFragment.isVisible()) {
-            if (shownFragment.getContributionId() != contributionId) {
-                DetailsFragment detailsFragment = DetailsFragment.newInstance(contributionId, projectId);
-                fragmentManager
-                        .beginTransaction()
-                        .replace(R.id.fragment_container, detailsFragment, DETAILS_FRAGMENT)
-                        .commit();
-            }
-        } else {
-            DetailsFragment detailsFragment = DetailsFragment.newInstance(contributionId, projectId);
-            fragmentManager
-                    .beginTransaction()
-                    .add(R.id.fragment_container, detailsFragment, DETAILS_FRAGMENT)
-                    .commit();
-            final RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT);
-            params.addRule(RelativeLayout.RIGHT_OF, R.id.fragment_container);
-            params.addRule(RelativeLayout.ABOVE, R.id.value_recycler_view);
-            params.setMargins(0, 0, 0, -24);
-            mapView.setLayoutParams(params);
-        }
-    }
-
 
     public void closeFragment() {
         DetailsFragment shownFragment = (DetailsFragment) getSupportFragmentManager().findFragmentByTag(DETAILS_FRAGMENT);
