@@ -70,6 +70,6 @@ dependencies {
     implementation 'androidx.room:room-rxjava2:2.2.3'
     implementation 'androidx.multidex:multidex:2.0.1'
     implementation 'com.idescout.sql:sqlscout-server:4.1'
-    implementation "com.github.ChuckerTeam.Chucker:library:3.0.1"
-
+    debugImplementation "com.github.ChuckerTeam.Chucker:library:3.0.1"
+    implementation 'com.github.TutorialsAndroid:FilePicker:v7.0.19'
 }
