@@ -8,6 +8,15 @@ import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.os.Bundle;
+import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.View;
+import android.view.WindowManager;
+import android.view.animation.Animation;
+import android.widget.ImageView;
+import android.widget.Toast;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -18,15 +27,12 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import android.util.Log;
-import android.view.Menu;
-import android.view.MenuItem;
-import android.view.View;
-import android.view.WindowManager;
-import android.view.animation.Animation;
-import android.widget.ImageView;
-import android.widget.Toast;
 
+import com.developer.filepicker.model.DialogConfigs;
+import com.developer.filepicker.model.DialogProperties;
+import com.developer.filepicker.view.FilePickerDialog;
+
+import java.io.File;
 import java.util.List;
 
 import io.reactivex.Completable;
@@ -37,7 +43,6 @@ import io.reactivex.observers.DisposableCompletableObserver;
 import io.reactivex.observers.DisposableObserver;
 import io.reactivex.observers.DisposableSingleObserver;
 import io.reactivex.schedulers.Schedulers;
-import lib.folderpicker.FolderPicker;
 import uk.ac.excites.ucl.sapelliviewer.R;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.ProjectInfo;
 import uk.ac.excites.ucl.sapelliviewer.datamodel.UserInfo;
@@ -48,7 +53,6 @@ import uk.ac.excites.ucl.sapelliviewer.service.RetrofitBuilder;
 import uk.ac.excites.ucl.sapelliviewer.ui.GeoKeyProjectAdapter;
 import uk.ac.excites.ucl.sapelliviewer.ui.SettingsFragment;
 import uk.ac.excites.ucl.sapelliviewer.utils.NoConnectivityException;
-import uk.ac.excites.ucl.sapelliviewer.utils.SdCardStorage;
 import uk.ac.excites.ucl.sapelliviewer.utils.TokenManager;
 
 public class SettingsActivity extends AppCompatActivity {
@@ -133,7 +137,6 @@ public class SettingsActivity extends AppCompatActivity {
             }
         });
         recyclerView.setAdapter(projectAdapter);
-
     }
 
     @Override
@@ -364,34 +367,37 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     private void openFilePicker() {
-        Intent intent = new Intent(this, FolderPicker.class);
-        intent.putExtra("title", getResources().getString(R.string.choose_directory));
-        intent.putExtra("location", SdCardStorage.getExternalStoragePath(SettingsActivity.this, true));
-        startActivityForResult(intent, FILE_PICKER_REQUEST_CODE);
-    }
+        DialogProperties properties = new DialogProperties();
 
+        properties.selection_mode = DialogConfigs.SINGLE_MODE;
+        properties.selection_type = DialogConfigs.FILE_SELECT;
+        properties.root = new File(DialogConfigs.DEFAULT_DIR);
+        properties.error_dir = new File(DialogConfigs.DEFAULT_DIR);
+        properties.offset = new File(DialogConfigs.DEFAULT_DIR);
+        properties.extensions = null;
+        properties.show_hidden_files = false;
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == FILE_PICKER_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
+        FilePickerDialog dialog = new FilePickerDialog(this, properties);
+        dialog.setTitle("Select a map file");
+        dialog.setDialogSelectionListener(files ->
+                disposables.add(
+                        Completable.fromAction(() -> db.projectInfoDao()
+                                .setMapPath(projectAdapter.getProject(mapPathPosition).getId(), files[0]))
+                                .subscribeOn(Schedulers.io())
+                                .observeOn(AndroidSchedulers.mainThread())
+                                .subscribeWith(new DisposableCompletableObserver() {
+                                    @Override
+                                    public void onComplete() {
+                                        projectAdapter.notifyItemChanged(mapPathPosition);
+                                    }
 
-            String folderLocation = data.getExtras().getString("data");
+                                    @Override
+                                    public void onError(Throwable e) {
+                                        Log.e("setMapPath", e.getMessage());
+                                    }
+                                })));
 
-            disposables.add(
-                    Completable.fromAction(() -> db.projectInfoDao().setMapPath(projectAdapter.getProject(mapPathPosition).getId(), folderLocation)).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
-                            .subscribeWith(new DisposableCompletableObserver() {
-                                @Override
-                                public void onComplete() {
-                                    projectAdapter.notifyItemChanged(mapPathPosition);
-                                }
-
-                                @Override
-                                public void onError(Throwable e) {
-                                    Log.e("setMapPath", e.getMessage());
-                                }
-                            }));
-        }
+        dialog.show();
     }
 
     public void showProjectSettings(int projectid) {
