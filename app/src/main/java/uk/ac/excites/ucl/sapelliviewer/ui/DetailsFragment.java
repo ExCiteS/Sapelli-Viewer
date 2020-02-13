@@ -64,7 +64,7 @@ public class DetailsFragment extends DialogFragment implements DocumentFragmentL
         int width = metrics.widthPixels;
         int height = metrics.heightPixels;
 
-        getDialog().getWindow().setLayout((6 * width) / 7, (6 * height) / 7);
+        getDialog().getWindow().setLayout((6 * width) / 7, (4 * height) / 5);
     }
 
     @Override
