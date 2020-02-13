@@ -39,6 +39,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.esri.arcgisruntime.concurrent.ListenableFuture;
+import com.esri.arcgisruntime.geometry.Geometry;
 import com.esri.arcgisruntime.geometry.GeometryType;
 import com.esri.arcgisruntime.geometry.Point;
 import com.esri.arcgisruntime.layers.ArcGISTiledLayer;
@@ -199,6 +200,7 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
                                 break;
                         }
                         setupMap(layer);
+                        getProjectProperties();
                     }
 
                     @Override
@@ -232,20 +234,17 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
                                                        if (!graphic.isSelected()) {
                                                            Integer count = (Integer) graphic.getAttributes().get("count");
                                                            if (count != null && count != 1) {
-                                                               zoomIn(new Point(((Point) graphic.getGeometry()).getX(), ((Point) graphic.getGeometry()).getY()));
+                                                               zoomToCluster(graphic);
                                                                return;
                                                            }
 
                                                            // Open detail
-                                                           Integer contributionId = (Integer) graphic.getAttributes().get("contributionId");
                                                            ArrayList<String> list = GeoJsonGeometryConverter.convertFromString(String.valueOf(graphic.getAttributes().get("contributions")));
                                                            Contribution contribution = GeoJsonGeometryConverter.convertToContribution(list.get(0));
                                                            if (contribution != null)
                                                                showContributionDetail(contribution.getId());
-//                                                               dbClient.insertLog(Logger.CONTRIBUTION_DETAILS_OPENED, contributionId);
                                                        } else {
                                                            graphic.setSelected(false);
-//                                                               dbClient.insertLog(Logger.CONTRIBUTION_DETAILS_CLOSED, (Integer) graphic.getAttributes().get(CONTRIBUTION_ID));
                                                        }
                                                    }
                                                } catch (InterruptedException | ExecutionException ie) {
@@ -302,6 +301,50 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
         );
     }
 
+    private void zoomToCluster(Graphic graphic) {
+        if (!graphic.getAttributes().containsKey("extent") && graphic.getAttributes().get("extent") == null) {
+            zoomIn(graphic.getGraphicsOverlay().getExtent().getCenter());
+            return;
+        }
+
+        Geometry g = Geometry.fromJson(graphic.getAttributes().get("extent").toString());
+
+        double w = g.getExtent().getWidth();
+        double h = g.getExtent().getHeight();
+
+        double zoomScale;
+
+        if (w > h) {
+            zoomScale = mapView.getMapScale() / mapView.getVisibleArea().getExtent().getWidth() * w * 2;
+        } else
+            zoomScale = mapView.getMapScale() / mapView.getVisibleArea().getExtent().getHeight() * h * 2;
+
+        mapView.setViewpointCenterAsync(g.getExtent().getCenter(), zoomScale).addDoneListener(() -> clusterVectorLayer.reCluster());
+    }
+
+    private void getProjectProperties() {
+        disposables.add(dbClient.getProjectProperties()
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(projectProperties -> {
+                            switch (projectProperties.getUpDirection()) {
+                                case "east":
+                                    resetAngle = 90;
+                                    break;
+                                case "south":
+                                    resetAngle = 180;
+                                    break;
+                                case "west":
+                                    resetAngle = 270;
+                                    break;
+                            }
+                            mapView.setViewpointRotationAsync(resetAngle);
+
+                            // TODO: For now other projectProperties.getShowFields() are ignored, they will be implemented as needed in the future
+                            new ValueController(this, getRecyclerView(), disposables, dbClient, null);
+                        }
+                ));
+    }
+
     private void showContributionDetail(Integer contributionId) {
         FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
         Fragment prev = getSupportFragmentManager().findFragmentByTag("dialog");
@@ -311,7 +354,9 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
         ft.addToBackStack(null);
         DialogFragment dialogFragment = DetailsFragment.newInstance(contributionId, 0);
         dialogFragment.setCancelable(true);
+        dialogFragment.getDialog().setOnDismissListener(dialog -> dbClient.insertLog(Logger.CONTRIBUTION_DETAILS_CLOSED, contributionId));
         dialogFragment.show(ft, "dialog");
+        dbClient.insertLog(Logger.CONTRIBUTION_DETAILS_OPENED, contributionId);
     }
 
     private void setupMap(Layer tileLayer) {
@@ -608,26 +653,6 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
     protected void onResume() {
         super.onResume();
         mapView.resume();
-        disposables.add(dbClient.getProjectProperties()
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(projectProperties -> {
-                            switch (projectProperties.getUpDirection()) {
-                                case "east":
-                                    resetAngle = 90;
-                                    break;
-                                case "south":
-                                    resetAngle = 180;
-                                    break;
-                                case "west":
-                                    resetAngle = 270;
-                                    break;
-                            }
-                            mapView.setViewpointRotationAsync(resetAngle);
-
-                            // TODO: For now other projectProperties.getShowFields() are ignored, they will be implemented as needed in the future
-                            new ValueController(this, getRecyclerView(), disposables, dbClient, null);
-                        }
-                ));
     }
 
     @Override

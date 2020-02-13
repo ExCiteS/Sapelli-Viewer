@@ -56,11 +56,7 @@ public class ClusterVectorLayer {
 
         mapView.addNavigationChangedListener(navigationChangedEvent -> {
             if (((MapView) navigationChangedEvent.getSource()).getMapScale() != lastMapScale) {
-                clusterData.clear();
-                clusterGraphics.clear();
-                clusterGraphicsOverlay.getGraphics().clear();
-                clusterGraphics(contributions);
-                lastMapScale = ((MapView) navigationChangedEvent.getSource()).getMapScale();
+                reCluster();
             }
         });
     }
@@ -71,6 +67,14 @@ public class ClusterVectorLayer {
                 Integer.toHexString(((i >> 16) & 0xFF)) +
                 Integer.toHexString(((i >> 8) & 0xFF)) +
                 Integer.toHexString((i & 0xFF));
+    }
+
+    public void reCluster() {
+        clusterData.clear();
+        clusterGraphics.clear();
+        clusterGraphicsOverlay.getGraphics().clear();
+        clusterGraphics(contributions);
+        lastMapScale = mapView.getMapScale();
     }
 
     private CompositeSymbol generateSymbol(int size, int count) {
