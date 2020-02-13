@@ -353,10 +353,11 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
         }
         ft.addToBackStack(null);
         DialogFragment dialogFragment = DetailsFragment.newInstance(contributionId, 0);
+        dialogFragment.setStyle(DialogFragment.STYLE_NO_TITLE, 0);
         dialogFragment.setCancelable(true);
-        dialogFragment.getDialog().setOnDismissListener(dialog -> dbClient.insertLog(Logger.CONTRIBUTION_DETAILS_CLOSED, contributionId));
         dialogFragment.show(ft, "dialog");
-        dbClient.insertLog(Logger.CONTRIBUTION_DETAILS_OPENED, contributionId);
+//        dialogFragment.getDialog().setOnDismissListener(dialog -> dbClient.insertLog(Logger.CONTRIBUTION_DETAILS_CLOSED, contributionId));
+//        dbClient.insertLog(Logger.CONTRIBUTION_DETAILS_OPENED, contributionId);
     }
 
     private void setupMap(Layer tileLayer) {

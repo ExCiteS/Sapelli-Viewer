@@ -1,10 +1,8 @@
 package uk.ac.excites.ucl.sapelliviewer.ui;
 
-import android.graphics.Color;
-import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
+import android.util.DisplayMetrics;
 import android.util.Log;
-import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -50,14 +48,6 @@ public class DetailsFragment extends DialogFragment implements DocumentFragmentL
         // Required empty public constructor
     }
 
-    @Override
-    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
-        getDialog().getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-        getDialog().getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
-        getDialog().getWindow().setGravity(Gravity.CENTER);
-    }
-
     public static DetailsFragment newInstance(int contributionId, int projectId) {
         DetailsFragment fragment = new DetailsFragment();
         Bundle args = new Bundle();
@@ -65,6 +55,16 @@ public class DetailsFragment extends DialogFragment implements DocumentFragmentL
         args.putInt(PROJECT_ID, projectId);
         fragment.setArguments(args);
         return fragment;
+    }
+
+    @Override
+    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+        DisplayMetrics metrics = getResources().getDisplayMetrics();
+        int width = metrics.widthPixels;
+        int height = metrics.heightPixels;
+
+        getDialog().getWindow().setLayout((6 * width) / 7, (6 * height) / 7);
     }
 
     @Override
@@ -84,6 +84,7 @@ public class DetailsFragment extends DialogFragment implements DocumentFragmentL
         valueRecyclerView = view.findViewById(R.id.value_recycler_view);
         photoRecyclerView = view.findViewById(R.id.photo_recycler_view);
         audioRecyclerView = view.findViewById(R.id.audio_recycler_view);
+        getDialog().setCanceledOnTouchOutside(true);
         return view;
     }
 

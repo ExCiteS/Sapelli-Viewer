@@ -3,12 +3,11 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:padding="30dp">
+    android:layout_height="match_parent">
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:background="@color/background_light"
         android:orientation="vertical"
         android:padding="10dp"
@@ -65,16 +64,16 @@
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:orientation="vertical"
             android:padding="4dp">
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/value_recycler_view"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
                 android:layout_marginTop="8dp"
-                android:layout_weight="0"
+                android:layout_weight="1"
                 android:background="@drawable/bg_black_stroke"
                 android:padding="8dp"
                 tools:itemCount="4"
@@ -84,6 +83,7 @@
                 android:id="@+id/lnrMedia"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_weight="0"
                 android:layout_marginTop="8dp"
                 android:background="@drawable/bg_black_stroke"
                 android:orientation="vertical"
@@ -94,7 +94,6 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:layout_weight="0"
                     android:orientation="horizontal"
                     app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
                     tools:listitem="@layout/item_photo" />
@@ -104,7 +103,6 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:layout_weight="0"
                     android:orientation="horizontal"
                     app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
                     tools:listitem="@layout/item_photo" />
