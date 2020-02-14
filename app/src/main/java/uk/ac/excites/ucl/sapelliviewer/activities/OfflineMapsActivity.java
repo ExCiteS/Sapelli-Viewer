@@ -211,6 +211,7 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
                     public void onComplete() {
                         Layer layer = new ArcGISVectorTiledLayer(MediaHelpers.dataPath + File.separator + getString(R.string.blank_map));
                         setupMap(layer);
+                        getProjectProperties();
                     }
                 }));
 
