@@ -2,17 +2,24 @@ package uk.ac.excites.ucl.sapelliviewer.ui;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.drawable.Drawable;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.core.content.res.ResourcesCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.DataSource;
+import com.bumptech.glide.load.engine.GlideException;
+import com.bumptech.glide.request.RequestListener;
+import com.bumptech.glide.request.target.Target;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -110,7 +117,7 @@ public class ValueAdapter extends RecyclerView.Adapter<ValueAdapter.ValueListVie
     }
 
     void selectAll(boolean isSelect) {
-        for (LookUpValue value : getAllLookUpValues()){
+        for (LookUpValue value : getAllLookUpValues()) {
             value.setActive(isSelect);
         }
         notifyDataSetChanged();
@@ -120,7 +127,7 @@ public class ValueAdapter extends RecyclerView.Adapter<ValueAdapter.ValueListVie
         void onClick(View v, LookUpValue value);
     }
 
-    private interface OnValueClickListener{
+    private interface OnValueClickListener {
         void onValueClicked(View v, LookUpValue value, int position);
     }
 
@@ -142,7 +149,7 @@ public class ValueAdapter extends RecyclerView.Adapter<ValueAdapter.ValueListVie
 
             ValueListAdapter adapter = new ValueListAdapter();
             OnValueClickListener onValueClickListener = (v, value, position) -> {
-                listener.onClick(v,value);
+                listener.onClick(v, value);
                 adapter.notifyItemChanged(position);
             };
             adapter.initAdapter(lookUpValues, onValueClickListener);
@@ -192,11 +199,41 @@ public class ValueAdapter extends RecyclerView.Adapter<ValueAdapter.ValueListVie
                         Glide.with(context)
                                 .asBitmap()
                                 .load(MediaHelpers.dataPath + value.getSymbol())
+                                .listener(new RequestListener<Bitmap>() {
+                                    @Override
+                                    public boolean onLoadFailed(@Nullable GlideException e, Object model, Target<Bitmap> target, boolean isFirstResource) {
+                                        itemView.post(() -> {
+                                            itemView.getLayoutParams().width = 0;
+                                            itemView.requestLayout();
+                                        });
+                                        return false;
+                                    }
+
+                                    @Override
+                                    public boolean onResourceReady(Bitmap resource, Object model, Target<Bitmap> target, DataSource dataSource, boolean isFirstResource) {
+                                        return false;
+                                    }
+                                })
                                 .into(valueImage);
                     } else if (MediaHelpers.isVectorImageFileName(path)) {
                         Glide.with(context)
                                 .asDrawable()
                                 .load(MediaHelpers.svgToDrawable(path))
+                                .listener(new RequestListener<Drawable>() {
+                                    @Override
+                                    public boolean onLoadFailed(@Nullable GlideException e, Object model, Target<Drawable> target, boolean isFirstResource) {
+                                        itemView.post(() -> {
+                                            itemView.getLayoutParams().width = 0;
+                                            itemView.requestLayout();
+                                        });
+                                        return false;
+                                    }
+
+                                    @Override
+                                    public boolean onResourceReady(Drawable resource, Object model, Target<Drawable> target, DataSource dataSource, boolean isFirstResource) {
+                                        return false;
+                                    }
+                                })
                                 .into(valueImage);
                     }
 
