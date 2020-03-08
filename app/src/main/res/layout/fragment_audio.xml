@@ -1,18 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ImageView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/photo_view"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/background_light"
-    tools:context="uk.ac.excites.ucl.sapelliviewer.activities.OfflineMapsActivity">
-
-
-    <ImageView
-        android:id="@+id/photo_view"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:padding="4dp"
-        android:scaleType="fitCenter"
-        android:src="@drawable/audio" />
-
-</LinearLayout>
+    tools:context="uk.ac.excites.ucl.sapelliviewer.activities.OfflineMapsActivity"
+    android:padding="4dp"
+    android:scaleType="fitCenter"
+    android:src="@drawable/audio"
+    tools:ignore="ContentDescription" />
