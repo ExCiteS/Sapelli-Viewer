@@ -1,22 +1,21 @@
 package uk.ac.excites.ucl.sapelliviewer.ui;
 
+import android.annotation.SuppressLint;
+import android.app.AlertDialog;
+import android.app.Dialog;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.fragment.app.DialogFragment;
-import androidx.fragment.app.FragmentManager;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.FragmentActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.io.File;
-import java.util.Objects;
 
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
@@ -30,7 +29,7 @@ import uk.ac.excites.ucl.sapelliviewer.utils.Logger;
 import uk.ac.excites.ucl.sapelliviewer.utils.MediaHelpers;
 
 
-public class DetailsFragment extends DialogFragment implements DocumentFragmentListener {
+public class DetailsFragment extends ProjectManagerFragment implements DocumentFragmentListener {
     private static final String CONTRIBUTION_ID = "contributionId";
     private static final String PROJECT_ID = "projectId";
 
@@ -43,12 +42,19 @@ public class DetailsFragment extends DialogFragment implements DocumentFragmentL
     private RecyclerView audioRecyclerView;
     private TextView dateTextView;
     private DatabaseClient dbClient;
+    private DocumentFragmentListener listener;
 
-    public DetailsFragment() {
+    private DetailsFragment() {
         // Required empty public constructor
     }
 
-    public static DetailsFragment newInstance(int contributionId, int projectId) {
+    static public DetailsFragment ShowDialog(FragmentActivity owner, int contributionId, int projectId) {
+        DetailsFragment fragment = DetailsFragment.newInstance(contributionId, projectId);
+        fragment.show(owner.getSupportFragmentManager(), DetailsFragment.class.getSimpleName());
+        return fragment;
+    }
+
+    private static DetailsFragment newInstance(int contributionId, int projectId) {
         DetailsFragment fragment = new DetailsFragment();
         Bundle args = new Bundle();
         args.putInt(CONTRIBUTION_ID, contributionId);
@@ -57,37 +63,54 @@ public class DetailsFragment extends DialogFragment implements DocumentFragmentL
         return fragment;
     }
 
+    @SuppressLint("InflateParams")
     @Override
-    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
-        DisplayMetrics metrics = getResources().getDisplayMetrics();
-        int width = metrics.widthPixels;
-        int height = metrics.heightPixels;
+    public Dialog onCreateDialog(Bundle savedInstanceState) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(getOwner());
+        AlertDialog dialog = builder.create();
 
-        getDialog().getWindow().setLayout((6 * width) / 7, (4 * height) / 5);
+        // Set view:
+        setDialogView(dialog);
+
+        return dialog;
     }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
-//            contributionId = 30334;
             contributionId = getArguments().getInt(CONTRIBUTION_ID);
             projectId = getArguments().getInt(PROJECT_ID);
         }
+        if (listener != null)
+            listener.OnFragmentAttached(getClass().getSimpleName(), contributionId);
     }
 
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_details, container, false);
-        dateTextView = view.findViewById(R.id.txt_date);
-        valueRecyclerView = view.findViewById(R.id.value_recycler_view);
-        photoRecyclerView = view.findViewById(R.id.photo_recycler_view);
-        audioRecyclerView = view.findViewById(R.id.audio_recycler_view);
-        getDialog().setCanceledOnTouchOutside(true);
-        return view;
+    public void onDetach() {
+        super.onDetach();
+        if (listener != null)
+            listener.OnFragmentDetached(getClass().getSimpleName(), contributionId);
     }
 
+    @Override
+    protected Integer getLayoutID() {
+        return R.layout.fragment_details;
+    }
+
+    @Override
+    protected void setupUI(AppCompatActivity owner, View rootLayout) throws Exception {
+        super.setupUI(owner, rootLayout);
+        dateTextView = rootLayout.findViewById(R.id.txt_date);
+        valueRecyclerView = rootLayout.findViewById(R.id.value_recycler_view);
+        photoRecyclerView = rootLayout.findViewById(R.id.photo_recycler_view);
+        audioRecyclerView = rootLayout.findViewById(R.id.audio_recycler_view);
+        getDialog().setCanceledOnTouchOutside(true);
+    }
+
+    public void setFragmentListener(DocumentFragmentListener listener) {
+        this.listener = listener;
+    }
 
     @Override
     public void onStart() {
@@ -95,10 +118,13 @@ public class DetailsFragment extends DialogFragment implements DocumentFragmentL
         AppDatabase db = AppDatabase.getAppDatabase(getActivity());
         dbClient = new DatabaseClient(getContext(), projectId, null);
         CompositeDisposable disposables = new CompositeDisposable();
-        valueRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity(), LinearLayoutManager.VERTICAL, false));
+        LinearLayoutManager lm = new LinearLayoutManager(getActivity(), LinearLayoutManager.VERTICAL, false);
+        valueRecyclerView.setLayoutManager(lm);
         Log.d("contribution", "onStart: " + contributionId);
 
 //        contributionId = 30340;
+//        contributionId = 29081; //with photo
+//        contributionId = 29395; //with audio
         disposables.add(db.contributionDao().getPropertiesByContribution(contributionId)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
@@ -112,6 +138,7 @@ public class DetailsFragment extends DialogFragment implements DocumentFragmentL
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(photos -> {
+                    Log.d("photos", "count: " + photos.size());
                     if (photos.isEmpty() && audioAdapter != null && audioAdapter.getItemCount() == 0)
                         getView().findViewById(R.id.lnrMedia).setVisibility(View.GONE);
 
@@ -124,6 +151,7 @@ public class DetailsFragment extends DialogFragment implements DocumentFragmentL
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(audios -> {
+                    Log.d("audios", "count: " + audios.size());
                     if (audios.isEmpty() && photoAdapter != null && photoAdapter.getItemCount() == 0)
                         getView().findViewById(R.id.lnrMedia).setVisibility(View.GONE);
 
@@ -136,35 +164,24 @@ public class DetailsFragment extends DialogFragment implements DocumentFragmentL
                 .observeOn(AndroidSchedulers.mainThread())
                 .map(contributionProperty -> DateTimeHelpers.parseIso8601DateTime(contributionProperty.getValue())).subscribe(date -> dateTextView.setText(DateTimeHelpers.dateToString(date))));
 
-    }
+        Dialog d = getDialog();
+        if (d != null) {
+            DisplayMetrics metrics = getResources().getDisplayMetrics();
+            int height = metrics.heightPixels;
 
-
-    public void openPhotoView(Document photo) {
-        FragmentManager fragmentManager = Objects.requireNonNull(getActivity()).getSupportFragmentManager();
-        if (photo.isActive()) {
-            fragmentManager.beginTransaction().remove(fragmentManager.findFragmentByTag(String.valueOf(photo.getId()))).commit();
-            dbClient.insertLog(Logger.PHOTO_CLOSED, photo.getId());
-        } else {
-            PhotoFragment photoFragment = PhotoFragment.newInstance(photo.getId(), MediaHelpers.dataPath + File.separator + photo.getUrl());
-//            fragmentManager.beginTransaction().replace(R.id.fragment_media_container, photoFragment, String.valueOf(photo.getId())).commit();
-            photoFragment.setFragmentListener(this);
-            dbClient.insertLog(Logger.PHOTO_OPENED, photo.getId());
+            d.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT, Math.round(4.5f * height / 5));
         }
     }
 
-    public void openAudioView(Document audio) {
-        FragmentManager fragmentManager = Objects.requireNonNull(getActivity()).getSupportFragmentManager();
-        if (audio.isActive()) {
-            fragmentManager.beginTransaction().remove(fragmentManager.findFragmentByTag(String.valueOf(audio.getId()))).commit();
-            dbClient.insertLog(Logger.AUDIO_CLOSED, audio.getId());
-        } else {
-            AudioFragment audioFragment = AudioFragment.newInstance(audio.getId(), MediaHelpers.dataPath + File.separator + audio.getUrl());
-//            fragmentManager.beginTransaction().replace(R.id.fragment_media_container, audioFragment, String.valueOf(audio.getId())).commit();
-            audioFragment.setFragmentListener(this);
-            dbClient.insertLog(Logger.AUDIO_OPENED, audio.getId());
-        }
+    private void openPhotoView(Document photo) {
+        PhotoFragment photoFragment = PhotoFragment.ShowDialog(getOwner(), photo.getId(), MediaHelpers.dataPath + File.separator + photo.getUrl());
+        photoFragment.setFragmentListener(this);
     }
 
+    private void openAudioView(Document audio) {
+        AudioFragment audioFragment = AudioFragment.ShowDialog(getOwner(), audio.getId(), MediaHelpers.dataPath + File.separator + audio.getUrl());
+        audioFragment.setFragmentListener(this);
+    }
 
     public int getContributionId() {
         return contributionId;
@@ -175,9 +192,11 @@ public class DetailsFragment extends DialogFragment implements DocumentFragmentL
         if (type.equals("AudioFragment")) {
             audioAdapter.getAudioByid(documentId).setActive(true);
             audioAdapter.notifyDataSetChanged();
+            dbClient.insertLog(Logger.AUDIO_OPENED, documentId);
         } else if (type.equals("PhotoFragment")) {
             photoAdapter.getPhotoByid(documentId).setActive(true);
             photoAdapter.notifyDataSetChanged();
+            dbClient.insertLog(Logger.PHOTO_OPENED, documentId);
         }
     }
 
@@ -186,9 +205,11 @@ public class DetailsFragment extends DialogFragment implements DocumentFragmentL
         if (type.equals("AudioFragment")) {
             audioAdapter.getAudioByid(documentId).setActive(false);
             audioAdapter.notifyDataSetChanged();
+            dbClient.insertLog(Logger.AUDIO_CLOSED, documentId);
         } else if (type.equals("PhotoFragment")) {
             photoAdapter.getPhotoByid(documentId).setActive(false);
             photoAdapter.notifyDataSetChanged();
+            dbClient.insertLog(Logger.PHOTO_CLOSED, documentId);
         }
     }
 
