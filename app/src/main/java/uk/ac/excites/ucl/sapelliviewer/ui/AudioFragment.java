@@ -1,14 +1,17 @@
 package uk.ac.excites.ucl.sapelliviewer.ui;
 
+import android.app.AlertDialog;
+import android.app.Dialog;
 import android.os.Bundle;
-import androidx.annotation.NonNull;
-import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentManager;
-
+import android.util.DisplayMetrics;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
 
 import com.github.piasy.rxandroidaudio.PlayConfig;
 import com.github.piasy.rxandroidaudio.RxAudioPlayer;
@@ -23,7 +26,7 @@ import uk.ac.excites.ucl.sapelliviewer.R;
 import uk.ac.excites.ucl.sapelliviewer.activities.OfflineMapsActivity;
 
 
-public class AudioFragment extends Fragment {
+public class AudioFragment extends ProjectManagerFragment {
     private static final String AUDIO_ID = "audioID";
     private static final String AUDIO_PATH = "audioPath";
 
@@ -36,17 +39,34 @@ public class AudioFragment extends Fragment {
         // Required empty public constructor
     }
 
-    public void setFragmentListener(DocumentFragmentListener listener) {
-        this.listener = listener;
+    static AudioFragment ShowDialog(AppCompatActivity owner, int audioID, String audioPath) {
+        AudioFragment fragment = AudioFragment.newInstance(audioID, audioPath);
+        fragment.show(owner.getSupportFragmentManager(), AudioFragment.class.getSimpleName());
+        return fragment;
     }
 
-    public static AudioFragment newInstance(int audioID, String audioPath) {
+    private static AudioFragment newInstance(int audioID, String audioPath) {
         AudioFragment fragment = new AudioFragment();
         Bundle args = new Bundle();
         args.putInt(AUDIO_ID, audioID);
         args.putString(AUDIO_PATH, audioPath);
         fragment.setArguments(args);
         return fragment;
+    }
+
+    @NonNull
+    @Override
+    public Dialog onCreateDialog(@Nullable Bundle savedInstanceState) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(getOwner());
+        AlertDialog dialog = builder.create();
+
+        // Set view:
+        setDialogView(dialog);
+        return dialog;
+    }
+
+    void setFragmentListener(DocumentFragmentListener listener) {
+        this.listener = listener;
     }
 
     @Override
@@ -83,18 +103,34 @@ public class AudioFragment extends Fragment {
 
                     @Override
                     public void onComplete() {
-                        FragmentManager fragmentManager = getActivity().getSupportFragmentManager();
-                        fragmentManager.beginTransaction().remove(AudioFragment.this).commit();
+                        dismiss();
                     }
                 });
-
-
     }
 
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        View root = inflater.inflate(R.layout.fragment_audio, container, false);
-        return root;
+    protected void setupUI(AppCompatActivity owner, View rootLayout) throws Exception {
+        super.setupUI(owner, rootLayout);
+        ImageView photoView = rootLayout.findViewById(R.id.photo_view);
+        DisplayMetrics metrics = getResources().getDisplayMetrics();
+        ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(metrics.widthPixels, metrics.heightPixels);
+        photoView.setLayoutParams(params);
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        Dialog d = getDialog();
+        if (d != null) {
+            int width = ViewGroup.LayoutParams.MATCH_PARENT;
+            int height = ViewGroup.LayoutParams.WRAP_CONTENT;
+            d.getWindow().setLayout(width, height);
+        }
+    }
+
+    @Override
+    protected Integer getLayoutID() {
+        return R.layout.fragment_audio;
     }
 
     @Override
@@ -109,6 +145,4 @@ public class AudioFragment extends Fragment {
         if (listener != null)
             listener.OnFragmentDetached(getClass().getSimpleName(), audioId);
     }
-
-
 }
