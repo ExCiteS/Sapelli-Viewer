@@ -39,14 +39,16 @@ public class ContributionValueAdapter extends RecyclerView.Adapter<ContributionV
     @NonNull
     @Override
     public ContributionViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        LayoutInflater inflater = LayoutInflater.from(context);
-        View view = inflater.inflate(R.layout.item_contribution, parent, false);
+        LayoutInflater inflater = LayoutInflater.from(parent.getContext());
+        View view = inflater.inflate(R.layout.item_contribution, null, false);
+        RecyclerView.LayoutParams lp = new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        view.setLayoutParams(lp);
+
         return new ContributionValueAdapter.ContributionViewHolder(view);
     }
 
     @Override
     public void onBindViewHolder(@NonNull ContributionViewHolder holder, int position) {
-
         String path = MediaHelpers.dataPath + contributionProperties.get(position).getSymbol();
         if (MediaHelpers.isRasterImageFileName(path)) {
             Glide.with(context)
@@ -89,9 +91,7 @@ public class ContributionValueAdapter extends RecyclerView.Adapter<ContributionV
                     })
                     .into(holder.contributionValueImage);
         }
-
     }
-
 
     @Override
     public int getItemCount() {
