@@ -30,10 +30,8 @@ import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.drawerlayout.widget.DrawerLayout;
-import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
-import androidx.fragment.app.FragmentTransaction;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -82,6 +80,7 @@ import uk.ac.excites.ucl.sapelliviewer.datamodel.LookUpValue;
 import uk.ac.excites.ucl.sapelliviewer.db.AppDatabase;
 import uk.ac.excites.ucl.sapelliviewer.db.DatabaseClient;
 import uk.ac.excites.ucl.sapelliviewer.ui.DetailsFragment;
+import uk.ac.excites.ucl.sapelliviewer.ui.DocumentFragmentListener;
 import uk.ac.excites.ucl.sapelliviewer.ui.NavigationFragment;
 import uk.ac.excites.ucl.sapelliviewer.ui.ValueController;
 import uk.ac.excites.ucl.sapelliviewer.utils.ClusterVectorLayer;
@@ -347,18 +346,18 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
     }
 
     private void showContributionDetail(Integer contributionId) {
-        FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
-        Fragment prev = getSupportFragmentManager().findFragmentByTag("dialog");
-        if (prev != null) {
-            ft.remove(prev);
-        }
-        ft.addToBackStack(null);
-        DialogFragment dialogFragment = DetailsFragment.newInstance(contributionId, 0);
-        dialogFragment.setStyle(DialogFragment.STYLE_NO_TITLE, 0);
-        dialogFragment.setCancelable(true);
-        dialogFragment.show(ft, "dialog");
-//        dialogFragment.getDialog().setOnDismissListener(dialog -> dbClient.insertLog(Logger.CONTRIBUTION_DETAILS_CLOSED, contributionId));
-//        dbClient.insertLog(Logger.CONTRIBUTION_DETAILS_OPENED, contributionId);
+        DetailsFragment detailsFragment = DetailsFragment.ShowDialog(this, contributionId, 0);
+        detailsFragment.setFragmentListener(new DocumentFragmentListener() {
+            @Override
+            public void OnFragmentAttached(String type, int id) {
+                dbClient.insertLog(Logger.CONTRIBUTION_DETAILS_OPENED, contributionId);
+            }
+
+            @Override
+            public void OnFragmentDetached(String type, int id) {
+                dbClient.insertLog(Logger.CONTRIBUTION_DETAILS_CLOSED, contributionId);
+            }
+        });
     }
 
     private void setupMap(Layer tileLayer) {
