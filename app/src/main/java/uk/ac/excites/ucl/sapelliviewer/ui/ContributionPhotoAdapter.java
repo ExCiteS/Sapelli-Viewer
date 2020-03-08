@@ -27,9 +27,7 @@ public class ContributionPhotoAdapter extends RecyclerView.Adapter<ContributionP
         this.context = context;
         this.photos = photos;
         this.listener = listener;
-
     }
-
 
     @NonNull
     @Override
@@ -60,7 +58,6 @@ public class ContributionPhotoAdapter extends RecyclerView.Adapter<ContributionP
             holder.contributionPhotoFrame.setBackgroundColor(ResourcesCompat.getColor(context.getResources(), R.color.colorPrimary, null));
         else
             holder.contributionPhotoFrame.setBackgroundColor(ResourcesCompat.getColor(context.getResources(), R.color.background_dark, null));
-
     }
 
 
