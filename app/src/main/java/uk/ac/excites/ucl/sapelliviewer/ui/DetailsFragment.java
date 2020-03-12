@@ -169,7 +169,7 @@ public class DetailsFragment extends ProjectManagerFragment implements DocumentF
             DisplayMetrics metrics = getResources().getDisplayMetrics();
             int height = metrics.heightPixels;
 
-            d.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT, Math.round(4.5f * height / 5));
+            d.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         }
     }
 
