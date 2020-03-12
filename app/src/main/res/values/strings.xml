@@ -54,4 +54,8 @@
     <string name="view">View</string>
     <string name="draw">Draw</string>
     <string name="static_contribution_name">Contribution Name:</string>
+    <string name="browse">Browse</string>
+    <string name="scan_qr_code">Scan QR Code</string>
+    <string name="enter_url">Enter URL</string>
+    <string name="add_new_project">Add Project</string>
 </resources>

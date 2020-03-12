@@ -2,11 +2,11 @@ package uk.ac.excites.ucl.sapelliviewer.activities;
 
 import android.Manifest;
 import android.animation.ObjectAnimator;
-import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
@@ -21,9 +21,11 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
+import androidx.appcompat.content.res.AppCompatResources;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.graphics.drawable.DrawableCompat;
 import androidx.fragment.app.FragmentManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -86,10 +88,10 @@ public class SettingsActivity extends AppCompatActivity {
         geoKeyclient = new GeoKeyClient(SettingsActivity.this);
         setContentView(R.layout.activity_settings);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
-        Toolbar toolbar = findViewById(R.id.custom_toolbar);
+        Toolbar toolbar = findViewById(R.id.toolbar);
         toolbar.setTitle("");
         setSupportActionBar(toolbar);
-        toolbar.setLogo(R.mipmap.ic_sapelli_viewer);
+        setAppLogo(toolbar);
 
         imgPlay = findViewById(R.id.imgbPlay);
         imgPlay.setOnClickListener(v -> {
@@ -137,6 +139,13 @@ public class SettingsActivity extends AppCompatActivity {
             }
         });
         recyclerView.setAdapter(projectAdapter);
+    }
+
+    private void setAppLogo(Toolbar toolbar) {
+        Drawable unwrappedDrawable = AppCompatResources.getDrawable(this, R.mipmap.ic_sapelli_viewer);
+        Drawable wrappedDrawable = DrawableCompat.wrap(unwrappedDrawable);
+        DrawableCompat.setTint(wrappedDrawable, Color.WHITE);
+        toolbar.setLogo(wrappedDrawable);
     }
 
     @Override
@@ -240,6 +249,9 @@ public class SettingsActivity extends AppCompatActivity {
         getMenuInflater().inflate(R.menu.menu_settings, menu);
         nameItem = menu.getItem(0);
         updateUser();
+
+        getMenuInflater().inflate(R.menu.projectload, menu.findItem(R.id.action_load).getSubMenu());
+
         return super.onCreateOptionsMenu(menu);
     }
 
@@ -252,6 +264,35 @@ public class SettingsActivity extends AppCompatActivity {
             default:
                 return super.onOptionsItemSelected(item);
         }
+    }
+
+    /**
+     * Browse for project file to load project from.
+     *
+     * @param menuItem
+     */
+    public void browse(MenuItem menuItem) {
+//        // Open file picker to let user chose a project file to load:
+//        try
+//        {
+//            // Use the GET_CONTENT intent from the utility class
+//            Intent target = FileUtils.createGetContentIntent(null);
+//
+//            // Create the chooser Intent
+//            Intent intent = Intent.createChooser(target, getString(R.string.chooseSapelliFile));
+//
+//            // Start file picker activity:
+//            startActivityForResult(intent, RETURN_BROWSE_FOR_PROJECT_LOAD);
+//        }
+//        catch(ActivityNotFoundException e){}
+//
+//        // Close drawer:
+//        closeDrawer(null); // won't do anything if it is not open
+    }
+
+    public void enterURL(MenuItem menuItem) {
+//        closeDrawer(null);
+//        new EnterURLFragment().show(getSupportFragmentManager(), getString(R.string.enter_url));
     }
 
     public void logOut(String errorCode) {
