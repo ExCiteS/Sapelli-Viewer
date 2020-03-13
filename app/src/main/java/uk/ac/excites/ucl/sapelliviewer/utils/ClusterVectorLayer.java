@@ -291,7 +291,7 @@ public class ClusterVectorLayer {
 
         if (cluster.containsKey("contributions")) {
             ArrayList<String> contributions = GeoJsonGeometryConverter.convertFromString((String) cluster.get("contributions"));
-            contributions.add(GeoJsonGeometryConverter.convertToString(contribution));
+            contributions.add(String.valueOf(contribution.getId()));
             cluster.remove("contributions");
             cluster.put("contributions", GeoJsonGeometryConverter.convertToString(contributions));
         }
@@ -311,7 +311,7 @@ public class ClusterVectorLayer {
         hashMap.put("y", point.getY());
         hashMap.put("clusterID", clusterID);
         ArrayList<String> contributionList = new ArrayList<>();
-        contributionList.add(GeoJsonGeometryConverter.convertToString(contribution));
+        contributionList.add(String.valueOf(contribution.getId()));
         hashMap.put("contributions", GeoJsonGeometryConverter.convertToString(contributionList));
         graphic.getAttributes().put("clusterID", clusterID);
         clusterID++;
@@ -345,10 +345,10 @@ public class ClusterVectorLayer {
         int count = (Integer) cluster.get("count");
         if (count == 1) {
             ArrayList<String> contributions = GeoJsonGeometryConverter.convertFromString((String) cluster.get("contributions"));
-            Contribution c = GeoJsonGeometryConverter.convertToContribution(contributions.get(0));
+//            Contribution c = GeoJsonGeometryConverter.convertToContribution(contributions.get(0));
 
             return new SimpleMarkerSymbol(SimpleMarkerSymbol.Style.CIRCLE,
-                    Color.parseColor("#1" + c.getId()), 18);
+                    Color.parseColor("#1" + contributions.get(0)), 18);
         } else if (count > 1) {
             int size;
             if (count <= 10) {
@@ -364,10 +364,9 @@ public class ClusterVectorLayer {
 
                 List<Symbol> symbols = new ArrayList<>();
                 for (String s : contributions) {
-                    Contribution c = GeoJsonGeometryConverter.convertToContribution(s);
 
                     SimpleMarkerSymbol markerSymbol = new SimpleMarkerSymbol(SimpleMarkerSymbol.Style.CIRCLE,
-                            Color.parseColor("#1" + c.getId()), size);
+                            Color.parseColor("#1" + s), size);
 
                     int offsetX = random.nextInt(30);
                     int offsetY = random.nextInt(30);
