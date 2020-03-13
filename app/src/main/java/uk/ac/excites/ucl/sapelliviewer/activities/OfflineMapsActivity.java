@@ -240,9 +240,8 @@ public class OfflineMapsActivity extends AppCompatActivity implements Navigation
 
                                                            // Open detail
                                                            ArrayList<String> list = GeoJsonGeometryConverter.convertFromString(String.valueOf(graphic.getAttributes().get("contributions")));
-                                                           Contribution contribution = GeoJsonGeometryConverter.convertToContribution(list.get(0));
-                                                           if (contribution != null)
-                                                               showContributionDetail(contribution.getId());
+                                                           if (list.size() > 0)
+                                                               showContributionDetail(Integer.valueOf(list.get(0)));
                                                        } else {
                                                            graphic.setSelected(false);
                                                        }
